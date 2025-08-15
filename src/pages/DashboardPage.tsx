@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { MdLogout } from "react-icons/md";
 import { AuthContext } from "../context/auth/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 type Priority = "ONE" | "TWO" | "THREE";
 
@@ -15,13 +16,23 @@ const formatPriority = (priority: Priority) => {
   }
 };
 
+enum AttentionType {
+  New = "NEW",
+  Estranged = "ESTRANGED",
+}
+
 export const DashboardPage = () => {
+  const navigate = useNavigate();
+
   const token = JSON.parse(localStorage.getItem("token") ?? "");
   const user = JSON.parse(localStorage.getItem("user") ?? "");
 
   const auth = useContext(AuthContext);
 
   const [urgentLeads, setUrgentLeads] = useState([]);
+  const [attentionType, setAttentionType] = useState<AttentionType>(
+    AttentionType.New
+  );
 
   useEffect(() => {
     axios
@@ -30,7 +41,7 @@ export const DashboardPage = () => {
       })
       .then((res) => {
         console.log(res);
-        setUrgentLeads(res.data);
+        setUrgentLeads(res.data.slice(0, 5));
       });
   }, []);
 
@@ -45,7 +56,32 @@ export const DashboardPage = () => {
         </div>
 
         <div>
-          <h3 className="text-2xl mb-4">My leads</h3>
+          <div className="flex justify-between">
+            <h3 className="text-2xl mb-4">Leads Requiring Attention</h3>
+
+            <div className="flex space-x-4 items-center">
+              <span
+                onClick={() => setAttentionType(AttentionType.New)}
+                className={
+                  attentionType === AttentionType.New
+                    ? "pb-1 border-b-3 border-b-green-primary font-semibold"
+                    : "pb-1 cursor-pointer"
+                }
+              >
+                New
+              </span>
+              <span
+                onClick={() => setAttentionType(AttentionType.Estranged)}
+                className={
+                  attentionType === AttentionType.Estranged
+                    ? "pb-1 border-b-3 border-b-green-primary font-semibold"
+                    : "pb-1 cursor-pointer"
+                }
+              >
+                Estranged
+              </span>
+            </div>
+          </div>
 
           <div className=" bg-light-grey w-full rounded-lg p-4">
             <table className="w-full border-separate border-spacing-y-4 mb-4">
@@ -72,7 +108,10 @@ export const DashboardPage = () => {
             </table>
 
             <div className="w-full flex justify-center">
-              <button className="bg-white w-[200px] py-2 rounded-lg">
+              <button
+                className="bg-white w-[200px] py-2 rounded-lg cursor-pointer"
+                onClick={() => navigate("/leads")}
+              >
                 View All Leads
               </button>
             </div>

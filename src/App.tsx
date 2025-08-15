@@ -5,6 +5,7 @@ import LoginPage from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import PrivateRoute from "./components/PrivateRoute";
 import PublicRoute from "./components/PublicRoute";
+import LeadsPage from "./pages/LeadsPage";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
 
       <Route element={<PrivateRoute />}>
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/leads" element={<LeadsPage />} />
       </Route>
     </Routes>
   );
