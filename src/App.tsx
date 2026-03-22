@@ -6,6 +6,10 @@ import { DashboardPage } from "./pages/DashboardPage";
 import PrivateRoute from "./components/PrivateRoute";
 import PublicRoute from "./components/PublicRoute";
 import LeadsPage from "./pages/LeadsPage";
+import AddLeadPage from "./pages/AddLeadPage";
+import LeadDetailPage from "./pages/LeadDetailPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
+import PipelinePage from "./pages/PipelinePage";
 
 function App() {
   return (
@@ -18,6 +22,10 @@ function App() {
       <Route element={<PrivateRoute />}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/leads" element={<LeadsPage />} />
+        <Route path="/leads/:id" element={<LeadDetailPage />} />
+        <Route path="/add-lead" element={<AddLeadPage />} />
+        <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/pipeline" element={<PipelinePage />} />
       </Route>
     </Routes>
   );

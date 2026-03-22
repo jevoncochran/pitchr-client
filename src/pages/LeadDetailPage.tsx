@@ -1,0 +1,1451 @@
+import { useEffect, useState, useContext, FormEvent } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import InternalLayout from "../components/InternalLayout";
+import { AuthContext } from "../context/auth/AuthContext";
+import { PipelineStage } from "../types.d";
+
+const PIPELINE_STAGES = [
+  { value: PipelineStage.New, label: "New" },
+  { value: PipelineStage.Contacted, label: "Contacted" },
+  { value: PipelineStage.Engaged, label: "Engaged" },
+  { value: PipelineStage.MeetingScheduled, label: "Meeting Scheduled" },
+  { value: PipelineStage.ProposalSent, label: "Proposal Sent" },
+  { value: PipelineStage.Converted, label: "Converted" },
+  { value: PipelineStage.Dormant, label: "Dormant" },
+];
+
+// Follow-up sequence: what the check-in asks at step N (after email N)
+const CHECK_IN_LABELS: Record<number, string> = {
+  1: "Did they respond to your initial email?",
+  2: "Did they respond to email 2?",
+  3: "Did they respond to email 3?",
+  4: "Did they respond to your email after Visit 2?",
+  5: "Did they respond to email 5?",
+  6: "Did they respond to email 6?",
+  7: "Did they respond to your email after Visit 3?",
+  8: "Did they respond to email 8?",
+  9: "Did they respond to email 9?",
+};
+
+// What happens at each step if no response
+const NEXT_ACTION_LABELS: Record<number, string> = {
+  1: "Email 2",
+  2: "Email 3",
+  3: "Visit 2",
+  4: "Email 5",
+  5: "Email 6",
+  6: "Visit 3",
+  7: "Email 8",
+  8: "Email 9",
+  9: "Deprioritize — full cycle complete",
+};
+
+const TOUCHPOINT_TYPES = [
+  { value: "IN_PERSON", label: "In Person" },
+  { value: "MEETING", label: "Meeting" },
+  { value: "CALL", label: "Call" },
+  { value: "EMAIL", label: "Email" },
+  { value: "TEXT", label: "Text" },
+  { value: "INSTAGRAM_DM", label: "Instagram DM" },
+];
+
+const stageColors: Record<string, string> = {
+  NEW: "bg-gray-100 text-gray-700",
+  CONTACTED: "bg-blue-100 text-blue-700",
+  ENGAGED: "bg-yellow-100 text-yellow-700",
+  MEETING_SCHEDULED: "bg-purple-100 text-purple-700",
+  PROPOSAL_SENT: "bg-orange-100 text-orange-700",
+  CONVERTED: "bg-green-100 text-green-700",
+  DORMANT: "bg-gray-200 text-gray-500",
+};
+
+const LeadDetailPage = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const auth = useContext(AuthContext);
+  const token = JSON.parse(localStorage.getItem("token") ?? "");
+  const user = auth?.user as { id: string; firstName: string } | null;
+
+  const authHeaders = { Authorization: `Bearer ${token}` };
+
+  const [lead, setLead] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [industries, setIndustries] = useState<any[]>([]);
+  const [businessTypes, setBusinessTypes] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+
+  // Edit mode
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState<any>({});
+  const [saving, setSaving] = useState(false);
+
+  // Location form state
+  const [showLocationForm, setShowLocationForm] = useState(false);
+  const [locationForm, setLocationForm] = useState({
+    addressLine1: "", addressLine2: "", city: "", state: "", zip: "",
+    phoneNumber: "", phoneLabel: "MOBILE",
+  });
+  const [submittingLocation, setSubmittingLocation] = useState(false);
+
+  // Touchpoint form state
+  const [showTouchpointForm, setShowTouchpointForm] = useState(false);
+  const [tpType, setTpType] = useState("IN_PERSON");
+  const [tpDate, setTpDate] = useState<Date>(new Date());
+  const [tpReceivedResponse, setTpReceivedResponse] = useState(false);
+  const [tpSummary, setTpSummary] = useState("");
+  const [submittingTp, setSubmittingTp] = useState(false);
+
+  // Touchpoint edit state
+  const [editingTpId, setEditingTpId] = useState<string | null>(null);
+  const [editTpForm, setEditTpForm] = useState<any>({});
+  const [savingTp, setSavingTp] = useState(false);
+
+  // Reminder form state
+  const [showReminderForm, setShowReminderForm] = useState(false);
+  const [reminderForm, setReminderForm] = useState({
+    type: "EMAIL",
+    dueDate: new Date(),
+    note: "",
+  });
+  const [submittingReminder, setSubmittingReminder] = useState(false);
+
+  // Note form state
+  const [showNoteForm, setShowNoteForm] = useState(false);
+  const [noteText, setNoteText] = useState("");
+  const [submittingNote, setSubmittingNote] = useState(false);
+
+  const fetchLead = () => {
+    axios
+      .get(`http://localhost:3000/api/leads/${id}`, { headers: authHeaders })
+      .then((res) => {
+        setLead(res.data);
+        setLoading(false);
+      })
+      .catch(() => {
+        alert("Failed to load lead");
+        navigate("/leads");
+      });
+  };
+
+  useEffect(() => {
+    fetchLead();
+    Promise.all([
+      axios.get("http://localhost:3000/api/industries", { headers: authHeaders }),
+      axios.get("http://localhost:3000/api/business-types", { headers: authHeaders }),
+      axios.get("http://localhost:3000/api/users", { headers: authHeaders }),
+    ]).then(([indRes, btRes, usersRes]) => {
+      setIndustries(indRes.data);
+      setBusinessTypes(btRes.data);
+      setUsers(usersRes.data);
+    });
+  }, [id]);
+
+  const startEdit = () => {
+    setEditForm({
+      business: lead.business ?? "",
+      email: lead.email ?? "",
+      website: lead.website ?? "",
+      source: lead.source ?? "",
+      discoveredVia: lead.discoveredVia ?? "",
+      discoveredViaOther: lead.discoveredViaOther ?? "",
+      industryId: lead.industryId ?? "",
+      businessTypeId: lead.businessTypeId ?? "",
+      isBlackOwned: lead.isBlackOwned ?? false,
+      isLatinoOwned: lead.isLatinoOwned ?? false,
+      isWomanOwned: lead.isWomanOwned ?? false,
+      isImmigrantOwned: lead.isImmigrantOwned ?? false,
+    });
+    setEditMode(true);
+  };
+
+  const handleEditSave = () => {
+    setSaving(true);
+    const payload: any = {
+      business: editForm.business,
+      email: editForm.email || null,
+      website: editForm.website || null,
+      source: editForm.source || null,
+      discoveredVia: editForm.discoveredVia || null,
+      discoveredViaOther: editForm.discoveredViaOther || null,
+      isBlackOwned: editForm.isBlackOwned,
+      isLatinoOwned: editForm.isLatinoOwned,
+      isWomanOwned: editForm.isWomanOwned,
+      isImmigrantOwned: editForm.isImmigrantOwned,
+    };
+    if (editForm.industryId) {
+      payload.industry = { connect: { id: editForm.industryId } };
+    }
+    if (editForm.businessTypeId) {
+      payload.businessType = { connect: { id: editForm.businessTypeId } };
+    }
+    axios
+      .patch(`http://localhost:3000/api/leads/${id}`, payload, { headers: authHeaders })
+      .then(() => {
+        setEditMode(false);
+        fetchLead();
+      })
+      .catch(() => alert("Failed to save changes"))
+      .finally(() => setSaving(false));
+  };
+
+  const handleAssigneeChange = (userId: string | null) => {
+    const payload = userId
+      ? { assignedTo: { connect: { id: userId } } }
+      : { assignedTo: { disconnect: true } };
+    axios
+      .patch(`http://localhost:3000/api/leads/${id}`, payload, { headers: authHeaders })
+      .then(() => fetchLead())
+      .catch(() => alert("Failed to update assignee"));
+  };
+
+  const handleStageChange = (stage: PipelineStage) => {
+    const update: any = { pipelineStage: stage };
+    if (stage === PipelineStage.Converted && !lead.convertedAt) {
+      update.convertedAt = new Date().toISOString();
+    }
+    axios
+      .patch(`http://localhost:3000/api/leads/${id}`, update, {
+        headers: authHeaders,
+      })
+      .then(() => setLead((prev: any) => ({ ...prev, ...update })))
+      .catch(() => alert("Failed to update stage"));
+  };
+
+  const handleLocationSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setSubmittingLocation(true);
+    try {
+      const locRes = await axios.post(
+        "http://localhost:3000/api/locations",
+        {
+          addressLine1: locationForm.addressLine1,
+          addressLine2: locationForm.addressLine2 || null,
+          city: locationForm.city,
+          state: locationForm.state,
+          zip: locationForm.zip,
+          business: { connect: { id } },
+        },
+        { headers: authHeaders }
+      );
+      // If a phone number was provided, create it linked to the location
+      if (locationForm.phoneNumber) {
+        await axios.post(
+          "http://localhost:3000/api/phone-numbers",
+          {
+            number: locationForm.phoneNumber,
+            label: locationForm.phoneLabel,
+            location: { connect: { id: locRes.data.id } },
+          },
+          { headers: authHeaders }
+        );
+      }
+      // If this is the first location, set it as primary
+      if (!lead.locations || lead.locations.length === 0) {
+        await axios.patch(
+          `http://localhost:3000/api/leads/${id}`,
+          { primaryLocation: { connect: { id: locRes.data.id } } },
+          { headers: authHeaders }
+        );
+      }
+      setShowLocationForm(false);
+      setLocationForm({ addressLine1: "", addressLine2: "", city: "", state: "", zip: "", phoneNumber: "", phoneLabel: "MOBILE" });
+      fetchLead();
+    } catch {
+      alert("Failed to add location");
+    } finally {
+      setSubmittingLocation(false);
+    }
+  };
+
+  const handleTouchpointSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setSubmittingTp(true);
+
+    try {
+      await axios.post(
+        "http://localhost:3000/api/touchpoints",
+        {
+          date: tpDate.toISOString(),
+          type: tpType,
+          receivedResponse: tpReceivedResponse,
+          summary: tpSummary,
+          lead: { connect: { id } },
+          contactedBy: { connect: { id: user?.id } },
+        },
+        { headers: authHeaders }
+      );
+
+      const wasInPerson = tpType === "IN_PERSON";
+      const wasEmail = tpType === "EMAIL";
+
+      setShowTouchpointForm(false);
+      setTpType("IN_PERSON");
+      setTpDate(new Date());
+      setTpReceivedResponse(false);
+      setTpSummary("");
+
+      if (wasInPerson) {
+        // Start sequence if not already running
+        if (!lead.sequenceActive) {
+          await axios.patch(
+            `http://localhost:3000/api/leads/${id}`,
+            { sequenceActive: true },
+            { headers: authHeaders }
+          );
+        }
+        // Immediately create "Did you send the follow-up email?" check
+        await axios.post(
+          "http://localhost:3000/api/reminders",
+          {
+            type: "EMAIL",
+            dueDate: new Date().toISOString(),
+            note: "Did you send the follow-up email?",
+            isEmailSentCheck: true,
+            lead: { connect: { id } },
+          },
+          { headers: authHeaders }
+        );
+      } else if (wasEmail && lead.sequenceActive) {
+        // Auto-complete any pending "did you send email?" checks — email was just logged
+        const pendingEmailCheck = lead.reminders?.find(
+          (r: any) => r.isEmailSentCheck && !r.completed
+        );
+        if (pendingEmailCheck) {
+          await axios.patch(
+            `http://localhost:3000/api/reminders/${pendingEmailCheck.id}/complete`,
+            {},
+            { headers: authHeaders }
+          );
+        }
+
+        // Advance sequence step and auto-create check-in reminder for 4 days
+        const newStep = (lead.sequenceStep ?? 0) + 1;
+        await axios.patch(
+          `http://localhost:3000/api/leads/${id}`,
+          { sequenceStep: newStep },
+          { headers: authHeaders }
+        );
+        const checkInDate = new Date();
+        checkInDate.setDate(checkInDate.getDate() + 4);
+        await axios.post(
+          "http://localhost:3000/api/reminders",
+          {
+            type: "EMAIL",
+            dueDate: checkInDate.toISOString(),
+            note: CHECK_IN_LABELS[newStep] ?? "Did they respond?",
+            isCheckIn: true,
+            lead: { connect: { id } },
+          },
+          { headers: authHeaders }
+        );
+      }
+
+      fetchLead();
+    } catch {
+      alert("Failed to log touchpoint");
+    } finally {
+      setSubmittingTp(false);
+    }
+  };
+
+  const handleReminderSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setSubmittingReminder(true);
+    axios
+      .post(
+        "http://localhost:3000/api/reminders",
+        {
+          type: reminderForm.type,
+          dueDate: reminderForm.dueDate.toISOString(),
+          note: reminderForm.note || null,
+          lead: { connect: { id } },
+        },
+        { headers: authHeaders }
+      )
+      .then(() => {
+        setShowReminderForm(false);
+        setReminderForm({ type: "EMAIL", dueDate: new Date(), note: "" });
+        fetchLead();
+      })
+      .catch(() => alert("Failed to schedule reminder"))
+      .finally(() => setSubmittingReminder(false));
+  };
+
+  const handleReminderComplete = (reminderId: string) => {
+    axios
+      .patch(
+        `http://localhost:3000/api/reminders/${reminderId}/complete`,
+        {},
+        { headers: authHeaders }
+      )
+      .then(fetchLead)
+      .catch(() => alert("Failed to mark reminder complete"));
+  };
+
+  const handleCheckInRespond = (reminderId: string, responded: boolean) => {
+    axios
+      .patch(
+        `http://localhost:3000/api/reminders/${reminderId}/respond`,
+        { responded },
+        { headers: authHeaders }
+      )
+      .then(fetchLead)
+      .catch(() => alert("Failed to update check-in"));
+  };
+
+  const startEditTp = (tp: any) => {
+    setEditingTpId(tp.id);
+    setEditTpForm({
+      type: tp.type,
+      date: new Date(tp.date),
+      summary: tp.summary ?? "",
+      receivedResponse: tp.receivedResponse ?? false,
+    });
+  };
+
+  const handleTouchpointEditSave = () => {
+    setSavingTp(true);
+    axios
+      .patch(
+        `http://localhost:3000/api/touchpoints/${editingTpId}`,
+        {
+          type: editTpForm.type,
+          date: editTpForm.date.toISOString(),
+          summary: editTpForm.summary || null,
+          receivedResponse: editTpForm.receivedResponse,
+        },
+        { headers: authHeaders }
+      )
+      .then(() => {
+        setEditingTpId(null);
+        fetchLead();
+      })
+      .catch(() => alert("Failed to save touchpoint"))
+      .finally(() => setSavingTp(false));
+  };
+
+  const handleNoteSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setSubmittingNote(true);
+
+    axios
+      .post(
+        "http://localhost:3000/api/notes",
+        {
+          text: noteText,
+          lead: { connect: { id } },
+          author: { connect: { id: user?.id } },
+        },
+        { headers: authHeaders }
+      )
+      .then(() => {
+        setShowNoteForm(false);
+        setNoteText("");
+        fetchLead();
+      })
+      .catch(() => alert("Failed to add note"))
+      .finally(() => setSubmittingNote(false));
+  };
+
+  if (loading) {
+    return (
+      <InternalLayout>
+        <div className="p-8">Loading...</div>
+      </InternalLayout>
+    );
+  }
+
+  const stageLabel =
+    PIPELINE_STAGES.find((s) => s.value === lead.pipelineStage)?.label ??
+    lead.pipelineStage;
+
+  return (
+    <InternalLayout>
+      <div className="p-8 max-w-4xl w-full">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <button
+              onClick={() => navigate("/leads")}
+              className="text-sm text-gray-500 hover:text-gray-700 mb-2 block"
+            >
+              ← Back to Leads
+            </button>
+            <h1 className="text-2xl font-bold">{lead.business}</h1>
+          </div>
+          <span
+            className={`px-3 py-1 rounded-full text-sm font-medium ${
+              stageColors[lead.pipelineStage]
+            }`}
+          >
+            {stageLabel}
+          </span>
+        </div>
+
+        {/* QUICK ACTIONS */}
+        <div className="flex gap-3 mt-4 mb-6">
+          {lead.email ? (
+            <a
+              href={`mailto:${lead.email}`}
+              className="px-3 py-1.5 rounded-full bg-gray-100 text-sm hover:bg-gray-200 transition"
+            >
+              Email
+            </a>
+          ) : (
+            <span className="px-3 py-1.5 rounded-full bg-gray-50 text-sm text-gray-300 border border-gray-200 cursor-not-allowed">
+              Email
+            </span>
+          )}
+          {lead.website ? (
+            <a
+              href={lead.website}
+              target="_blank"
+              className="px-3 py-1.5 rounded-full bg-gray-100 text-sm hover:bg-gray-200 transition"
+            >
+              Website
+            </a>
+          ) : (
+            <span className="px-3 py-1.5 rounded-full bg-gray-50 text-sm text-gray-300 border border-gray-200 cursor-not-allowed">
+              Website
+            </span>
+          )}
+        </div>
+
+        {/* Pipeline Stage Selector */}
+        <div className="bg-white border rounded-lg p-4 mb-6">
+          <p className="text-sm font-semibold mb-3">Pipeline Stage</p>
+          <div className="flex gap-2 flex-wrap">
+            {PIPELINE_STAGES.map((stage) => (
+              <button
+                key={stage.value}
+                onClick={() => handleStageChange(stage.value)}
+                className={`px-3 py-1 rounded-full text-sm font-medium border transition ${
+                  lead.pipelineStage === stage.value
+                    ? "bg-green-primary text-white border-green-primary"
+                    : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                {stage.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Gone silent warning */}
+        {(() => {
+          const touchpoints = lead.touchPoint;
+          if (!touchpoints || touchpoints.length === 0) return null;
+          const days = Math.floor(
+            (Date.now() - new Date(touchpoints[0].date).getTime()) /
+              (1000 * 60 * 60 * 24)
+          );
+          if (days < 7) return null;
+          return (
+            <div className="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-lg px-4 py-2.5 mb-6 text-sm">
+              <span className="text-orange-500">⏰</span>
+              <span className="text-orange-700 font-medium">
+                No contact in {days} day{days !== 1 ? "s" : ""}
+              </span>
+              <span className="text-orange-400 text-xs ml-1">
+                — last touchpoint on{" "}
+                {new Date(touchpoints[0].date).toLocaleDateString()}
+              </span>
+            </div>
+          );
+        })()}
+
+        {/* Lead Info */}
+        <div className="bg-white border rounded-lg p-6 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <p className="text-sm font-semibold uppercase tracking-wide text-gray-400">
+              Lead Info
+            </p>
+            {!editMode ? (
+              <button
+                onClick={startEdit}
+                className="text-sm text-gray-500 border rounded-lg px-3 py-1 hover:bg-gray-50"
+              >
+                Edit
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setEditMode(false)}
+                  className="text-sm text-gray-500 border rounded-lg px-3 py-1 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleEditSave}
+                  disabled={saving}
+                  className="text-sm bg-green-primary text-white rounded-lg px-3 py-1"
+                >
+                  {saving ? "Saving..." : "Save"}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {!editMode ? (
+            <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Business Name</p>
+                <p className="text-sm font-medium text-gray-800">{lead.business}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Industry</p>
+                <p className="text-sm font-medium text-gray-800">{lead.industry?.name ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Business Type</p>
+                <p className="text-sm font-medium text-gray-800">{lead.businessType?.name ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Email</p>
+                <p className="text-sm font-medium text-gray-800">{lead.email ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Website</p>
+                <p className="text-sm font-medium text-gray-800">{lead.website ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Lead Source</p>
+                <p className="text-sm font-medium text-gray-800 capitalize">{lead.source?.toLowerCase() ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">How They Heard About Us</p>
+                <p className="text-sm font-medium text-gray-800 capitalize">
+                  {lead.discoveredVia === "OTHER"
+                    ? lead.discoveredViaOther ?? "Other"
+                    : lead.discoveredVia?.toLowerCase().replace("_", " ") ?? "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Assigned To</p>
+                <div className="flex items-center gap-2">
+                  {lead.assignedTo ? (
+                    <span className="text-sm font-medium text-gray-800">
+                      {lead.assignedTo.firstName} {lead.assignedTo.lastName}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-gray-400">Unassigned</span>
+                  )}
+                  <select
+                    value={lead.assignedToId ?? ""}
+                    onChange={(e) => handleAssigneeChange(e.target.value || null)}
+                    className="ml-auto text-xs border rounded-lg px-2 py-1 bg-white text-gray-600 focus:outline-none"
+                  >
+                    <option value="">Unassigned</option>
+                    {users.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.firstName} {u.lastName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="col-span-2">
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Owner Identity</p>
+                <div className="flex gap-2">
+                  {lead.isBlackOwned && <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">Black-owned</span>}
+                  {lead.isLatinoOwned && <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">Latino-owned</span>}
+                  {lead.isWomanOwned && <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">Woman-owned</span>}
+                  {lead.isImmigrantOwned && <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">Immigrant-owned</span>}
+                  {!lead.isBlackOwned && !lead.isLatinoOwned && !lead.isWomanOwned && !lead.isImmigrantOwned && (
+                    <span className="text-sm text-gray-400">—</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Business Name</label>
+                <input
+                  type="text"
+                  value={editForm.business}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, business: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Industry</label>
+                <select
+                  value={editForm.industryId}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, industryId: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none bg-white"
+                >
+                  <option value="">Select...</option>
+                  {industries.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Business Type</label>
+                <select
+                  value={editForm.businessTypeId}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, businessTypeId: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none bg-white"
+                >
+                  <option value="">Select...</option>
+                  {businessTypes.map((bt) => <option key={bt.id} value={bt.id}>{bt.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Email</label>
+                <input
+                  type="text"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, email: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Website</label>
+                <input
+                  type="text"
+                  value={editForm.website}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, website: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Lead Source</label>
+                <select
+                  value={editForm.source}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, source: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none bg-white"
+                >
+                  <option value="">Select...</option>
+                  <option value="OUTREACH">Outreach</option>
+                  <option value="REFERRAL">Referral</option>
+                  <option value="FORM">Form</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">How They Heard About Us</label>
+                <select
+                  value={editForm.discoveredVia}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, discoveredVia: e.target.value, discoveredViaOther: "" }))}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none bg-white"
+                >
+                  <option value="">Select...</option>
+                  <option value="OUTREACH">Outreach</option>
+                  <option value="REFERRAL">Referral</option>
+                  <option value="INSTAGRAM">Instagram</option>
+                  <option value="FACEBOOK">Facebook</option>
+                  <option value="TIKTOK">TikTok</option>
+                  <option value="YOUTUBE">YouTube</option>
+                  <option value="GOOGLE">Google</option>
+                  <option value="OTHER">Other</option>
+                </select>
+                {editForm.discoveredVia === "OTHER" && (
+                  <input
+                    type="text"
+                    value={editForm.discoveredViaOther}
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, discoveredViaOther: e.target.value }))}
+                    placeholder="Please explain..."
+                    className="w-full mt-2 px-3 py-2 border rounded-lg text-sm focus:outline-none"
+                  />
+                )}
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs uppercase tracking-wide text-gray-400 mb-2 block">Owner Identity</label>
+                <div className="flex gap-2">
+                  {[
+                    { key: "isBlackOwned", label: "Black-owned" },
+                    { key: "isLatinoOwned", label: "Latino-owned" },
+                    { key: "isWomanOwned", label: "Woman-owned" },
+                    { key: "isImmigrantOwned", label: "Immigrant-owned" },
+                  ].map(({ key, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setEditForm((f: any) => ({ ...f, [key]: !f[key] }))}
+                      className={`px-3 py-1 rounded-full border text-xs font-medium transition ${
+                        editForm[key]
+                          ? "bg-green-primary text-white border-green-primary"
+                          : "bg-white border-gray-300 text-gray-600"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Locations */}
+        <div className="bg-white border rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold">
+              Locations ({lead.locations?.length ?? 0})
+            </p>
+            <button
+              onClick={() => setShowLocationForm((v) => !v)}
+              className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
+            >
+              {showLocationForm ? "Cancel" : "+ Add Location"}
+            </button>
+          </div>
+
+          {showLocationForm && (
+            <form onSubmit={handleLocationSubmit} className="bg-gray-50 rounded-lg p-4 mb-4 text-sm">
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="col-span-2">
+                  <label className="block font-semibold mb-1">Address Line 1</label>
+                  <input
+                    required
+                    type="text"
+                    value={locationForm.addressLine1}
+                    onChange={(e) => setLocationForm((f) => ({ ...f, addressLine1: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block font-semibold mb-1">Address Line 2 <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <input
+                    type="text"
+                    value={locationForm.addressLine2}
+                    onChange={(e) => setLocationForm((f) => ({ ...f, addressLine2: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">City</label>
+                  <input
+                    required
+                    type="text"
+                    value={locationForm.city}
+                    onChange={(e) => setLocationForm((f) => ({ ...f, city: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">State</label>
+                  <input
+                    required
+                    type="text"
+                    value={locationForm.state}
+                    onChange={(e) => setLocationForm((f) => ({ ...f, state: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Zip</label>
+                  <input
+                    required
+                    type="text"
+                    value={locationForm.zip}
+                    onChange={(e) => setLocationForm((f) => ({ ...f, zip: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mb-4 border-t pt-3">
+                <div>
+                  <label className="block font-semibold mb-1">Phone Number <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <input
+                    type="text"
+                    value={locationForm.phoneNumber}
+                    onChange={(e) => setLocationForm((f) => ({ ...f, phoneNumber: e.target.value }))}
+                    placeholder="e.g. 813-555-1234"
+                    className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Phone Type</label>
+                  <select
+                    value={locationForm.phoneLabel}
+                    onChange={(e) => setLocationForm((f) => ({ ...f, phoneLabel: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                  >
+                    <option value="MOBILE">Mobile</option>
+                    <option value="OFFICE">Office</option>
+                    <option value="HOME">Home</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={submittingLocation}
+                  className="bg-green-primary text-white px-4 py-1.5 rounded-lg"
+                >
+                  {submittingLocation ? "Saving..." : "Save Location"}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {lead.locations?.length === 0 ? (
+            <p className="text-sm text-gray-400">No locations added yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {lead.locations?.map((loc: any) => (
+                <div key={loc.id} className="border rounded-lg p-3 text-sm">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-medium text-gray-800">
+                        {loc.addressLine1}
+                        {loc.addressLine2 && `, ${loc.addressLine2}`}
+                      </p>
+                      <p className="text-gray-500">
+                        {loc.city}, {loc.state} {loc.zip}
+                      </p>
+                      {loc.phoneNumbers?.map((ph: any) => (
+                        <p key={ph.id} className="text-gray-500 mt-1">
+                          {ph.number}{" "}
+                          <span className="text-xs text-gray-400 capitalize">
+                            ({ph.label?.toLowerCase()})
+                          </span>
+                        </p>
+                      ))}
+                    </div>
+                    {lead.primaryLocationId === loc.id && (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                        Primary
+                      </span>
+                    )}
+                    {lead.primaryLocationId !== loc.id && (
+                      <button
+                        onClick={() =>
+                          axios
+                            .patch(
+                              `http://localhost:3000/api/leads/${id}`,
+                              { primaryLocation: { connect: { id: loc.id } } },
+                              { headers: authHeaders }
+                            )
+                            .then(fetchLead)
+                        }
+                        className="text-xs text-gray-400 hover:text-gray-700 underline"
+                      >
+                        Set as primary
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Reminders */}
+        <div className="bg-white border rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold">
+              Follow-up Reminders (
+              {lead.reminders?.filter((r: any) => !r.completed).length ?? 0})
+            </p>
+            <button
+              onClick={() => setShowReminderForm((v) => !v)}
+              className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
+            >
+              {showReminderForm ? "Cancel" : "+ Schedule"}
+            </button>
+          </div>
+
+          {showReminderForm && (
+            <form
+              onSubmit={handleReminderSubmit}
+              className="bg-gray-50 rounded-lg p-4 mb-4 text-sm"
+            >
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="block font-semibold mb-1">Type</label>
+                  <select
+                    value={reminderForm.type}
+                    onChange={(e) =>
+                      setReminderForm((f) => ({ ...f, type: e.target.value }))
+                    }
+                    className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                  >
+                    {TOUCHPOINT_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Due Date</label>
+                  <DatePicker
+                    selected={reminderForm.dueDate}
+                    onChange={(date) =>
+                      date && setReminderForm((f) => ({ ...f, dueDate: date }))
+                    }
+                    dateFormat="MM/dd/yyyy"
+                    className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                    wrapperClassName="w-full"
+                  />
+                </div>
+              </div>
+              <div className="mb-3">
+                <label className="block font-semibold mb-1">
+                  Note{" "}
+                  <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={reminderForm.note}
+                  onChange={(e) =>
+                    setReminderForm((f) => ({ ...f, note: e.target.value }))
+                  }
+                  placeholder="e.g. Send reel link, follow up on proposal..."
+                  className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                />
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={submittingReminder}
+                  className="bg-green-primary text-white px-4 py-1.5 rounded-lg"
+                >
+                  {submittingReminder ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Reminder list */}
+          {lead.reminders?.filter((r: any) => !r.completed).length === 0 ? (
+            <p className="text-sm text-gray-400">No reminders scheduled.</p>
+          ) : (
+            <div className="space-y-2">
+              {lead.reminders
+                ?.filter((r: any) => !r.completed)
+                .map((r: any) => {
+                  const due = new Date(r.dueDate);
+                  const now = new Date();
+                  const isOverdue =
+                    due < now && due.toDateString() !== now.toDateString();
+                  const isToday = due.toDateString() === now.toDateString();
+
+                  // ── Email-sent check (compact urgent alert) ──────────
+                  if (r.isEmailSentCheck) {
+                    return (
+                      <div
+                        key={r.id}
+                        className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm bg-red-50 border border-red-300"
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="text-red-500 flex-shrink-0">⚠️</span>
+                          <span className="text-red-700 font-medium text-xs">
+                            Did you send the follow-up email?
+                          </span>
+                        </div>
+                        <div className="flex gap-1.5 flex-shrink-0">
+                          <button
+                            onClick={() => {
+                              setTpType("EMAIL");
+                              setShowTouchpointForm(true);
+                              document
+                                .getElementById("touchpoints-section")
+                                ?.scrollIntoView({ behavior: "smooth" });
+                            }}
+                            className="text-xs bg-green-primary text-white rounded px-2.5 py-1 font-medium whitespace-nowrap"
+                          >
+                            Yes? Log follow up →
+                          </button>
+                          <button
+                            onClick={() => handleReminderComplete(r.id)}
+                            className="text-xs bg-white border border-gray-300 text-gray-500 rounded px-2.5 py-1 font-medium whitespace-nowrap"
+                          >
+                            Skip
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (r.isCheckIn) {
+                    // Check-in reminder — shows Yes/No buttons
+                    return (
+                      <div
+                        key={r.id}
+                        className={`rounded-lg px-3 py-3 text-sm border ${
+                          isOverdue
+                            ? "bg-red-50 border-red-200"
+                            : isToday
+                            ? "bg-yellow-50 border-yellow-200"
+                            : "bg-blue-50 border-blue-100"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-medium text-gray-800">
+                              {r.note ?? "Did they respond?"}
+                            </p>
+                            <p
+                              className={`text-xs mt-0.5 ${
+                                isOverdue
+                                  ? "text-red-500"
+                                  : isToday
+                                  ? "text-yellow-600"
+                                  : "text-blue-500"
+                              }`}
+                            >
+                              {isOverdue
+                                ? `Overdue · ${due.toLocaleDateString()}`
+                                : isToday
+                                ? "Today"
+                                : due.toLocaleDateString()}
+                              {r.isResponseCheck && " · Follow-up on their reply"}
+                            </p>
+                          </div>
+                          <span className="flex-shrink-0 text-xs bg-white border border-gray-200 text-gray-400 px-2 py-0.5 rounded">
+                            Check-in
+                          </span>
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => handleCheckInRespond(r.id, true)}
+                            className="flex-1 text-xs bg-green-primary text-white rounded py-1.5 font-medium"
+                          >
+                            Yes, they responded
+                          </button>
+                          <button
+                            onClick={() => handleCheckInRespond(r.id, false)}
+                            className="flex-1 text-xs bg-white border border-gray-300 text-gray-600 rounded py-1.5 font-medium hover:bg-gray-50"
+                          >
+                            No response
+                          </button>
+                        </div>
+                        {/* Show what "No response" will trigger */}
+                        {lead.sequenceStep != null &&
+                          NEXT_ACTION_LABELS[lead.sequenceStep] && (
+                            <p className="text-xs text-gray-400 mt-1.5">
+                              If no response →{" "}
+                              <span className="font-medium text-gray-600">
+                                {NEXT_ACTION_LABELS[lead.sequenceStep]}
+                              </span>
+                            </p>
+                          )}
+                      </div>
+                    );
+                  }
+
+                  // Regular action reminder
+                  return (
+                    <div
+                      key={r.id}
+                      className={`flex items-start justify-between rounded-lg px-3 py-2 text-sm border ${
+                        isOverdue
+                          ? "bg-red-50 border-red-100"
+                          : isToday
+                          ? "bg-yellow-50 border-yellow-100"
+                          : "bg-gray-50 border-gray-100"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-800">
+                            {TOUCHPOINT_TYPES.find((t) => t.value === r.type)
+                              ?.label ?? r.type}
+                          </span>
+                          <span
+                            className={`text-xs font-medium ${
+                              isOverdue
+                                ? "text-red-600"
+                                : isToday
+                                ? "text-yellow-600"
+                                : "text-gray-400"
+                            }`}
+                          >
+                            {isOverdue
+                              ? `Overdue · ${due.toLocaleDateString()}`
+                              : isToday
+                              ? "Today"
+                              : due.toLocaleDateString()}
+                          </span>
+                        </div>
+                        {r.note && (
+                          <p className="text-gray-500 mt-0.5">{r.note}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleReminderComplete(r.id)}
+                        className="ml-3 flex-shrink-0 text-xs text-gray-400 hover:text-green-600 border border-gray-200 rounded px-2 py-0.5 bg-white"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+
+          {/* Completed reminders (collapsed) */}
+          {lead.reminders?.filter((r: any) => r.completed).length > 0 && (
+            <details className="mt-3">
+              <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">
+                {lead.reminders.filter((r: any) => r.completed).length}{" "}
+                completed
+              </summary>
+              <div className="space-y-1 mt-2">
+                {lead.reminders
+                  .filter((r: any) => r.completed)
+                  .map((r: any) => (
+                    <div
+                      key={r.id}
+                      className="text-xs text-gray-400 flex items-center gap-2 pl-1"
+                    >
+                      <span className="line-through">
+                        {r.isCheckIn ? "Check-in" : TOUCHPOINT_TYPES.find((t) => t.value === r.type)?.label ?? r.type}{" "}
+                        · {new Date(r.dueDate).toLocaleDateString()}
+                      </span>
+                      {r.note && <span>— {r.note}</span>}
+                    </div>
+                  ))}
+              </div>
+            </details>
+          )}
+        </div>
+
+        {/* Touchpoints */}
+        <div id="touchpoints-section" className="bg-white border rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold">
+              Touchpoints ({lead.touchPoint?.length ?? 0})
+            </p>
+            <button
+              onClick={() => setShowTouchpointForm((v) => !v)}
+              className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
+            >
+              {showTouchpointForm ? "Cancel" : "+ Log Touchpoint"}
+            </button>
+          </div>
+
+          {showTouchpointForm && (
+            <form
+              onSubmit={handleTouchpointSubmit}
+              className="bg-gray-50 rounded-lg p-4 mb-4 text-sm"
+            >
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block font-semibold mb-1">Type</label>
+                  <select
+                    value={tpType}
+                    onChange={(e) => setTpType(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                  >
+                    {TOUCHPOINT_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Date</label>
+                  <DatePicker
+                    selected={tpDate}
+                    onChange={(date) => date && setTpDate(date)}
+                    dateFormat="MM/dd/yyyy"
+                    maxDate={new Date()}
+                    className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none text-sm"
+                    wrapperClassName="w-full"
+                  />
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="block font-semibold mb-1">Summary</label>
+                <textarea
+                  value={tpSummary}
+                  onChange={(e) => setTpSummary(e.target.value)}
+                  placeholder="What happened? Who did you speak to?"
+                  rows={3}
+                  className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none resize-none"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={tpReceivedResponse}
+                    onChange={(e) => setTpReceivedResponse(e.target.checked)}
+                  />
+                  <span>Received a response</span>
+                </label>
+                <button
+                  type="submit"
+                  disabled={submittingTp}
+                  className="bg-green-primary text-white px-4 py-1.5 rounded-lg"
+                >
+                  {submittingTp ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {lead.touchPoint?.length === 0 ? (
+            <p className="text-sm text-gray-400">No touchpoints logged yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {lead.touchPoint?.map((tp: any) =>
+                editingTpId === tp.id ? (
+                  <div key={tp.id} className="bg-gray-50 rounded-lg p-4 text-sm border">
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block font-semibold mb-1">Type</label>
+                        <select
+                          value={editTpForm.type}
+                          onChange={(e) => setEditTpForm((f: any) => ({ ...f, type: e.target.value }))}
+                          className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                        >
+                          {TOUCHPOINT_TYPES.map((t) => (
+                            <option key={t.value} value={t.value}>{t.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block font-semibold mb-1">Date</label>
+                        <DatePicker
+                          selected={editTpForm.date}
+                          onChange={(date) => date && setEditTpForm((f: any) => ({ ...f, date }))}
+                          dateFormat="MM/dd/yyyy"
+                          maxDate={new Date()}
+                          className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                          wrapperClassName="w-full"
+                        />
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <label className="block font-semibold mb-1">Summary</label>
+                      <textarea
+                        value={editTpForm.summary}
+                        onChange={(e) => setEditTpForm((f: any) => ({ ...f, summary: e.target.value }))}
+                        rows={3}
+                        className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none resize-none"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editTpForm.receivedResponse}
+                          onChange={(e) => setEditTpForm((f: any) => ({ ...f, receivedResponse: e.target.checked }))}
+                        />
+                        <span>Received a response</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEditingTpId(null)}
+                          className="text-sm text-gray-500 border rounded-lg px-3 py-1 hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleTouchpointEditSave}
+                          disabled={savingTp}
+                          className="text-sm bg-green-primary text-white rounded-lg px-3 py-1"
+                        >
+                          {savingTp ? "Saving..." : "Save"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    key={tp.id}
+                    className="border-l-2 border-green-primary pl-3 text-sm"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">
+                            {TOUCHPOINT_TYPES.find((t) => t.value === tp.type)?.label ?? tp.type}
+                          </span>
+                          <span className="text-gray-400">
+                            {new Date(tp.date).toLocaleDateString()}
+                          </span>
+                        </div>
+                        {tp.summary && (
+                          <p className="text-gray-600 mt-0.5">{tp.summary}</p>
+                        )}
+                        <p className="text-gray-400 text-xs mt-0.5">
+                          By {tp.contactedBy?.firstName} {tp.contactedBy?.lastName}
+                          {tp.receivedResponse && " · Got a response"}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => startEditTp(tp)}
+                        className="text-xs text-gray-400 hover:text-gray-700 ml-3 flex-shrink-0"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Notes */}
+        <div className="bg-white border rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold">
+              Notes ({lead.notes?.length ?? 0})
+            </p>
+            <button
+              onClick={() => setShowNoteForm((v) => !v)}
+              className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
+            >
+              {showNoteForm ? "Cancel" : "+ Add Note"}
+            </button>
+          </div>
+
+          {showNoteForm && (
+            <form
+              onSubmit={handleNoteSubmit}
+              className="bg-gray-50 rounded-lg p-4 mb-4 text-sm"
+            >
+              <textarea
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                placeholder="Add a note..."
+                rows={3}
+                className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none resize-none mb-3"
+              />
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={submittingNote}
+                  className="bg-green-primary text-white px-4 py-1.5 rounded-lg"
+                >
+                  {submittingNote ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {lead.notes?.length === 0 ? (
+            <p className="text-sm text-gray-400">No notes yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {lead.notes?.map((note: any) => (
+                <div
+                  key={note.id}
+                  className="border-l-2 border-gray-200 pl-3 text-sm"
+                >
+                  <p className="text-gray-700">{note.text}</p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    {note.author?.firstName} {note.author?.lastName} ·{" "}
+                    {new Date(note.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </InternalLayout>
+  );
+};
+
+export default LeadDetailPage;
