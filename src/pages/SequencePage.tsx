@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api";
 import { useNavigate } from "react-router-dom";
 import InternalLayout from "../components/InternalLayout";
 
@@ -231,15 +231,13 @@ const LeadCard = ({
 
 const SequencePage = () => {
   const navigate = useNavigate();
-  const token = JSON.parse(localStorage.getItem("token") ?? "");
-  const authHeaders = { Authorization: `Bearer ${token}` };
 
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:3000/api/leads", { headers: authHeaders })
+    api
+      .get("/api/leads")
       .then((res) => setLeads(res.data))
       .finally(() => setLoading(false));
   }, []);

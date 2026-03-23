@@ -1,5 +1,5 @@
 import { useState, ChangeEvent, FormEvent, useContext } from "react";
-import axios from "axios";
+import api from "../api";
 import { AuthContext } from "../context/auth/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -21,8 +21,8 @@ const LoginPage = () => {
     setLoading(true);
     setError("");
 
-    axios
-      .post("http://localhost:3000/api/auth/login", credentials)
+    api
+      .post("/api/auth/login", credentials)
       .then((res) => {
         const { user, access_token } = res.data;
         auth?.login(user, access_token);

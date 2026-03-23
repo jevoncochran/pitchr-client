@@ -1,6 +1,6 @@
 import { useEffect, useState, useContext, FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import InternalLayout from "../components/InternalLayout";
@@ -128,10 +128,8 @@ const LeadDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
-  const token = JSON.parse(localStorage.getItem("token") ?? "");
   const user = auth?.user as { id: string; firstName: string } | null;
 
-  const authHeaders = { Authorization: `Bearer ${token}` };
 
   const [lead, setLead] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -197,8 +195,8 @@ const LeadDetailPage = () => {
   const [savingContact, setSavingContact] = useState(false);
 
   const fetchContacts = () => {
-    axios
-      .get(`http://localhost:3000/api/contacts/lead/${id}`, { headers: authHeaders })
+    api
+      .get(`/api/contacts/lead/${id}`)
       .then((res) => setContacts(res.data))
       .catch(() => {});
   };
@@ -211,17 +209,17 @@ const LeadDetailPage = () => {
     setSavingContact(true);
     try {
       if (editingContactId) {
-        await axios.patch(
-          `http://localhost:3000/api/contacts/${editingContactId}`,
+        await api.patch(
+          `/api/contacts/${editingContactId}`,
           contactForm,
-          { headers: authHeaders }
+          
         );
         setEditingContactId(null);
       } else {
-        await axios.post(
-          "http://localhost:3000/api/contacts",
+        await api.post(
+          "/api/contacts",
           { ...contactForm, lead: { connect: { id } } },
-          { headers: authHeaders }
+          
         );
         setShowContactForm(false);
       }
@@ -236,7 +234,7 @@ const LeadDetailPage = () => {
 
   const handleContactDelete = async (contactId: string) => {
     try {
-      await axios.delete(`http://localhost:3000/api/contacts/${contactId}`, { headers: authHeaders });
+      await api.delete(`/api/contacts/${contactId}`);
       setDeletingContactId(null);
       fetchContacts();
     } catch {
@@ -254,8 +252,8 @@ const LeadDetailPage = () => {
   const [savingSocial, setSavingSocial] = useState(false);
 
   const fetchLead = () => {
-    axios
-      .get(`http://localhost:3000/api/leads/${id}`, { headers: authHeaders })
+    api
+      .get(`/api/leads/${id}`)
       .then((res) => {
         setLead(res.data);
         setLoading(false);
@@ -281,10 +279,10 @@ const LeadDetailPage = () => {
     fetchLead();
     fetchContacts();
     Promise.all([
-      axios.get("http://localhost:3000/api/industries", { headers: authHeaders }),
-      axios.get("http://localhost:3000/api/business-types", { headers: authHeaders }),
-      axios.get("http://localhost:3000/api/users", { headers: authHeaders }),
-      axios.get("http://localhost:3000/api/leads", { headers: authHeaders }),
+      api.get("/api/industries"),
+      api.get("/api/business-types"),
+      api.get("/api/users"),
+      api.get("/api/leads"),
     ]).then(([indRes, btRes, usersRes, leadsRes]) => {
       setIndustries(indRes.data);
       setBusinessTypes(btRes.data);
@@ -345,8 +343,8 @@ const LeadDetailPage = () => {
         ? { disconnect: true }
         : undefined;
     }
-    axios
-      .patch(`http://localhost:3000/api/leads/${id}`, payload, { headers: authHeaders })
+    api
+      .patch(`/api/leads/${id}`, payload)
       .then(() => {
         setEditMode(false);
         fetchLead();
@@ -367,8 +365,8 @@ const LeadDetailPage = () => {
       facebookHandle: socialForm.facebookHandle || null,
       facebookFollowers: socialForm.facebookFollowers ? parseInt(socialForm.facebookFollowers) : null,
     };
-    axios
-      .patch(`http://localhost:3000/api/leads/${id}`, payload, { headers: authHeaders })
+    api
+      .patch(`/api/leads/${id}`, payload)
       .then(() => { setEditingSocial(false); fetchLead(); })
       .catch(() => alert("Failed to save social info"))
       .finally(() => setSavingSocial(false));
@@ -378,8 +376,8 @@ const LeadDetailPage = () => {
     const payload = userId
       ? { assignedTo: { connect: { id: userId } } }
       : { assignedTo: { disconnect: true } };
-    axios
-      .patch(`http://localhost:3000/api/leads/${id}`, payload, { headers: authHeaders })
+    api
+      .patch(`/api/leads/${id}`, payload)
       .then(() => fetchLead())
       .catch(() => alert("Failed to update assignee"));
   };
@@ -389,9 +387,8 @@ const LeadDetailPage = () => {
     if (stage === PipelineStage.Converted && !lead.convertedAt) {
       update.convertedAt = new Date().toISOString();
     }
-    axios
-      .patch(`http://localhost:3000/api/leads/${id}`, update, {
-        headers: authHeaders,
+    api
+      .patch(`/api/leads/${id}`, update, {
       })
       .then(() => setLead((prev: any) => ({ ...prev, ...update })))
       .catch(() => alert("Failed to update stage"));
@@ -401,8 +398,8 @@ const LeadDetailPage = () => {
     e.preventDefault();
     setSubmittingLocation(true);
     try {
-      const locRes = await axios.post(
-        "http://localhost:3000/api/locations",
+      const locRes = await api.post(
+        "/api/locations",
         {
           addressLine1: locationForm.addressLine1,
           addressLine2: locationForm.addressLine2 || null,
@@ -411,26 +408,26 @@ const LeadDetailPage = () => {
           zip: locationForm.zip,
           business: { connect: { id } },
         },
-        { headers: authHeaders }
+        
       );
       // If a phone number was provided, create it linked to the location
       if (locationForm.phoneNumber) {
-        await axios.post(
-          "http://localhost:3000/api/phone-numbers",
+        await api.post(
+          "/api/phone-numbers",
           {
             number: locationForm.phoneNumber,
             label: locationForm.phoneLabel,
             location: { connect: { id: locRes.data.id } },
           },
-          { headers: authHeaders }
+          
         );
       }
       // If this is the first location, set it as primary
       if (!lead.locations || lead.locations.length === 0) {
-        await axios.patch(
-          `http://localhost:3000/api/leads/${id}`,
+        await api.patch(
+          `/api/leads/${id}`,
           { primaryLocation: { connect: { id: locRes.data.id } } },
-          { headers: authHeaders }
+          
         );
       }
       setShowLocationForm(false);
@@ -448,8 +445,8 @@ const LeadDetailPage = () => {
     setSubmittingTp(true);
 
     try {
-      const tpRes = await axios.post(
-        "http://localhost:3000/api/touchpoints",
+      const tpRes = await api.post(
+        "/api/touchpoints",
         {
           date: tpDate.toISOString(),
           type: tpType,
@@ -459,7 +456,7 @@ const LeadDetailPage = () => {
           lead: { connect: { id } },
           contactedBy: { connect: { id: user?.id } },
         },
-        { headers: authHeaders }
+        
       );
       const newTpId: string = tpRes.data.id;
 
@@ -476,15 +473,15 @@ const LeadDetailPage = () => {
       if (wasInPerson) {
         // Start sequence if not already running
         if (!lead.sequenceActive) {
-          await axios.patch(
-            `http://localhost:3000/api/leads/${id}`,
+          await api.patch(
+            `/api/leads/${id}`,
             { sequenceActive: true },
-            { headers: authHeaders }
+            
           );
         }
         // Immediately create "Did you send the follow-up email?" check
-        await axios.post(
-          "http://localhost:3000/api/reminders",
+        await api.post(
+          "/api/reminders",
           {
             type: "EMAIL",
             dueDate: new Date().toISOString(),
@@ -493,7 +490,7 @@ const LeadDetailPage = () => {
             lead: { connect: { id } },
             touchPoint: { connect: { id: newTpId } },
           },
-          { headers: authHeaders }
+          
         );
       } else if (wasEmail && lead.sequenceActive) {
         // Auto-complete any pending "did you send email?" checks — email was just logged
@@ -501,24 +498,24 @@ const LeadDetailPage = () => {
           (r: any) => r.isEmailSentCheck && !r.completed
         );
         if (pendingEmailCheck) {
-          await axios.patch(
-            `http://localhost:3000/api/reminders/${pendingEmailCheck.id}/complete`,
+          await api.patch(
+            `/api/reminders/${pendingEmailCheck.id}/complete`,
             {},
-            { headers: authHeaders }
+            
           );
         }
 
         // Advance sequence step and auto-create check-in reminder for 4 days
         const newStep = (lead.sequenceStep ?? 0) + 1;
-        await axios.patch(
-          `http://localhost:3000/api/leads/${id}`,
+        await api.patch(
+          `/api/leads/${id}`,
           { sequenceStep: newStep },
-          { headers: authHeaders }
+          
         );
         const checkInDate = new Date(tpDate);
         checkInDate.setDate(checkInDate.getDate() + 4);
-        await axios.post(
-          "http://localhost:3000/api/reminders",
+        await api.post(
+          "/api/reminders",
           {
             type: "EMAIL",
             dueDate: checkInDate.toISOString(),
@@ -527,7 +524,7 @@ const LeadDetailPage = () => {
             lead: { connect: { id } },
             touchPoint: { connect: { id: newTpId } },
           },
-          { headers: authHeaders }
+          
         );
       }
 
@@ -542,16 +539,16 @@ const LeadDetailPage = () => {
   const handleReminderSubmit = (e: FormEvent) => {
     e.preventDefault();
     setSubmittingReminder(true);
-    axios
+    api
       .post(
-        "http://localhost:3000/api/reminders",
+        "/api/reminders",
         {
           type: reminderForm.type,
           dueDate: reminderForm.dueDate.toISOString(),
           note: reminderForm.note || null,
           lead: { connect: { id } },
         },
-        { headers: authHeaders }
+        
       )
       .then(() => {
         setShowReminderForm(false);
@@ -563,22 +560,22 @@ const LeadDetailPage = () => {
   };
 
   const handleReminderComplete = (reminderId: string) => {
-    axios
+    api
       .patch(
-        `http://localhost:3000/api/reminders/${reminderId}/complete`,
+        `/api/reminders/${reminderId}/complete`,
         {},
-        { headers: authHeaders }
+        
       )
       .then(fetchLead)
       .catch(() => alert("Failed to mark reminder complete"));
   };
 
   const handleCheckInRespond = (reminderId: string, responded: boolean) => {
-    axios
+    api
       .patch(
-        `http://localhost:3000/api/reminders/${reminderId}/respond`,
+        `/api/reminders/${reminderId}/respond`,
         { responded },
-        { headers: authHeaders }
+        
       )
       .then(fetchLead)
       .catch(() => alert("Failed to update check-in"));
@@ -597,9 +594,9 @@ const LeadDetailPage = () => {
 
   const handleTouchpointEditSave = () => {
     setSavingTp(true);
-    axios
+    api
       .patch(
-        `http://localhost:3000/api/touchpoints/${editingTpId}`,
+        `/api/touchpoints/${editingTpId}`,
         {
           type: editTpForm.type,
           date: editTpForm.date.toISOString(),
@@ -607,7 +604,7 @@ const LeadDetailPage = () => {
           receivedResponse: editTpForm.receivedResponse,
           sequencePosition: editTpForm.sequencePosition || null,
         },
-        { headers: authHeaders }
+        
       )
       .then(() => {
         setEditingTpId(null);
@@ -619,8 +616,7 @@ const LeadDetailPage = () => {
 
   const handleTouchpointDelete = async (id: string) => {
     try {
-      await axios.delete(`http://localhost:3000/api/touchpoints/${id}`, {
-        headers: authHeaders,
+      await api.delete(`/api/touchpoints/${id}`, {
       });
       setDeletingTpId(null);
       fetchLead();
@@ -633,15 +629,15 @@ const LeadDetailPage = () => {
     e.preventDefault();
     setSubmittingNote(true);
 
-    axios
+    api
       .post(
-        "http://localhost:3000/api/notes",
+        "/api/notes",
         {
           text: noteText,
           lead: { connect: { id } },
           author: { connect: { id: user?.id } },
         },
-        { headers: authHeaders }
+        
       )
       .then(() => {
         setShowNoteForm(false);
@@ -667,8 +663,8 @@ const LeadDetailPage = () => {
   const handleToggleHot = () => {
     const newValue = !lead.isHot;
     setLead((prev: any) => ({ ...prev, isHot: newValue }));
-    axios
-      .patch(`http://localhost:3000/api/leads/${id}`, { isHot: newValue }, { headers: authHeaders })
+    api
+      .patch(`/api/leads/${id}`, { isHot: newValue })
       .catch(() => setLead((prev: any) => ({ ...prev, isHot: !newValue })));
   };
 
@@ -1499,11 +1495,11 @@ const LeadDetailPage = () => {
                     {lead.primaryLocationId !== loc.id && (
                       <button
                         onClick={() =>
-                          axios
+                          api
                             .patch(
-                              `http://localhost:3000/api/leads/${id}`,
+                              `/api/leads/${id}`,
                               { primaryLocation: { connect: { id: loc.id } } },
-                              { headers: authHeaders }
+                              
                             )
                             .then(fetchLead)
                         }
@@ -1565,7 +1561,7 @@ const LeadDetailPage = () => {
                   <label className="block font-semibold mb-1">Due Date</label>
                   <DatePicker
                     selected={reminderForm.dueDate}
-                    onChange={(date) =>
+                    onChange={(date: Date | null) =>
                       date && setReminderForm((f) => ({ ...f, dueDate: date }))
                     }
                     dateFormat="MM/dd/yyyy"
@@ -1859,7 +1855,7 @@ const LeadDetailPage = () => {
                   <label className="block font-semibold mb-1">Date</label>
                   <DatePicker
                     selected={tpDate}
-                    onChange={(date) => date && setTpDate(date)}
+                    onChange={(date: Date | null) => date && setTpDate(date)}
                     dateFormat="MM/dd/yyyy"
                     maxDate={new Date()}
                     className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none text-sm"
@@ -1948,7 +1944,7 @@ const LeadDetailPage = () => {
                         <label className="block font-semibold mb-1">Date</label>
                         <DatePicker
                           selected={editTpForm.date}
-                          onChange={(date) => date && setEditTpForm((f: any) => ({ ...f, date }))}
+                          onChange={(date: Date | null) => date && setEditTpForm((f: any) => ({ ...f, date }))}
                           dateFormat="MM/dd/yyyy"
                           maxDate={new Date()}
                           className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"

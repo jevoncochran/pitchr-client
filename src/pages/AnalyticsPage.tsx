@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api";
 import InternalLayout from "../components/InternalLayout";
 
 type Period = "week" | "month" | "allTime";
@@ -50,8 +50,6 @@ const SectionHeader = ({ title }: { title: string }) => (
 );
 
 const AnalyticsPage = () => {
-  const token = JSON.parse(localStorage.getItem("token") ?? "");
-  const authHeaders = { Authorization: `Bearer ${token}` };
 
   const [leads, setLeads] = useState<any[]>([]);
   const [touchpoints, setTouchpoints] = useState<any[]>([]);
@@ -60,9 +58,8 @@ const AnalyticsPage = () => {
 
   useEffect(() => {
     Promise.all([
-      axios.get("http://localhost:3000/api/leads", { headers: authHeaders }),
-      axios.get("http://localhost:3000/api/touchpoints", {
-        headers: authHeaders,
+      api.get("/api/leads"),
+      api.get("/api/touchpoints", {
       }),
     ])
       .then(([leadsRes, tpRes]) => {

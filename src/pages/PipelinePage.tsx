@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import axios from "axios";
+import api from "../api";
 import {
   DragDropContext,
   Droppable,
@@ -25,8 +25,6 @@ const DEFAULT_HIDDEN = new Set(["DORMANT", "NOT_A_FIT", "LOST"]);
 
 const PipelinePage = () => {
   const navigate = useNavigate();
-  const token = JSON.parse(localStorage.getItem("token") ?? "");
-  const authHeaders = { Authorization: `Bearer ${token}` };
 
   const [leadsByStage, setLeadsByStage] = useState<Record<string, any[]>>(
     Object.fromEntries(STAGES.map((s) => [s.value, []]))
@@ -49,8 +47,8 @@ const PipelinePage = () => {
   }, []);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:3000/api/leads", { headers: authHeaders })
+    api
+      .get("/api/leads")
       .then((res) => {
         const grouped: Record<string, any[]> = Object.fromEntries(
           STAGES.map((s) => [s.value, []])
@@ -98,8 +96,8 @@ const PipelinePage = () => {
       patch.convertedAt = new Date().toISOString();
     }
 
-    axios
-      .patch(`http://localhost:3000/api/leads/${draggableId}`, patch, { headers: authHeaders })
+    api
+      .patch(`/api/leads/${draggableId}`, patch)
       .catch(() => {
         const revert: Record<string, any[]> = { ...updated };
         const [item] = destCopy.splice(destination.index, 1);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from "react";
-import axios from "axios";
+import api from "../api";
 import { useNavigate } from "react-router-dom";
 import { MdLogout } from "react-icons/md";
 import { AuthContext } from "../context/auth/AuthContext";
@@ -55,8 +55,6 @@ export const DashboardPage = () => {
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
   const user = auth?.user as { id: string; firstName: string } | null;
-  const token = JSON.parse(localStorage.getItem("token") ?? "");
-  const authHeaders = { Authorization: `Bearer ${token}` };
 
   const [allLeads, setAllLeads] = useState<any[]>([]);
   const [reminders, setReminders] = useState<any[]>([]);
@@ -65,12 +63,10 @@ export const DashboardPage = () => {
 
   const fetchAll = () => {
     Promise.all([
-      axios.get("http://localhost:3000/api/leads", { headers: authHeaders }),
-      axios.get("http://localhost:3000/api/touchpoints", {
-        headers: authHeaders,
+      api.get("/api/leads"),
+      api.get("/api/touchpoints", {
       }),
-      axios.get("http://localhost:3000/api/reminders", {
-        headers: authHeaders,
+      api.get("/api/reminders", {
       }),
     ])
       .then(([leadsRes, tpRes, remindersRes]) => {
@@ -92,11 +88,11 @@ export const DashboardPage = () => {
   }, []);
 
   const handleCompleteReminder = (reminderId: string) => {
-    axios
+    api
       .patch(
-        `http://localhost:3000/api/reminders/${reminderId}/complete`,
+        `/api/reminders/${reminderId}/complete`,
         {},
-        { headers: authHeaders }
+        
       )
       .then(fetchAll);
   };
@@ -180,11 +176,11 @@ export const DashboardPage = () => {
   };
 
   const handleCheckInRespond = (reminderId: string, responded: boolean) => {
-    axios
+    api
       .patch(
-        `http://localhost:3000/api/reminders/${reminderId}/respond`,
+        `/api/reminders/${reminderId}/respond`,
         { responded },
-        { headers: authHeaders }
+        
       )
       .then(fetchAll);
   };

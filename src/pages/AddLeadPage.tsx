@@ -1,13 +1,12 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import InternalLayout from "../components/InternalLayout";
-import axios from "axios";
+import api from "../api";
 import { BusinessType, DiscoveredVia, Industry, LeadSource } from "../types.d";
 import { FaInstagram, FaTiktok, FaYoutube, FaFacebook } from "react-icons/fa";
 
 const AddLeadPage = () => {
   const navigate = useNavigate();
-  const token = JSON.parse(localStorage.getItem("token") ?? "");
 
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [businessTypes, setBusinessTypes] = useState<BusinessType[]>([]);
@@ -37,7 +36,6 @@ const AddLeadPage = () => {
   const [referredByName, setReferredByName] = useState("");
   const [showReferralSuggestions, setShowReferralSuggestions] = useState(false);
 
-  const authHeaders = { Authorization: `Bearer ${token}` };
 
   const handleIndustryChange = async (
     e: React.ChangeEvent<HTMLSelectElement>
@@ -46,10 +44,10 @@ const AddLeadPage = () => {
       const newIndustryName = prompt("Enter new industry:");
       if (newIndustryName) {
         try {
-          const res = await axios.post(
-            "http://localhost:3000/api/industries",
+          const res = await api.post(
+            "/api/industries",
             { name: newIndustryName },
-            { headers: authHeaders }
+            
           );
           setIndustries((prev) => [...prev, res.data]);
           setSelectedIndustryId(res.data.id);
@@ -69,10 +67,10 @@ const AddLeadPage = () => {
       const newTypeName = prompt("Enter new business type:");
       if (newTypeName) {
         try {
-          const res = await axios.post(
-            "http://localhost:3000/api/business-types",
+          const res = await api.post(
+            "/api/business-types",
             { name: newTypeName },
-            { headers: authHeaders }
+            
           );
           setBusinessTypes((prev) => [...prev, res.data]);
           setSelectedBusinessTypeId(res.data.id);
@@ -120,9 +118,8 @@ const AddLeadPage = () => {
       }),
     };
 
-    axios
-      .post("http://localhost:3000/api/leads", payload, {
-        headers: authHeaders,
+    api
+      .post("/api/leads", payload, {
       })
       .then(() => {
         navigate("/leads");
@@ -134,9 +131,9 @@ const AddLeadPage = () => {
 
   useEffect(() => {
     Promise.all([
-      axios.get("http://localhost:3000/api/industries", { headers: authHeaders }),
-      axios.get("http://localhost:3000/api/business-types", { headers: authHeaders }),
-      axios.get("http://localhost:3000/api/leads", { headers: authHeaders }),
+      api.get("/api/industries"),
+      api.get("/api/business-types"),
+      api.get("/api/leads"),
     ])
       .then(([industriesRes, typesRes, leadsRes]) => {
         setIndustries(industriesRes.data);

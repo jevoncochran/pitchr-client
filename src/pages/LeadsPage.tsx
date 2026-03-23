@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api";
 import InternalLayout from "../components/InternalLayout";
 
 // Generic multi-select checkbox dropdown
@@ -19,7 +19,7 @@ const MultiSelectDropdown = ({
   selected: Set<string>;
   onToggle: (id: string) => void;
   onClear: () => void;
-  dropdownRef: React.RefObject<HTMLDivElement>;
+  dropdownRef: React.RefObject<HTMLDivElement | null>;
   open: boolean;
   onOpen: () => void;
 }) => (
@@ -157,15 +157,13 @@ const LeadsPage = () => {
       return next;
     });
   };
-  const token = JSON.parse(localStorage.getItem("token") ?? "");
-  const authHeaders = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
-    axios
-      .get("http://localhost:3000/api/leads", { headers: authHeaders })
+    api
+      .get("/api/leads")
       .then((res) => setLeads(res.data));
-    axios
-      .get("http://localhost:3000/api/users", { headers: authHeaders })
+    api
+      .get("/api/users")
       .then((res) => setUsers(res.data));
   }, []);
 
