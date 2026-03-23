@@ -202,20 +202,20 @@ const LeadsPage = () => {
 
   return (
     <InternalLayout>
-      <div className="p-8 flex-1">
+      <div className="p-4 md:p-8 flex-1">
         {/* Row 1: title + action */}
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-gray-800">All Leads</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-800">All Leads</h1>
           <button
             onClick={() => navigate("/add-lead")}
-            className="bg-charcoal text-white rounded-lg px-4 h-[40px] text-sm"
+            className="bg-charcoal text-white rounded-lg px-3 md:px-4 h-[36px] md:h-[40px] text-sm"
           >
             + New Lead
           </button>
         </div>
 
-        {/* Row 2: search + filters */}
-        <div className="flex items-center gap-3 mb-6 flex-wrap">
+        {/* Row 2: search + filters — scrolls horizontally on mobile */}
+        <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0">
           <input
             type="text"
             placeholder="Search by business name..."
@@ -318,7 +318,8 @@ const LeadsPage = () => {
         </div>
 
         <div className="bg-white rounded-xl border overflow-hidden">
-          <table className="w-full border-collapse">
+          <div className="overflow-x-auto">
+          <table className="w-full border-collapse min-w-[640px]">
             <thead>
               <tr className="bg-gray-50 border-b">
                 <th className="p-4 text-left text-xs uppercase tracking-wide text-gray-400 font-medium">Business</th>
@@ -364,6 +365,7 @@ const LeadsPage = () => {
             </tbody>
           </table>
 
+          </div>{/* /overflow-x-auto */}
           {filteredLeads.length === 0 && (
             <p className="text-sm text-gray-400 text-center py-8">
               {leads.length === 0 ? "No leads yet." : "No leads match your search or filter."}

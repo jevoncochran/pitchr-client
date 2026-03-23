@@ -150,7 +150,7 @@ const AddLeadPage = () => {
 
   return (
     <InternalLayout>
-      <div className="w-[800px] p-8 border border-dashed">
+      <div className="w-full max-w-3xl p-4 md:p-8">
         <h2>Add New Lead</h2>
         <form
           className="bg-light-grey w-full rounded-lg p-4"
@@ -377,7 +377,7 @@ const AddLeadPage = () => {
           {/* Social Media */}
           <div className="mb-8">
             <h3 className="text-sm font-semibold mb-3">Social Media</h3>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
               {[
                 { icon: <FaInstagram className="text-pink-500" />, label: "Instagram", handle: instagramHandle, setHandle: setInstagramHandle, followers: instagramFollowers, setFollowers: setInstagramFollowers },
                 { icon: <FaTiktok className="text-gray-800" />, label: "TikTok", handle: tiktokHandle, setHandle: setTiktokHandle, followers: tiktokFollowers, setFollowers: setTiktokFollowers },

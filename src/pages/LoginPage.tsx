@@ -1,4 +1,4 @@
-import { useEffect, useState, ChangeEvent, FormEvent, useContext } from "react";
+import { useState, ChangeEvent, FormEvent, useContext } from "react";
 import axios from "axios";
 import { AuthContext } from "../context/auth/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -8,79 +8,91 @@ const LoginPage = () => {
   const auth = useContext(AuthContext);
 
   const [credentials, setCredentials] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
+    setError("");
   };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
 
     axios
       .post("http://localhost:3000/api/auth/login", credentials)
       .then((res) => {
-        console.log(res);
         const { user, access_token } = res.data;
-        console.log(auth?.login);
         auth?.login(user, access_token);
         navigate("/dashboard");
       })
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      .catch((err) => {
-        alert("Login failed");
-      });
+      .catch(() => {
+        setError("Invalid email or password. Please try again.");
+      })
+      .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    console.log("credentials: ", credentials);
-  }, [credentials]);
-
   return (
-    <div className="h-screen w-full flex justify-center items-center text-white">
-      <div className=" bg-charcoal w-[500px] rounded-lg p-8">
-        <h2 className="text-2xl text-center mb-6">VideoPro CRM</h2>
-        <p className="text-2xl mb-3">Welcome back!</p>
-        <p className="mb-6">Please login to your account</p>
-        <form action="" onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="email" className="block text-sm font-semibold mb-1">
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center px-4">
+
+      {/* Logo / wordmark */}
+      <div className="mb-8 text-center">
+        <p className="text-3xl font-bold text-charcoal tracking-tight">Pitchr</p>
+        <p className="text-sm text-gray-400 mt-1">Sales CRM for Intercon Visuals</p>
+      </div>
+
+      {/* Card */}
+      <div className="bg-white border rounded-2xl shadow-sm w-full max-w-sm p-8">
+        <h1 className="text-xl font-bold text-gray-800 mb-1">Welcome back</h1>
+        <p className="text-sm text-gray-400 mb-6">Sign in to your account</p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               Email
             </label>
             <input
               name="email"
               type="email"
               id="email"
-              placeholder="Enter your email"
+              placeholder="you@example.com"
               value={credentials.email}
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blackPrimary"
+              required
+              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-charcoal/20 focus:border-charcoal transition"
             />
           </div>
 
-          {/* Password Field */}
-          <div className="mb-6">
-            <label
-              htmlFor="password"
-              className="block text-sm font-semibold mb-1"
-            >
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
               Password
             </label>
             <input
               name="password"
               type="password"
               id="password"
-              placeholder="Enter your password"
+              placeholder="••••••••"
               value={credentials.password}
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blackPrimary"
+              required
+              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-charcoal/20 focus:border-charcoal transition"
             />
           </div>
-          <p className="mb-6 text-green-primary">Forgot password?</p>
+
+          {error && (
+            <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
+
           <button
             type="submit"
-            className="w-full bg-green-primary text-white py-2 rounded-lg hover:bg-green-600 transition"
+            disabled={loading}
+            className="w-full bg-charcoal text-white py-2.5 rounded-lg text-sm font-medium hover:bg-charcoal/90 transition disabled:opacity-50"
           >
-            Login
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
       </div>

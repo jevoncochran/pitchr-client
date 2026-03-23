@@ -315,21 +315,21 @@ export const DashboardPage = () => {
 
   return (
     <InternalLayout>
-      <div className="flex-1 p-8 overflow-y-auto">
+      <div className="flex-1 p-4 md:p-8 overflow-y-auto">
         {/* Header */}
-        <div className="flex justify-between items-start mb-8">
+        <div className="flex justify-between items-start mb-6 md:mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">
+            <h1 className="text-xl md:text-2xl font-bold text-gray-800">
               {greeting()}, {user?.firstName}
             </h1>
             <p className="text-gray-400 text-sm mt-1">
               Here's what needs your attention today
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <button
               onClick={() => navigate("/add-lead")}
-              className="bg-charcoal text-white rounded-lg px-4 h-[40px] text-sm"
+              className="bg-charcoal text-white rounded-lg px-3 md:px-4 h-[36px] md:h-[40px] text-sm"
             >
               + New Lead
             </button>
@@ -338,7 +338,7 @@ export const DashboardPage = () => {
               onClick={() => auth?.logout()}
             >
               <MdLogout size="1.4em" />
-              <span className="text-sm">Sign out</span>
+              <span className="text-sm hidden md:inline">Sign out</span>
             </div>
           </div>
         </div>
@@ -348,7 +348,7 @@ export const DashboardPage = () => {
         ) : (
           <>
             {/* Stats Row */}
-            <div className="grid grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
               <StatCard label="Active Leads" value={activeLeads.length} />
               <StatCard label="Added This Week" value={leadsThisWeek} />
               <StatCard label="Meetings Scheduled" value={meetingsScheduled} />
@@ -359,7 +359,7 @@ export const DashboardPage = () => {
             </div>
 
             {/* Main two-column layout */}
-            <div className="grid grid-cols-2 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8">
 
               {/* LEFT — action items stacked */}
               <div className="flex flex-col gap-4">

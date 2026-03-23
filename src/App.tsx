@@ -1,6 +1,5 @@
 import "./App.css";
-import { Routes, Route } from "react-router-dom";
-import HomePage from "./pages/HomePage";
+import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import PrivateRoute from "./components/PrivateRoute";
@@ -16,7 +15,6 @@ function App() {
   return (
     <Routes>
       <Route element={<PublicRoute />}>
-        <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
       </Route>
 
@@ -29,6 +27,9 @@ function App() {
         <Route path="/pipeline" element={<PipelinePage />} />
         <Route path="/sequence" element={<SequencePage />} />
       </Route>
+
+      {/* Catch-all: redirect everything else to login */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

@@ -254,7 +254,7 @@ const SequencePage = () => {
 
   return (
     <InternalLayout>
-      <div className="p-8 h-full flex flex-col">
+      <div className="p-4 md:p-8 h-full flex flex-col">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-800">Follow-up Sequence</h1>
           <p className="text-sm text-gray-400 mt-1">

@@ -674,7 +674,7 @@ const LeadDetailPage = () => {
 
   return (
     <InternalLayout>
-      <div className="p-8 max-w-6xl w-full">
+      <div className="p-4 md:p-8 max-w-6xl w-full">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -740,7 +740,7 @@ const LeadDetailPage = () => {
         {/* Pipeline Stage Selector */}
         <div className="bg-white border rounded-lg p-4 mb-6">
           <p className="text-sm font-semibold mb-3">Pipeline Stage</p>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0">
             {PIPELINE_STAGES.map((stage) => (
               <button
                 key={stage.value}
@@ -781,7 +781,7 @@ const LeadDetailPage = () => {
         })()}
 
         {/* Two-column layout */}
-        <div className="grid grid-cols-[1fr_380px] gap-6 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_380px] gap-6 items-start">
 
         {/* ── LEFT COLUMN — lead details ── */}
         <div className="min-w-0">
@@ -819,7 +819,7 @@ const LeadDetailPage = () => {
           </div>
 
           {!editMode ? (
-            <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
               <div>
                 <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Business Name</p>
                 <p className="text-sm font-medium text-gray-800">{lead.business}</p>
@@ -905,7 +905,7 @@ const LeadDetailPage = () => {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Business Name</label>
                 <input
@@ -1179,7 +1179,7 @@ const LeadDetailPage = () => {
           {/* Add contact form */}
           {showContactForm && (
             <div className="bg-gray-50 rounded-lg p-4 mb-4 text-sm">
-              <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">First Name *</label>
                   <input type="text" value={contactForm.firstName}
@@ -1242,7 +1242,7 @@ const LeadDetailPage = () => {
             {contacts.map((c) =>
               editingContactId === c.id ? (
                 <div key={c.id} className="bg-gray-50 rounded-lg p-4 text-sm border">
-                  <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                     <div>
                       <label className="text-xs text-gray-500 mb-1 block">First Name *</label>
                       <input type="text" value={contactForm.firstName}
@@ -1380,7 +1380,7 @@ const LeadDetailPage = () => {
 
           {showLocationForm && (
             <form onSubmit={handleLocationSubmit} className="bg-gray-50 rounded-lg p-4 mb-4 text-sm">
-              <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                 <div className="col-span-2">
                   <label className="block font-semibold mb-1">Address Line 1</label>
                   <input
@@ -1431,7 +1431,7 @@ const LeadDetailPage = () => {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3 mb-4 border-t pt-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 border-t pt-3">
                 <div>
                   <label className="block font-semibold mb-1">Phone Number <span className="text-gray-400 font-normal">(optional)</span></label>
                   <input
@@ -1544,7 +1544,7 @@ const LeadDetailPage = () => {
               onSubmit={handleReminderSubmit}
               className="bg-gray-50 rounded-lg p-4 mb-4 text-sm"
             >
-              <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                 <div>
                   <label className="block font-semibold mb-1">Type</label>
                   <select
@@ -1829,7 +1829,7 @@ const LeadDetailPage = () => {
               onSubmit={handleTouchpointSubmit}
               className="bg-gray-50 rounded-lg p-4 mb-4 text-sm"
             >
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block font-semibold mb-1">Type</label>
                   <select
@@ -1921,7 +1921,7 @@ const LeadDetailPage = () => {
               {lead.touchPoint?.map((tp: any) =>
                 editingTpId === tp.id ? (
                   <div key={tp.id} className="bg-gray-50 rounded-lg p-4 text-sm border">
-                    <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                       <div>
                         <label className="block font-semibold mb-1">Type</label>
                         <select
