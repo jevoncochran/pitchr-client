@@ -1,69 +1,107 @@
-# React + TypeScript + Vite
+# Pitchr — Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend for **Pitchr**, a CRM built for Intercon Visuals to manage outbound B2B sales for a video production agency in Tampa, FL.
 
-Currently, two official plugins are available:
+Built with React + TypeScript + Vite, styled with Tailwind CSS.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## Expanding the ESLint configuration
+## What it does
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Dashboard** — overdue follow-ups, today's tasks, gone-silent alerts, and pipeline stats at a glance
+- **Leads** — searchable, filterable list of prospects with pipeline stage, industry, business type, and hot lead flags
+- **Pipeline** — drag-and-drop kanban board across 9 stages with stage visibility controls
+- **Follow-up Sequence** — kanban view of where every lead sits in the A/B/C outreach cycle
+- **Lead Detail** — full profile with touchpoint history, contacts, social handles, notes, locations, and referral tracking
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+## Tech Stack
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Layer | Library |
+|---|---|
+| Framework | React 18 + TypeScript |
+| Build tool | Vite |
+| Styling | Tailwind CSS |
+| Routing | React Router v6 |
+| Drag & drop | @hello-pangea/dnd |
+| Icons | react-icons |
+| HTTP | axios |
+
+---
+
+## Prerequisites
+
+- Node.js 18+
+- The Pitchr server running (see `pitchr-server`)
+
+---
+
+## Getting Started
+
+```bash
+# Install dependencies
+npm install
+
+# Copy the environment file and fill in your values
+cp .env.example .env
+
+# Start the dev server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The app runs at `http://localhost:5173` by default.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Environment Variables
+
+Create a `.env` file in the project root:
+
+```env
+VITE_API_URL=http://localhost:3000
 ```
+
+| Variable | Description |
+|---|---|
+| `VITE_API_URL` | Base URL of the Pitchr backend. Use your Railway URL in production. |
+
+---
+
+## Building for Production
+
+```bash
+npm run build
+```
+
+Output goes to `dist/`. Deploy to Vercel, Netlify, or any static host.
+
+> **Important:** Set `VITE_API_URL` to your production backend URL before building.
+
+---
+
+## Project Structure
+
+```
+src/
+├── components/       # Shared UI (InternalLayout, nav, modals)
+├── pages/
+│   ├── DashboardPage.tsx
+│   ├── LeadsPage.tsx
+│   ├── LeadDetailPage.tsx
+│   ├── AddLeadPage.tsx
+│   ├── PipelinePage.tsx
+│   ├── SequencePage.tsx
+│   └── LoginPage.tsx
+├── types.d.ts        # Shared TypeScript types and enums
+├── App.tsx           # Route definitions
+└── main.tsx          # Entry point
+```
+
+---
+
+## Notes
+
+- All API calls use `axios` with `VITE_API_URL` as the base — never hardcode `localhost:3000`
+- Pipeline stages: `NEW_LEAD`, `CONTACTED`, `ENGAGED`, `MEETING_SCHEDULED`, `PROPOSAL_SENT`, `CONVERTED`, `DORMANT`, `NOT_A_FIT`, `LOST`
+- Sequence positions: `VISIT_A`, `A1–A3`, `VISIT_B`, `B1–B3`, `VISIT_C`, `C1–C3`
