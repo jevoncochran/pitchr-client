@@ -10,6 +10,7 @@ import AddLeadPage from "./pages/AddLeadPage";
 import LeadDetailPage from "./pages/LeadDetailPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import PipelinePage from "./pages/PipelinePage";
+import SequencePage from "./pages/SequencePage";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
         <Route path="/add-lead" element={<AddLeadPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/pipeline" element={<PipelinePage />} />
+        <Route path="/sequence" element={<SequencePage />} />
       </Route>
     </Routes>
   );

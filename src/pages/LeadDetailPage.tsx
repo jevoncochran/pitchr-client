@@ -6,6 +6,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import InternalLayout from "../components/InternalLayout";
 import { AuthContext } from "../context/auth/AuthContext";
 import { PipelineStage } from "../types.d";
+import { FaInstagram, FaTiktok, FaYoutube, FaFacebook } from "react-icons/fa";
 
 const PIPELINE_STAGES = [
   { value: PipelineStage.New, label: "New" },
@@ -15,31 +16,90 @@ const PIPELINE_STAGES = [
   { value: PipelineStage.ProposalSent, label: "Proposal Sent" },
   { value: PipelineStage.Converted, label: "Converted" },
   { value: PipelineStage.Dormant, label: "Dormant" },
+  { value: PipelineStage.NotAFit, label: "Not a Fit" },
+  { value: PipelineStage.Lost, label: "Lost" },
 ];
 
-// Follow-up sequence: what the check-in asks at step N (after email N)
+// Sequence position options for the touchpoint form
+const IN_PERSON_TYPES = ["IN_PERSON", "MEETING"];
+
+export const SEQUENCE_POSITIONS_VISIT = [
+  { value: "", label: "None (one-off)" },
+  { value: "VISIT_A", label: "Visit A" },
+  { value: "VISIT_B", label: "Visit B" },
+  { value: "VISIT_C", label: "Visit C" },
+];
+
+export const SEQUENCE_POSITIONS_OUTREACH = [
+  { value: "", label: "None (one-off)" },
+  { value: "A1", label: "A1 — First outreach after Visit A" },
+  { value: "A2", label: "A2 — Second outreach" },
+  { value: "A3", label: "A3 — Third outreach" },
+  { value: "B1", label: "B1 — First outreach after Visit B" },
+  { value: "B2", label: "B2 — Second outreach" },
+  { value: "B3", label: "B3 — Third outreach" },
+  { value: "C1", label: "C1 — First outreach after Visit C" },
+  { value: "C2", label: "C2 — Second outreach" },
+  { value: "C3", label: "C3 — Third outreach" },
+];
+
+export const SEQUENCE_POSITIONS = [
+  ...SEQUENCE_POSITIONS_VISIT,
+  ...SEQUENCE_POSITIONS_OUTREACH.slice(1), // skip the duplicate "None"
+];
+
+const getSequencePositions = (type: string) =>
+  IN_PERSON_TYPES.includes(type)
+    ? SEQUENCE_POSITIONS_VISIT
+    : SEQUENCE_POSITIONS_OUTREACH;
+
+export const SEQUENCE_POSITION_LABEL: Record<string, string> = {
+  VISIT_A: "Visit A",
+  A1: "A1", A2: "A2", A3: "A3",
+  VISIT_B: "Visit B",
+  B1: "B1", B2: "B2", B3: "B3",
+  VISIT_C: "Visit C",
+  C1: "C1", C2: "C2", C3: "C3",
+};
+
+const SEQUENCE_POSITION_COLOR: Record<string, string> = {
+  VISIT_A: "bg-blue-100 text-blue-700",
+  A1: "bg-blue-50 text-blue-600",
+  A2: "bg-blue-50 text-blue-600",
+  A3: "bg-blue-50 text-blue-600",
+  VISIT_B: "bg-orange-100 text-orange-700",
+  B1: "bg-orange-50 text-orange-600",
+  B2: "bg-orange-50 text-orange-600",
+  B3: "bg-orange-50 text-orange-600",
+  VISIT_C: "bg-purple-100 text-purple-700",
+  C1: "bg-purple-50 text-purple-600",
+  C2: "bg-purple-50 text-purple-600",
+  C3: "bg-purple-50 text-purple-600",
+};
+
+// Follow-up sequence: what the check-in asks at step N (after outreach N)
 const CHECK_IN_LABELS: Record<number, string> = {
-  1: "Did they respond to your initial email?",
-  2: "Did they respond to email 2?",
-  3: "Did they respond to email 3?",
-  4: "Did they respond to your email after Visit 2?",
-  5: "Did they respond to email 5?",
-  6: "Did they respond to email 6?",
-  7: "Did they respond to your email after Visit 3?",
-  8: "Did they respond to email 8?",
-  9: "Did they respond to email 9?",
+  1: "Did they respond to outreach A1?",
+  2: "Did they respond to outreach A2?",
+  3: "Did they respond to outreach A3?",
+  4: "Did they respond to outreach B1?",
+  5: "Did they respond to outreach B2?",
+  6: "Did they respond to outreach B3?",
+  7: "Did they respond to outreach C1?",
+  8: "Did they respond to outreach C2?",
+  9: "Did they respond to outreach C3?",
 };
 
 // What happens at each step if no response
 const NEXT_ACTION_LABELS: Record<number, string> = {
-  1: "Email 2",
-  2: "Email 3",
-  3: "Visit 2",
-  4: "Email 5",
-  5: "Email 6",
-  6: "Visit 3",
-  7: "Email 8",
-  8: "Email 9",
+  1: "Outreach A2",
+  2: "Outreach A3",
+  3: "Visit B",
+  4: "Outreach B2",
+  5: "Outreach B3",
+  6: "Visit C",
+  7: "Outreach C2",
+  8: "Outreach C3",
   9: "Deprioritize — full cycle complete",
 };
 
@@ -60,6 +120,8 @@ const stageColors: Record<string, string> = {
   PROPOSAL_SENT: "bg-orange-100 text-orange-700",
   CONVERTED: "bg-green-100 text-green-700",
   DORMANT: "bg-gray-200 text-gray-500",
+  NOT_A_FIT: "bg-red-100 text-red-600",
+  LOST: "bg-rose-100 text-rose-700",
 };
 
 const LeadDetailPage = () => {
@@ -76,6 +138,11 @@ const LeadDetailPage = () => {
   const [industries, setIndustries] = useState<any[]>([]);
   const [businessTypes, setBusinessTypes] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [allLeads, setAllLeads] = useState<{ id: string; business: string }[]>([]);
+
+  // Referral combobox state
+  const [referralSearch, setReferralSearch] = useState("");
+  const [showReferralSuggestions, setShowReferralSuggestions] = useState(false);
 
   // Edit mode
   const [editMode, setEditMode] = useState(false);
@@ -96,12 +163,14 @@ const LeadDetailPage = () => {
   const [tpDate, setTpDate] = useState<Date>(new Date());
   const [tpReceivedResponse, setTpReceivedResponse] = useState(false);
   const [tpSummary, setTpSummary] = useState("");
+  const [tpSequencePosition, setTpSequencePosition] = useState("");
   const [submittingTp, setSubmittingTp] = useState(false);
 
   // Touchpoint edit state
   const [editingTpId, setEditingTpId] = useState<string | null>(null);
   const [editTpForm, setEditTpForm] = useState<any>({});
   const [savingTp, setSavingTp] = useState(false);
+  const [deletingTpId, setDeletingTpId] = useState<string | null>(null);
 
   // Reminder form state
   const [showReminderForm, setShowReminderForm] = useState(false);
@@ -117,12 +186,90 @@ const LeadDetailPage = () => {
   const [noteText, setNoteText] = useState("");
   const [submittingNote, setSubmittingNote] = useState(false);
 
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [editingContactId, setEditingContactId] = useState<string | null>(null);
+  const [deletingContactId, setDeletingContactId] = useState<string | null>(null);
+  const [contactForm, setContactForm] = useState({
+    firstName: "", lastName: "", title: "",
+    email: "", phone: "", isDecisionMaker: false, notes: "",
+  });
+  const [savingContact, setSavingContact] = useState(false);
+
+  const fetchContacts = () => {
+    axios
+      .get(`http://localhost:3000/api/contacts/lead/${id}`, { headers: authHeaders })
+      .then((res) => setContacts(res.data))
+      .catch(() => {});
+  };
+
+  const resetContactForm = () =>
+    setContactForm({ firstName: "", lastName: "", title: "", email: "", phone: "", isDecisionMaker: false, notes: "" });
+
+  const handleContactSave = async () => {
+    if (!contactForm.firstName.trim()) return;
+    setSavingContact(true);
+    try {
+      if (editingContactId) {
+        await axios.patch(
+          `http://localhost:3000/api/contacts/${editingContactId}`,
+          contactForm,
+          { headers: authHeaders }
+        );
+        setEditingContactId(null);
+      } else {
+        await axios.post(
+          "http://localhost:3000/api/contacts",
+          { ...contactForm, lead: { connect: { id } } },
+          { headers: authHeaders }
+        );
+        setShowContactForm(false);
+      }
+      resetContactForm();
+      fetchContacts();
+    } catch {
+      alert("Failed to save contact");
+    } finally {
+      setSavingContact(false);
+    }
+  };
+
+  const handleContactDelete = async (contactId: string) => {
+    try {
+      await axios.delete(`http://localhost:3000/api/contacts/${contactId}`, { headers: authHeaders });
+      setDeletingContactId(null);
+      fetchContacts();
+    } catch {
+      alert("Failed to delete contact");
+    }
+  };
+
+  const [socialForm, setSocialForm] = useState({
+    instagramHandle: "", instagramFollowers: "",
+    tiktokHandle: "", tiktokFollowers: "",
+    youtubeHandle: "", youtubeFollowers: "",
+    facebookHandle: "", facebookFollowers: "",
+  });
+  const [editingSocial, setEditingSocial] = useState(false);
+  const [savingSocial, setSavingSocial] = useState(false);
+
   const fetchLead = () => {
     axios
       .get(`http://localhost:3000/api/leads/${id}`, { headers: authHeaders })
       .then((res) => {
         setLead(res.data);
         setLoading(false);
+        const d = res.data;
+        setSocialForm({
+          instagramHandle: d.instagramHandle ?? "",
+          instagramFollowers: d.instagramFollowers != null ? String(d.instagramFollowers) : "",
+          tiktokHandle: d.tiktokHandle ?? "",
+          tiktokFollowers: d.tiktokFollowers != null ? String(d.tiktokFollowers) : "",
+          youtubeHandle: d.youtubeHandle ?? "",
+          youtubeFollowers: d.youtubeFollowers != null ? String(d.youtubeFollowers) : "",
+          facebookHandle: d.facebookHandle ?? "",
+          facebookFollowers: d.facebookFollowers != null ? String(d.facebookFollowers) : "",
+        });
       })
       .catch(() => {
         alert("Failed to load lead");
@@ -132,18 +279,24 @@ const LeadDetailPage = () => {
 
   useEffect(() => {
     fetchLead();
+    fetchContacts();
     Promise.all([
       axios.get("http://localhost:3000/api/industries", { headers: authHeaders }),
       axios.get("http://localhost:3000/api/business-types", { headers: authHeaders }),
       axios.get("http://localhost:3000/api/users", { headers: authHeaders }),
-    ]).then(([indRes, btRes, usersRes]) => {
+      axios.get("http://localhost:3000/api/leads", { headers: authHeaders }),
+    ]).then(([indRes, btRes, usersRes, leadsRes]) => {
       setIndustries(indRes.data);
       setBusinessTypes(btRes.data);
       setUsers(usersRes.data);
+      setAllLeads(leadsRes.data.map((l: any) => ({ id: l.id, business: l.business })));
     });
   }, [id]);
 
   const startEdit = () => {
+    setReferralSearch(
+      lead.referredByLead?.business ?? lead.referredByName ?? ""
+    );
     setEditForm({
       business: lead.business ?? "",
       email: lead.email ?? "",
@@ -153,6 +306,8 @@ const LeadDetailPage = () => {
       discoveredViaOther: lead.discoveredViaOther ?? "",
       industryId: lead.industryId ?? "",
       businessTypeId: lead.businessTypeId ?? "",
+      referredByLeadId: lead.referredByLeadId ?? "",
+      referredByName: lead.referredByName ?? "",
       isBlackOwned: lead.isBlackOwned ?? false,
       isLatinoOwned: lead.isLatinoOwned ?? false,
       isWomanOwned: lead.isWomanOwned ?? false,
@@ -181,6 +336,15 @@ const LeadDetailPage = () => {
     if (editForm.businessTypeId) {
       payload.businessType = { connect: { id: editForm.businessTypeId } };
     }
+    if (editForm.referredByLeadId) {
+      payload.referredByLead = { connect: { id: editForm.referredByLeadId } };
+      payload.referredByName = null;
+    } else {
+      payload.referredByName = editForm.referredByName || null;
+      payload.referredByLead = lead.referredByLeadId
+        ? { disconnect: true }
+        : undefined;
+    }
     axios
       .patch(`http://localhost:3000/api/leads/${id}`, payload, { headers: authHeaders })
       .then(() => {
@@ -189,6 +353,25 @@ const LeadDetailPage = () => {
       })
       .catch(() => alert("Failed to save changes"))
       .finally(() => setSaving(false));
+  };
+
+  const handleSaveSocial = () => {
+    setSavingSocial(true);
+    const payload: any = {
+      instagramHandle: socialForm.instagramHandle || null,
+      instagramFollowers: socialForm.instagramFollowers ? parseInt(socialForm.instagramFollowers) : null,
+      tiktokHandle: socialForm.tiktokHandle || null,
+      tiktokFollowers: socialForm.tiktokFollowers ? parseInt(socialForm.tiktokFollowers) : null,
+      youtubeHandle: socialForm.youtubeHandle || null,
+      youtubeFollowers: socialForm.youtubeFollowers ? parseInt(socialForm.youtubeFollowers) : null,
+      facebookHandle: socialForm.facebookHandle || null,
+      facebookFollowers: socialForm.facebookFollowers ? parseInt(socialForm.facebookFollowers) : null,
+    };
+    axios
+      .patch(`http://localhost:3000/api/leads/${id}`, payload, { headers: authHeaders })
+      .then(() => { setEditingSocial(false); fetchLead(); })
+      .catch(() => alert("Failed to save social info"))
+      .finally(() => setSavingSocial(false));
   };
 
   const handleAssigneeChange = (userId: string | null) => {
@@ -265,18 +448,20 @@ const LeadDetailPage = () => {
     setSubmittingTp(true);
 
     try {
-      await axios.post(
+      const tpRes = await axios.post(
         "http://localhost:3000/api/touchpoints",
         {
           date: tpDate.toISOString(),
           type: tpType,
           receivedResponse: tpReceivedResponse,
           summary: tpSummary,
+          sequencePosition: tpSequencePosition || null,
           lead: { connect: { id } },
           contactedBy: { connect: { id: user?.id } },
         },
         { headers: authHeaders }
       );
+      const newTpId: string = tpRes.data.id;
 
       const wasInPerson = tpType === "IN_PERSON";
       const wasEmail = tpType === "EMAIL";
@@ -286,6 +471,7 @@ const LeadDetailPage = () => {
       setTpDate(new Date());
       setTpReceivedResponse(false);
       setTpSummary("");
+      setTpSequencePosition("");
 
       if (wasInPerson) {
         // Start sequence if not already running
@@ -305,6 +491,7 @@ const LeadDetailPage = () => {
             note: "Did you send the follow-up email?",
             isEmailSentCheck: true,
             lead: { connect: { id } },
+            touchPoint: { connect: { id: newTpId } },
           },
           { headers: authHeaders }
         );
@@ -328,7 +515,7 @@ const LeadDetailPage = () => {
           { sequenceStep: newStep },
           { headers: authHeaders }
         );
-        const checkInDate = new Date();
+        const checkInDate = new Date(tpDate);
         checkInDate.setDate(checkInDate.getDate() + 4);
         await axios.post(
           "http://localhost:3000/api/reminders",
@@ -338,6 +525,7 @@ const LeadDetailPage = () => {
             note: CHECK_IN_LABELS[newStep] ?? "Did they respond?",
             isCheckIn: true,
             lead: { connect: { id } },
+            touchPoint: { connect: { id: newTpId } },
           },
           { headers: authHeaders }
         );
@@ -403,6 +591,7 @@ const LeadDetailPage = () => {
       date: new Date(tp.date),
       summary: tp.summary ?? "",
       receivedResponse: tp.receivedResponse ?? false,
+      sequencePosition: tp.sequencePosition ?? "",
     });
   };
 
@@ -416,6 +605,7 @@ const LeadDetailPage = () => {
           date: editTpForm.date.toISOString(),
           summary: editTpForm.summary || null,
           receivedResponse: editTpForm.receivedResponse,
+          sequencePosition: editTpForm.sequencePosition || null,
         },
         { headers: authHeaders }
       )
@@ -425,6 +615,18 @@ const LeadDetailPage = () => {
       })
       .catch(() => alert("Failed to save touchpoint"))
       .finally(() => setSavingTp(false));
+  };
+
+  const handleTouchpointDelete = async (id: string) => {
+    try {
+      await axios.delete(`http://localhost:3000/api/touchpoints/${id}`, {
+        headers: authHeaders,
+      });
+      setDeletingTpId(null);
+      fetchLead();
+    } catch {
+      alert("Failed to delete touchpoint");
+    }
   };
 
   const handleNoteSubmit = (e: FormEvent) => {
@@ -462,9 +664,17 @@ const LeadDetailPage = () => {
     PIPELINE_STAGES.find((s) => s.value === lead.pipelineStage)?.label ??
     lead.pipelineStage;
 
+  const handleToggleHot = () => {
+    const newValue = !lead.isHot;
+    setLead((prev: any) => ({ ...prev, isHot: newValue }));
+    axios
+      .patch(`http://localhost:3000/api/leads/${id}`, { isHot: newValue }, { headers: authHeaders })
+      .catch(() => setLead((prev: any) => ({ ...prev, isHot: !newValue })));
+  };
+
   return (
     <InternalLayout>
-      <div className="p-8 max-w-4xl w-full">
+      <div className="p-8 max-w-6xl w-full">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -474,7 +684,20 @@ const LeadDetailPage = () => {
             >
               ← Back to Leads
             </button>
-            <h1 className="text-2xl font-bold">{lead.business}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold">{lead.business}</h1>
+              <button
+                onClick={handleToggleHot}
+                title={lead.isHot ? "Remove hot flag" : "Mark as hot lead"}
+                className={`text-xl transition-all ${
+                  lead.isHot
+                    ? "opacity-100 hover:opacity-60"
+                    : "opacity-20 hover:opacity-60"
+                }`}
+              >
+                🔥
+              </button>
+            </div>
           </div>
           <span
             className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -556,6 +779,12 @@ const LeadDetailPage = () => {
             </div>
           );
         })()}
+
+        {/* Two-column layout */}
+        <div className="grid grid-cols-[1fr_380px] gap-6 items-start">
+
+        {/* ── LEFT COLUMN — lead details ── */}
+        <div className="min-w-0">
 
         {/* Lead Info */}
         <div className="bg-white border rounded-lg p-6 mb-6">
@@ -646,6 +875,21 @@ const LeadDetailPage = () => {
                     ))}
                   </select>
                 </div>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Referred By</p>
+                {lead.referredByLead ? (
+                  <button
+                    onClick={() => navigate(`/leads/${lead.referredByLead.id}`)}
+                    className="text-sm font-medium text-green-700 hover:underline"
+                  >
+                    {lead.referredByLead.business}
+                  </button>
+                ) : lead.referredByName ? (
+                  <p className="text-sm font-medium text-gray-800">{lead.referredByName}</p>
+                ) : (
+                  <p className="text-sm text-gray-400">—</p>
+                )}
               </div>
               <div className="col-span-2">
                 <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Owner Identity</p>
@@ -752,6 +996,74 @@ const LeadDetailPage = () => {
                 )}
               </div>
               <div className="col-span-2">
+                <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Referred By</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search existing leads or type a name..."
+                    value={referralSearch}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setReferralSearch(val);
+                      setEditForm((f: any) => ({ ...f, referredByLeadId: "", referredByName: val }));
+                      setShowReferralSuggestions(val.trim().length > 0);
+                    }}
+                    onFocus={() => referralSearch.trim().length > 0 && setShowReferralSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowReferralSuggestions(false), 150)}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                  />
+                  {editForm.referredByLeadId && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                      Linked lead
+                    </span>
+                  )}
+                  {showReferralSuggestions && (
+                    <div className="absolute z-20 left-0 right-0 top-[42px] bg-white border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                      {allLeads
+                        .filter((l) =>
+                          l.id !== id &&
+                          l.business.toLowerCase().includes(referralSearch.toLowerCase())
+                        )
+                        .slice(0, 8)
+                        .map((l) => (
+                          <button
+                            key={l.id}
+                            type="button"
+                            onMouseDown={() => {
+                              setEditForm((f: any) => ({ ...f, referredByLeadId: l.id, referredByName: "" }));
+                              setReferralSearch(l.business);
+                              setShowReferralSuggestions(false);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                          >
+                            {l.business}
+                          </button>
+                        ))}
+                      {allLeads.filter((l) =>
+                        l.id !== id &&
+                        l.business.toLowerCase().includes(referralSearch.toLowerCase())
+                      ).length === 0 && (
+                        <p className="px-4 py-2 text-sm text-gray-400 italic">
+                          No matching leads — will save as free text
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {(editForm.referredByLeadId || referralSearch) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditForm((f: any) => ({ ...f, referredByLeadId: "", referredByName: "" }));
+                      setReferralSearch("");
+                    }}
+                    className="mt-1 text-xs text-gray-400 hover:text-gray-600 underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="col-span-2">
                 <label className="text-xs uppercase tracking-wide text-gray-400 mb-2 block">Owner Identity</label>
                 <div className="flex gap-2">
                   {[
@@ -777,6 +1089,279 @@ const LeadDetailPage = () => {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Social Media */}
+        <div className="bg-white border rounded-lg p-6 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <p className="text-sm font-semibold uppercase tracking-wide text-gray-400">Social Media</p>
+            {!editingSocial ? (
+              <button
+                onClick={() => setEditingSocial(true)}
+                className="text-xs text-gray-500 border rounded-lg px-3 py-1 hover:bg-gray-50"
+              >
+                Edit
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setEditingSocial(false); }}
+                  className="text-xs text-gray-500 border rounded-lg px-3 py-1 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveSocial}
+                  disabled={savingSocial}
+                  className="text-xs bg-charcoal text-white rounded-lg px-3 py-1 disabled:opacity-50"
+                >
+                  {savingSocial ? "Saving..." : "Save"}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {[
+            { icon: <FaInstagram className="text-pink-500" size="1.1em" />, label: "Instagram", handleKey: "instagramHandle", followersKey: "instagramFollowers" },
+            { icon: <FaTiktok className="text-gray-800" size="1.1em" />, label: "TikTok", handleKey: "tiktokHandle", followersKey: "tiktokFollowers" },
+            { icon: <FaYoutube className="text-red-500" size="1.1em" />, label: "YouTube", handleKey: "youtubeHandle", followersKey: "youtubeFollowers" },
+            { icon: <FaFacebook className="text-blue-600" size="1.1em" />, label: "Facebook", handleKey: "facebookHandle", followersKey: "facebookFollowers" },
+          ].map(({ icon, label, handleKey, followersKey }) => (
+            <div key={label} className="flex items-center gap-3 py-2 border-b last:border-b-0">
+              <span className="flex-shrink-0">{icon}</span>
+              <span className="text-xs text-gray-400 w-20">{label}</span>
+              {editingSocial ? (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Handle"
+                    value={(socialForm as any)[handleKey]}
+                    onChange={(e) => setSocialForm((f) => ({ ...f, [handleKey]: e.target.value }))}
+                    className="flex-1 text-sm border rounded px-2 py-1 focus:outline-none"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Followers"
+                    value={(socialForm as any)[followersKey]}
+                    onChange={(e) => setSocialForm((f) => ({ ...f, [followersKey]: e.target.value }))}
+                    className="w-32 text-sm border rounded px-2 py-1 text-right focus:outline-none"
+                    min="0"
+                  />
+                </>
+              ) : (
+                <>
+                  <span className="flex-1 text-sm text-gray-700">
+                    {(lead as any)[handleKey] || <span className="text-gray-300">—</span>}
+                  </span>
+                  <span className="text-sm text-gray-500 w-32 text-right">
+                    {(lead as any)[followersKey] != null
+                      ? Number((lead as any)[followersKey]).toLocaleString() + " followers"
+                      : <span className="text-gray-300">—</span>}
+                  </span>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Contacts */}
+        <div className="bg-white border rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold">Contacts ({contacts.length})</p>
+            <button
+              onClick={() => { resetContactForm(); setEditingContactId(null); setShowContactForm((v) => !v); }}
+              className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
+            >
+              {showContactForm ? "Cancel" : "+ Add Contact"}
+            </button>
+          </div>
+
+          {/* Add contact form */}
+          {showContactForm && (
+            <div className="bg-gray-50 rounded-lg p-4 mb-4 text-sm">
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">First Name *</label>
+                  <input type="text" value={contactForm.firstName}
+                    onChange={(e) => setContactForm((f) => ({ ...f, firstName: e.target.value }))}
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Last Name</label>
+                  <input type="text" value={contactForm.lastName}
+                    onChange={(e) => setContactForm((f) => ({ ...f, lastName: e.target.value }))}
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Title / Role</label>
+                  <input type="text" placeholder="e.g. Owner, Marketing Director"
+                    value={contactForm.title}
+                    onChange={(e) => setContactForm((f) => ({ ...f, title: e.target.value }))}
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Phone</label>
+                  <input type="text" value={contactForm.phone}
+                    onChange={(e) => setContactForm((f) => ({ ...f, phone: e.target.value }))}
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none text-sm" />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-xs text-gray-500 mb-1 block">Email</label>
+                  <input type="email" value={contactForm.email}
+                    onChange={(e) => setContactForm((f) => ({ ...f, email: e.target.value }))}
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none text-sm" />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-xs text-gray-500 mb-1 block">Notes</label>
+                  <input type="text" placeholder="Optional"
+                    value={contactForm.notes}
+                    onChange={(e) => setContactForm((f) => ({ ...f, notes: e.target.value }))}
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none text-sm" />
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <input type="checkbox" checked={contactForm.isDecisionMaker}
+                    onChange={(e) => setContactForm((f) => ({ ...f, isDecisionMaker: e.target.checked }))}
+                    className="rounded" />
+                  <span className="font-medium text-gray-700">Decision Maker</span>
+                </label>
+                <button onClick={handleContactSave} disabled={savingContact}
+                  className="bg-charcoal text-white text-sm px-4 py-2 rounded-lg disabled:opacity-50">
+                  {savingContact ? "Saving..." : "Save Contact"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Contact list */}
+          {contacts.length === 0 && !showContactForm && (
+            <p className="text-sm text-gray-400 py-2">No contacts added yet.</p>
+          )}
+          <div className="flex flex-col gap-2">
+            {contacts.map((c) =>
+              editingContactId === c.id ? (
+                <div key={c.id} className="bg-gray-50 rounded-lg p-4 text-sm border">
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">First Name *</label>
+                      <input type="text" value={contactForm.firstName}
+                        onChange={(e) => setContactForm((f) => ({ ...f, firstName: e.target.value }))}
+                        className="w-full border rounded-lg px-3 py-2 focus:outline-none text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Last Name</label>
+                      <input type="text" value={contactForm.lastName}
+                        onChange={(e) => setContactForm((f) => ({ ...f, lastName: e.target.value }))}
+                        className="w-full border rounded-lg px-3 py-2 focus:outline-none text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Title / Role</label>
+                      <input type="text" value={contactForm.title}
+                        onChange={(e) => setContactForm((f) => ({ ...f, title: e.target.value }))}
+                        className="w-full border rounded-lg px-3 py-2 focus:outline-none text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Phone</label>
+                      <input type="text" value={contactForm.phone}
+                        onChange={(e) => setContactForm((f) => ({ ...f, phone: e.target.value }))}
+                        className="w-full border rounded-lg px-3 py-2 focus:outline-none text-sm" />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-xs text-gray-500 mb-1 block">Email</label>
+                      <input type="email" value={contactForm.email}
+                        onChange={(e) => setContactForm((f) => ({ ...f, email: e.target.value }))}
+                        className="w-full border rounded-lg px-3 py-2 focus:outline-none text-sm" />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-xs text-gray-500 mb-1 block">Notes</label>
+                      <input type="text" value={contactForm.notes}
+                        onChange={(e) => setContactForm((f) => ({ ...f, notes: e.target.value }))}
+                        className="w-full border rounded-lg px-3 py-2 focus:outline-none text-sm" />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm">
+                      <input type="checkbox" checked={contactForm.isDecisionMaker}
+                        onChange={(e) => setContactForm((f) => ({ ...f, isDecisionMaker: e.target.checked }))} />
+                      <span className="font-medium text-gray-700">Decision Maker</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <button onClick={() => { setEditingContactId(null); resetContactForm(); }}
+                        className="text-sm text-gray-500 border px-3 py-1.5 rounded-lg hover:bg-gray-100">
+                        Cancel
+                      </button>
+                      <button onClick={handleContactSave} disabled={savingContact}
+                        className="text-sm bg-charcoal text-white px-4 py-1.5 rounded-lg disabled:opacity-50">
+                        {savingContact ? "Saving..." : "Save"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div key={c.id} className="flex items-start justify-between border rounded-lg px-4 py-3 bg-white">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-600 flex-shrink-0 mt-0.5">
+                      {c.firstName[0]}{c.lastName?.[0] ?? ""}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-gray-800">
+                          {c.firstName} {c.lastName}
+                        </span>
+                        {c.isDecisionMaker && (
+                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                            Decision Maker
+                          </span>
+                        )}
+                        {c.title && (
+                          <span className="text-xs text-gray-400">{c.title}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
+                        {c.phone && <span className="text-xs text-gray-500">{c.phone}</span>}
+                        {c.email && <span className="text-xs text-gray-500">{c.email}</span>}
+                        {c.notes && <span className="text-xs text-gray-400 italic">{c.notes}</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                    {deletingContactId === c.id ? (
+                      <>
+                        <span className="text-xs text-gray-500">Delete?</span>
+                        <button onClick={() => handleContactDelete(c.id)}
+                          className="text-xs text-red-500 hover:text-red-700 font-medium">Yes</button>
+                        <button onClick={() => setDeletingContactId(null)}
+                          className="text-xs text-gray-400 hover:text-gray-600">No</button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => {
+                            setEditingContactId(c.id);
+                            setShowContactForm(false);
+                            setContactForm({
+                              firstName: c.firstName, lastName: c.lastName ?? "",
+                              title: c.title ?? "", email: c.email ?? "",
+                              phone: c.phone ?? "", isDecisionMaker: c.isDecisionMaker,
+                              notes: c.notes ?? "",
+                            });
+                          }}
+                          className="text-xs text-gray-400 hover:text-gray-700 border rounded px-2 py-1"
+                        >
+                          Edit
+                        </button>
+                        <button onClick={() => setDeletingContactId(c.id)}
+                          className="text-xs text-gray-400 hover:text-red-500 border rounded px-2 py-1">
+                          Delete
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )
+            )}
+          </div>
         </div>
 
         {/* Locations */}
@@ -933,6 +1518,11 @@ const LeadDetailPage = () => {
             </div>
           )}
         </div>
+
+        </div>{/* /left column */}
+
+        {/* ── RIGHT COLUMN — activity ── */}
+        <div className="min-w-0">
 
         {/* Reminders */}
         <div className="bg-white border rounded-lg p-4 mb-6">
@@ -1167,12 +1757,26 @@ const LeadDetailPage = () => {
                           <p className="text-gray-500 mt-0.5">{r.note}</p>
                         )}
                       </div>
-                      <button
-                        onClick={() => handleReminderComplete(r.id)}
-                        className="ml-3 flex-shrink-0 text-xs text-gray-400 hover:text-green-600 border border-gray-200 rounded px-2 py-0.5 bg-white"
-                      >
-                        Done
-                      </button>
+                      <div className="ml-3 flex-shrink-0 flex gap-1.5">
+                        <button
+                          onClick={() => {
+                            setTpType("EMAIL");
+                            setShowTouchpointForm(true);
+                            document
+                              .getElementById("touchpoints-section")
+                              ?.scrollIntoView({ behavior: "smooth" });
+                          }}
+                          className="text-xs bg-green-primary text-white rounded px-2.5 py-1 font-medium whitespace-nowrap"
+                        >
+                          Log follow-up →
+                        </button>
+                        <button
+                          onClick={() => handleReminderComplete(r.id)}
+                          className="text-xs bg-white border border-gray-300 text-gray-500 rounded px-2.5 py-1 font-medium whitespace-nowrap"
+                        >
+                          Skip
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -1230,7 +1834,18 @@ const LeadDetailPage = () => {
                   <label className="block font-semibold mb-1">Type</label>
                   <select
                     value={tpType}
-                    onChange={(e) => setTpType(e.target.value)}
+                    onChange={(e) => {
+                      const newType = e.target.value;
+                      setTpType(newType);
+                      // Reset position if it's incompatible with the new type
+                      setTpSequencePosition((prev) => {
+                        const isVisitPos = ["VISIT_A", "VISIT_B", "VISIT_C"].includes(prev);
+                        const isOutreachPos = prev && !isVisitPos;
+                        if (IN_PERSON_TYPES.includes(newType) && isOutreachPos) return "";
+                        if (!IN_PERSON_TYPES.includes(newType) && isVisitPos) return "";
+                        return prev;
+                      });
+                    }}
                     className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
                   >
                     {TOUCHPOINT_TYPES.map((t) => (
@@ -1251,6 +1866,23 @@ const LeadDetailPage = () => {
                     wrapperClassName="w-full"
                   />
                 </div>
+              </div>
+              <div className="mb-4">
+                <label className="block font-semibold mb-1">
+                  Follow-up Stage{" "}
+                  <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <select
+                  value={tpSequencePosition}
+                  onChange={(e) => setTpSequencePosition(e.target.value)}
+                  className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none text-sm"
+                >
+                  {getSequencePositions(tpType).map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="mb-4">
                 <label className="block font-semibold mb-1">Summary</label>
@@ -1294,7 +1926,17 @@ const LeadDetailPage = () => {
                         <label className="block font-semibold mb-1">Type</label>
                         <select
                           value={editTpForm.type}
-                          onChange={(e) => setEditTpForm((f: any) => ({ ...f, type: e.target.value }))}
+                          onChange={(e) => {
+                            const newType = e.target.value;
+                            setEditTpForm((f: any) => {
+                              const isVisitPos = ["VISIT_A", "VISIT_B", "VISIT_C"].includes(f.sequencePosition);
+                              const isOutreachPos = f.sequencePosition && !isVisitPos;
+                              const shouldReset =
+                                (IN_PERSON_TYPES.includes(newType) && isOutreachPos) ||
+                                (!IN_PERSON_TYPES.includes(newType) && isVisitPos);
+                              return { ...f, type: newType, sequencePosition: shouldReset ? "" : f.sequencePosition };
+                            });
+                          }}
                           className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
                         >
                           {TOUCHPOINT_TYPES.map((t) => (
@@ -1313,6 +1955,18 @@ const LeadDetailPage = () => {
                           wrapperClassName="w-full"
                         />
                       </div>
+                    </div>
+                    <div className="mb-3">
+                      <label className="block font-semibold mb-1">Follow-up Stage</label>
+                      <select
+                        value={editTpForm.sequencePosition ?? ""}
+                        onChange={(e) => setEditTpForm((f: any) => ({ ...f, sequencePosition: e.target.value }))}
+                        className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none text-sm"
+                      >
+                        {getSequencePositions(editTpForm.type ?? "").map((p) => (
+                          <option key={p.value} value={p.value}>{p.label}</option>
+                        ))}
+                      </select>
                     </div>
                     <div className="mb-3">
                       <label className="block font-semibold mb-1">Summary</label>
@@ -1356,10 +2010,15 @@ const LeadDetailPage = () => {
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium">
                             {TOUCHPOINT_TYPES.find((t) => t.value === tp.type)?.label ?? tp.type}
                           </span>
+                          {tp.sequencePosition && (
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${SEQUENCE_POSITION_COLOR[tp.sequencePosition] ?? "bg-gray-100 text-gray-600"}`}>
+                              {SEQUENCE_POSITION_LABEL[tp.sequencePosition] ?? tp.sequencePosition}
+                            </span>
+                          )}
                           <span className="text-gray-400">
                             {new Date(tp.date).toLocaleDateString()}
                           </span>
@@ -1372,12 +2031,40 @@ const LeadDetailPage = () => {
                           {tp.receivedResponse && " · Got a response"}
                         </p>
                       </div>
-                      <button
-                        onClick={() => startEditTp(tp)}
-                        className="text-xs text-gray-400 hover:text-gray-700 ml-3 flex-shrink-0"
-                      >
-                        Edit
-                      </button>
+                      <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                        {deletingTpId === tp.id ? (
+                          <>
+                            <span className="text-xs text-gray-500">Delete?</span>
+                            <button
+                              onClick={() => handleTouchpointDelete(tp.id)}
+                              className="text-xs text-red-500 hover:text-red-700 font-medium"
+                            >
+                              Yes
+                            </button>
+                            <button
+                              onClick={() => setDeletingTpId(null)}
+                              className="text-xs text-gray-400 hover:text-gray-600"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => startEditTp(tp)}
+                              className="text-xs text-gray-400 hover:text-gray-700"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => setDeletingTpId(tp.id)}
+                              className="text-xs text-gray-300 hover:text-red-400"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )
@@ -1443,6 +2130,9 @@ const LeadDetailPage = () => {
             </div>
           )}
         </div>
+
+        </div>{/* /right column */}
+        </div>{/* /two-column grid */}
       </div>
     </InternalLayout>
   );

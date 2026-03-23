@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import InternalLayout from "../components/InternalLayout";
 import axios from "axios";
 import { BusinessType, DiscoveredVia, Industry, LeadSource } from "../types.d";
+import { FaInstagram, FaTiktok, FaYoutube, FaFacebook } from "react-icons/fa";
 
 const AddLeadPage = () => {
   const navigate = useNavigate();
@@ -20,6 +21,21 @@ const AddLeadPage = () => {
   const [discoveredVia, setDiscoveredVia] = useState<DiscoveredVia | "">("");
   const [discoveredViaOther, setDiscoveredViaOther] = useState("");
   const [selectedIdentities, setSelectedIdentities] = useState<string[]>([]);
+  const [instagramHandle, setInstagramHandle] = useState("");
+  const [instagramFollowers, setInstagramFollowers] = useState("");
+  const [tiktokHandle, setTiktokHandle] = useState("");
+  const [tiktokFollowers, setTiktokFollowers] = useState("");
+  const [youtubeHandle, setYoutubeHandle] = useState("");
+  const [youtubeFollowers, setYoutubeFollowers] = useState("");
+  const [facebookHandle, setFacebookHandle] = useState("");
+  const [facebookFollowers, setFacebookFollowers] = useState("");
+
+  // Referred by
+  const [allLeads, setAllLeads] = useState<{ id: string; business: string }[]>([]);
+  const [referralSearch, setReferralSearch] = useState("");
+  const [referredByLeadId, setReferredByLeadId] = useState("");
+  const [referredByName, setReferredByName] = useState("");
+  const [showReferralSuggestions, setShowReferralSuggestions] = useState(false);
 
   const authHeaders = { Authorization: `Bearer ${token}` };
 
@@ -84,6 +100,18 @@ const AddLeadPage = () => {
       isLatinoOwned: selectedIdentities.includes("latino"),
       isWomanOwned: selectedIdentities.includes("woman"),
       isImmigrantOwned: selectedIdentities.includes("immigrant"),
+      ...(instagramHandle && { instagramHandle }),
+      ...(instagramFollowers && { instagramFollowers: parseInt(instagramFollowers) }),
+      ...(tiktokHandle && { tiktokHandle }),
+      ...(tiktokFollowers && { tiktokFollowers: parseInt(tiktokFollowers) }),
+      ...(youtubeHandle && { youtubeHandle }),
+      ...(youtubeFollowers && { youtubeFollowers: parseInt(youtubeFollowers) }),
+      ...(facebookHandle && { facebookHandle }),
+      ...(facebookFollowers && { facebookFollowers: parseInt(facebookFollowers) }),
+      ...(referredByLeadId && {
+        referredByLead: { connect: { id: referredByLeadId } },
+      }),
+      ...(!referredByLeadId && referredByName && { referredByName }),
       ...(selectedIndustryId && {
         industry: { connect: { id: selectedIndustryId } },
       }),
@@ -106,16 +134,14 @@ const AddLeadPage = () => {
 
   useEffect(() => {
     Promise.all([
-      axios.get("http://localhost:3000/api/industries", {
-        headers: authHeaders,
-      }),
-      axios.get("http://localhost:3000/api/business-types", {
-        headers: authHeaders,
-      }),
+      axios.get("http://localhost:3000/api/industries", { headers: authHeaders }),
+      axios.get("http://localhost:3000/api/business-types", { headers: authHeaders }),
+      axios.get("http://localhost:3000/api/leads", { headers: authHeaders }),
     ])
-      .then(([industriesRes, typesRes]) => {
+      .then(([industriesRes, typesRes, leadsRes]) => {
         setIndustries(industriesRes.data);
         setBusinessTypes(typesRes.data);
+        setAllLeads(leadsRes.data.map((l: any) => ({ id: l.id, business: l.business })));
       })
       .catch(() => {
         alert("An error has occurred while loading dropdown data");
@@ -346,6 +372,105 @@ const AddLeadPage = () => {
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* Social Media */}
+          <div className="mb-8">
+            <h3 className="text-sm font-semibold mb-3">Social Media</h3>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              {[
+                { icon: <FaInstagram className="text-pink-500" />, label: "Instagram", handle: instagramHandle, setHandle: setInstagramHandle, followers: instagramFollowers, setFollowers: setInstagramFollowers },
+                { icon: <FaTiktok className="text-gray-800" />, label: "TikTok", handle: tiktokHandle, setHandle: setTiktokHandle, followers: tiktokFollowers, setFollowers: setTiktokFollowers },
+                { icon: <FaYoutube className="text-red-500" />, label: "YouTube", handle: youtubeHandle, setHandle: setYoutubeHandle, followers: youtubeFollowers, setFollowers: setYoutubeFollowers },
+                { icon: <FaFacebook className="text-blue-600" />, label: "Facebook", handle: facebookHandle, setHandle: setFacebookHandle, followers: facebookFollowers, setFollowers: setFacebookFollowers },
+              ].map(({ icon, label, handle, setHandle, followers, setFollowers }) => (
+                <div key={label} className="flex items-center gap-2 bg-white border rounded-lg px-3 py-2">
+                  <span className="flex-shrink-0 text-lg">{icon}</span>
+                  <input
+                    type="text"
+                    placeholder={`${label} handle`}
+                    value={handle}
+                    onChange={(e) => setHandle(e.target.value)}
+                    className="flex-1 text-sm focus:outline-none min-w-0"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Followers"
+                    value={followers}
+                    onChange={(e) => setFollowers(e.target.value)}
+                    className="w-28 text-sm text-right focus:outline-none border-l pl-2"
+                    min="0"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Referred By */}
+          <div className="mb-8">
+            <h3 className="text-sm font-semibold mb-3">Referred By</h3>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search existing leads or type a name..."
+                value={referralSearch}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setReferralSearch(val);
+                  setReferredByLeadId("");
+                  setReferredByName(val);
+                  setShowReferralSuggestions(val.trim().length > 0);
+                }}
+                onFocus={() => referralSearch.trim().length > 0 && setShowReferralSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowReferralSuggestions(false), 150)}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-300"
+              />
+              {referredByLeadId && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                  Linked lead
+                </span>
+              )}
+              {showReferralSuggestions && (
+                <div className="absolute z-20 left-0 right-0 top-[42px] bg-white border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                  {allLeads
+                    .filter((l) =>
+                      l.business.toLowerCase().includes(referralSearch.toLowerCase())
+                    )
+                    .slice(0, 8)
+                    .map((l) => (
+                      <button
+                        key={l.id}
+                        type="button"
+                        onMouseDown={() => {
+                          setReferredByLeadId(l.id);
+                          setReferredByName("");
+                          setReferralSearch(l.business);
+                          setShowReferralSuggestions(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                      >
+                        {l.business}
+                      </button>
+                    ))}
+                  {allLeads.filter((l) =>
+                    l.business.toLowerCase().includes(referralSearch.toLowerCase())
+                  ).length === 0 && (
+                    <p className="px-4 py-2 text-sm text-gray-400 italic">
+                      No matching leads — will save as free text
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+            {referredByLeadId && (
+              <button
+                type="button"
+                onClick={() => { setReferredByLeadId(""); setReferralSearch(""); setReferredByName(""); }}
+                className="mt-1.5 text-xs text-gray-400 hover:text-gray-600 underline"
+              >
+                Clear
+              </button>
+            )}
           </div>
 
           {/* Buttons */}

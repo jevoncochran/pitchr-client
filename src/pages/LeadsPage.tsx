@@ -1,7 +1,76 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import InternalLayout from "../components/InternalLayout";
+
+// Generic multi-select checkbox dropdown
+const MultiSelectDropdown = ({
+  label,
+  options,
+  selected,
+  onToggle,
+  onClear,
+  dropdownRef,
+  open,
+  onOpen,
+}: {
+  label: string;
+  options: { id: string; name: string }[];
+  selected: Set<string>;
+  onToggle: (id: string) => void;
+  onClear: () => void;
+  dropdownRef: React.RefObject<HTMLDivElement>;
+  open: boolean;
+  onOpen: () => void;
+}) => (
+  <div className="relative" ref={dropdownRef}>
+    <button
+      onClick={onOpen}
+      className="flex items-center gap-2 text-sm border rounded-lg px-3 h-[38px] bg-white text-gray-600 hover:bg-gray-50 focus:outline-none"
+    >
+      <span>{label}</span>
+      {selected.size > 0 && (
+        <span className="bg-charcoal text-white text-xs rounded-full px-1.5 py-0.5 leading-none">
+          {selected.size}
+        </span>
+      )}
+      <span className="text-gray-400 text-xs">▾</span>
+    </button>
+    {open && (
+      <div className="absolute left-0 top-[42px] z-20 bg-white border rounded-xl shadow-lg p-3 w-52">
+        <p className="text-xs text-gray-400 uppercase tracking-wide mb-2 px-1">{label}</p>
+        {options.length === 0 ? (
+          <p className="text-xs text-gray-300 px-1 py-1">No options yet</p>
+        ) : (
+          options.map((opt) => (
+            <label
+              key={opt.id}
+              className="flex items-center gap-2.5 px-1 py-1.5 rounded hover:bg-gray-50 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={selected.has(opt.id)}
+                onChange={() => onToggle(opt.id)}
+                className="rounded"
+              />
+              <span className="text-xs text-gray-700">{opt.name}</span>
+            </label>
+          ))
+        )}
+        {selected.size > 0 && (
+          <div className="border-t mt-2 pt-2">
+            <button
+              onClick={onClear}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              Clear selection
+            </button>
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+);
 
 const STAGE_LABELS: Record<string, string> = {
   NEW: "New",
@@ -11,6 +80,8 @@ const STAGE_LABELS: Record<string, string> = {
   PROPOSAL_SENT: "Proposal Sent",
   CONVERTED: "Converted",
   DORMANT: "Dormant",
+  NOT_A_FIT: "Not a Fit",
+  LOST: "Lost",
 };
 
 const STAGE_COLORS: Record<string, string> = {
@@ -21,13 +92,71 @@ const STAGE_COLORS: Record<string, string> = {
   PROPOSAL_SENT: "bg-orange-100 text-orange-700",
   CONVERTED: "bg-green-100 text-green-700",
   DORMANT: "bg-gray-200 text-gray-500",
+  NOT_A_FIT: "bg-red-100 text-red-600",
+  LOST: "bg-rose-100 text-rose-700",
 };
+
+const ALL_STAGES = Object.keys(STAGE_LABELS);
+const DEFAULT_HIDDEN = new Set(["DORMANT", "NOT_A_FIT", "LOST"]);
 
 const LeadsPage = () => {
   const navigate = useNavigate();
   const [leads, setLeads] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
+  const [industryFilter, setIndustryFilter] = useState<Set<string>>(new Set());
+  const [businessTypeFilter, setBusinessTypeFilter] = useState<Set<string>>(new Set());
+  const [visibleStages, setVisibleStages] = useState<Set<string>>(
+    new Set(ALL_STAGES.filter((s) => !DEFAULT_HIDDEN.has(s)))
+  );
+  const [stageDropdownOpen, setStageDropdownOpen] = useState(false);
+  const [industryDropdownOpen, setIndustryDropdownOpen] = useState(false);
+  const [businessTypeDropdownOpen, setBusinessTypeDropdownOpen] = useState(false);
+  const stageDropdownRef = useRef<HTMLDivElement>(null);
+  const industryDropdownRef = useRef<HTMLDivElement>(null);
+  const businessTypeDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (stageDropdownRef.current && !stageDropdownRef.current.contains(e.target as Node)) {
+        setStageDropdownOpen(false);
+      }
+      if (industryDropdownRef.current && !industryDropdownRef.current.contains(e.target as Node)) {
+        setIndustryDropdownOpen(false);
+      }
+      if (businessTypeDropdownRef.current && !businessTypeDropdownRef.current.contains(e.target as Node)) {
+        setBusinessTypeDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const toggleStage = (stage: string) => {
+    setVisibleStages((prev) => {
+      const next = new Set(prev);
+      next.has(stage) ? next.delete(stage) : next.add(stage);
+      return next;
+    });
+  };
+
+  const toggleIndustry = (id: string) => {
+    setIndustryFilter((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleBusinessType = (id: string) => {
+    setBusinessTypeFilter((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
   const token = JSON.parse(localStorage.getItem("token") ?? "");
   const authHeaders = { Authorization: `Bearer ${token}` };
 
@@ -40,39 +169,152 @@ const LeadsPage = () => {
       .then((res) => setUsers(res.data));
   }, []);
 
-  const filteredLeads = ownerFilter === "all"
-    ? leads
-    : ownerFilter === "unassigned"
-    ? leads.filter((l) => !l.assignedToId)
-    : leads.filter((l) => l.assignedToId === ownerFilter);
+  // Derive unique industry and business type options from loaded leads
+  const industries = Array.from(
+    new Map(
+      leads.filter((l) => l.industry).map((l) => [l.industry.id, l.industry])
+    ).values()
+  ).sort((a, b) => a.name.localeCompare(b.name));
+
+  const businessTypes = Array.from(
+    new Map(
+      leads.filter((l) => l.businessType).map((l) => [l.businessType.id, l.businessType])
+    ).values()
+  ).sort((a, b) => a.name.localeCompare(b.name));
+
+  const filteredLeads = leads
+    .filter((l) => visibleStages.has(l.pipelineStage))
+    .filter((l) =>
+      search.trim() === "" ? true :
+      l.business?.toLowerCase().includes(search.trim().toLowerCase())
+    )
+    .filter((l) =>
+      ownerFilter === "all" ? true :
+      ownerFilter === "unassigned" ? !l.assignedToId :
+      l.assignedToId === ownerFilter
+    )
+    .filter((l) =>
+      industryFilter.size === 0 ? true : industryFilter.has(l.industry?.id)
+    )
+    .filter((l) =>
+      businessTypeFilter.size === 0 ? true : businessTypeFilter.has(l.businessType?.id)
+    );
 
   return (
     <InternalLayout>
       <div className="p-8 flex-1">
-        <div className="flex justify-between items-center mb-6">
+        {/* Row 1: title + action */}
+        <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-gray-800">All Leads</h1>
-          <div className="flex items-center gap-3">
-            {/* Owner filter */}
-            <select
-              value={ownerFilter}
-              onChange={(e) => setOwnerFilter(e.target.value)}
-              className="text-sm border rounded-lg px-3 h-[40px] bg-white text-gray-600 focus:outline-none"
-            >
-              <option value="all">All Owners</option>
-              <option value="unassigned">Unassigned</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.firstName} {u.lastName}
-                </option>
-              ))}
-            </select>
+          <button
+            onClick={() => navigate("/add-lead")}
+            className="bg-charcoal text-white rounded-lg px-4 h-[40px] text-sm"
+          >
+            + New Lead
+          </button>
+        </div>
+
+        {/* Row 2: search + filters */}
+        <div className="flex items-center gap-3 mb-6 flex-wrap">
+          <input
+            type="text"
+            placeholder="Search by business name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="text-sm border rounded-lg px-3 h-[38px] w-56 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300"
+          />
+          <MultiSelectDropdown
+            label="Industry"
+            options={industries}
+            selected={industryFilter}
+            onToggle={toggleIndustry}
+            onClear={() => setIndustryFilter(new Set())}
+            dropdownRef={industryDropdownRef}
+            open={industryDropdownOpen}
+            onOpen={() => setIndustryDropdownOpen((v) => !v)}
+          />
+          <MultiSelectDropdown
+            label="Business Type"
+            options={businessTypes}
+            selected={businessTypeFilter}
+            onToggle={toggleBusinessType}
+            onClear={() => setBusinessTypeFilter(new Set())}
+            dropdownRef={businessTypeDropdownRef}
+            open={businessTypeDropdownOpen}
+            onOpen={() => setBusinessTypeDropdownOpen((v) => !v)}
+          />
+          <select
+            value={ownerFilter}
+            onChange={(e) => setOwnerFilter(e.target.value)}
+            className="text-sm border rounded-lg px-3 h-[38px] bg-white text-gray-600 focus:outline-none"
+          >
+            <option value="all">All Owners</option>
+            <option value="unassigned">Unassigned</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
+            ))}
+          </select>
+
+          {/* Stage visibility dropdown */}
+          <div className="relative" ref={stageDropdownRef}>
             <button
-              onClick={() => navigate("/add-lead")}
-              className="bg-charcoal text-white rounded-lg px-4 h-[40px] text-sm"
+              onClick={() => setStageDropdownOpen((v) => !v)}
+              className="flex items-center gap-2 text-sm border rounded-lg px-3 h-[38px] bg-white text-gray-600 hover:bg-gray-50 focus:outline-none"
             >
-              + New Lead
+              <span>Stages</span>
+              {visibleStages.size < ALL_STAGES.length && (
+                <span className="bg-charcoal text-white text-xs rounded-full px-1.5 py-0.5 leading-none">
+                  {ALL_STAGES.length - visibleStages.size} hidden
+                </span>
+              )}
+              <span className="text-gray-400 text-xs">▾</span>
             </button>
+            {stageDropdownOpen && (
+              <div className="absolute left-0 top-[42px] z-20 bg-white border rounded-xl shadow-lg p-3 w-52">
+                <p className="text-xs text-gray-400 uppercase tracking-wide mb-2 px-1">Show / Hide</p>
+                {ALL_STAGES.map((stage) => (
+                  <label
+                    key={stage}
+                    className="flex items-center gap-2.5 px-1 py-1.5 rounded hover:bg-gray-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={visibleStages.has(stage)}
+                      onChange={() => toggleStage(stage)}
+                      className="rounded"
+                    />
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STAGE_COLORS[stage]}`}>
+                      {STAGE_LABELS[stage]}
+                    </span>
+                  </label>
+                ))}
+                <div className="border-t mt-2 pt-2 flex gap-2">
+                  <button
+                    onClick={() => setVisibleStages(new Set(ALL_STAGES))}
+                    className="text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    Show all
+                  </button>
+                  <span className="text-gray-300">·</span>
+                  <button
+                    onClick={() => setVisibleStages(new Set(ALL_STAGES.filter((s) => !DEFAULT_HIDDEN.has(s))))}
+                    className="text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
+
+          {(search || ownerFilter !== "all" || industryFilter.size > 0 || businessTypeFilter.size > 0) && (
+            <button
+              onClick={() => { setSearch(""); setOwnerFilter("all"); setIndustryFilter(new Set()); setBusinessTypeFilter(new Set()); }}
+              className="text-xs text-gray-400 hover:text-gray-600 underline h-[38px]"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
 
         <div className="bg-white rounded-xl border overflow-hidden">
@@ -94,7 +336,12 @@ const LeadsPage = () => {
                   className="border-t border-gray-100 cursor-pointer hover:bg-gray-50 transition"
                   onClick={() => navigate(`/leads/${lead.id}`)}
                 >
-                  <td className="p-4 text-sm font-medium text-gray-800">{lead.business}</td>
+                  <td className="p-4 text-sm font-medium text-gray-800">
+                    <span className="flex items-center gap-1.5">
+                      {lead.isHot && <span title="Hot lead">🔥</span>}
+                      {lead.business}
+                    </span>
+                  </td>
                   <td className="p-4 text-sm text-gray-600">{lead.industry?.name ?? "—"}</td>
                   <td className="p-4 text-sm text-gray-600">{lead.businessType?.name ?? "—"}</td>
                   <td className="p-4">
@@ -119,7 +366,7 @@ const LeadsPage = () => {
 
           {filteredLeads.length === 0 && (
             <p className="text-sm text-gray-400 text-center py-8">
-              {leads.length === 0 ? "No leads yet." : "No leads match this filter."}
+              {leads.length === 0 ? "No leads yet." : "No leads match your search or filter."}
             </p>
           )}
         </div>

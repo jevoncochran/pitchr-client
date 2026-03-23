@@ -12,6 +12,9 @@ const STAGE_LABELS: Record<string, string> = {
   MEETING_SCHEDULED: "Meeting Scheduled",
   PROPOSAL_SENT: "Proposal Sent",
   CONVERTED: "Converted",
+  DORMANT: "Dormant",
+  NOT_A_FIT: "Not a Fit",
+  LOST: "Lost",
 };
 
 const STAGE_COLORS: Record<string, string> = {
@@ -22,6 +25,8 @@ const STAGE_COLORS: Record<string, string> = {
   PROPOSAL_SENT: "bg-orange-100 text-orange-700",
   CONVERTED: "bg-green-100 text-green-700",
   DORMANT: "bg-gray-200 text-gray-500",
+  NOT_A_FIT: "bg-red-100 text-red-600",
+  LOST: "bg-rose-100 text-rose-700",
 };
 
 const TP_LABELS: Record<string, string> = {
@@ -149,7 +154,7 @@ export const DashboardPage = () => {
   // Gone silent: has touchpoints but none in 7+ days
   const goneSilent = allLeads
     .filter((l) => {
-      if (l.pipelineStage === "CONVERTED" || l.pipelineStage === "DORMANT") return false;
+      if (["CONVERTED", "DORMANT", "NOT_A_FIT", "LOST"].includes(l.pipelineStage)) return false;
       if (!l.touchPoint || l.touchPoint.length === 0) return false;
       const daysSince =
         (Date.now() - new Date(l.touchPoint[0].date).getTime()) /
@@ -185,14 +190,14 @@ export const DashboardPage = () => {
   };
 
   const NEXT_ACTION_LABELS: Record<number, string> = {
-    1: "Email 2",
-    2: "Email 3",
-    3: "Visit 2",
-    4: "Email 5",
-    5: "Email 6",
-    6: "Visit 3",
-    7: "Email 8",
-    8: "Email 9",
+    1: "Outreach A2",
+    2: "Outreach A3",
+    3: "Visit B",
+    4: "Outreach B2",
+    5: "Outreach B3",
+    6: "Visit C",
+    7: "Outreach C2",
+    8: "Outreach C3",
     9: "Deprioritize",
   };
 
@@ -230,54 +235,40 @@ export const DashboardPage = () => {
     if (r.isCheckIn) {
       return (
         <div
-          className={`rounded-lg px-3 py-3 text-sm border ${
+          className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm border ${
             urgent
               ? "bg-red-50 border-red-200"
               : "bg-yellow-50 border-yellow-200"
           }`}
         >
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <div
-              className="flex-1 cursor-pointer"
+          <div
+            className="flex-1 min-w-0 cursor-pointer"
+            onClick={() => navigate(`/leads/${r.lead.id}`)}
+          >
+            <p className="font-medium text-gray-800 truncate">{r.lead.business}</p>
+            <p
+              className={`text-xs mt-0.5 truncate ${
+                urgent ? "text-red-500" : "text-yellow-600"
+              }`}
+            >
+              {r.note ?? "Did they respond?"}
+              {urgent && ` · Due ${new Date(r.dueDate).toLocaleDateString()}`}
+            </p>
+          </div>
+          <div className="flex gap-1.5 flex-shrink-0">
+            <button
               onClick={() => navigate(`/leads/${r.lead.id}`)}
+              className="text-xs bg-green-primary text-white rounded px-2.5 py-1 font-medium whitespace-nowrap"
             >
-              <p className="font-medium text-gray-800">{r.lead.business}</p>
-              <p
-                className={`text-xs mt-0.5 ${
-                  urgent ? "text-red-500" : "text-yellow-600"
-                }`}
-              >
-                {r.note ?? "Did they respond?"}
-                {urgent && ` · Due ${new Date(r.dueDate).toLocaleDateString()}`}
-              </p>
-            </div>
-            <span className="flex-shrink-0 text-xs bg-white border border-gray-200 text-gray-400 px-2 py-0.5 rounded">
-              Check-in
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleCheckInRespond(r.id, true)}
-              className="flex-1 text-xs bg-green-primary text-white rounded py-1.5 font-medium"
-            >
-              Yes, responded
+              Log follow-up →
             </button>
             <button
-              onClick={() => handleCheckInRespond(r.id, false)}
-              className="flex-1 text-xs bg-white border border-gray-300 text-gray-600 rounded py-1.5 font-medium hover:bg-gray-50"
+              onClick={() => handleCompleteReminder(r.id)}
+              className="text-xs bg-white border border-gray-300 text-gray-500 rounded px-2.5 py-1 font-medium whitespace-nowrap"
             >
-              No response
+              Skip
             </button>
           </div>
-          {r.lead?.sequenceStep != null &&
-            NEXT_ACTION_LABELS[r.lead.sequenceStep] && (
-              <p className="text-xs text-gray-400 mt-1.5">
-                If no →{" "}
-                <span className="font-medium text-gray-600">
-                  {NEXT_ACTION_LABELS[r.lead.sequenceStep]}
-                </span>
-              </p>
-            )}
         </div>
       );
     }
@@ -304,12 +295,20 @@ export const DashboardPage = () => {
             {r.note && ` · ${r.note}`}
           </p>
         </div>
-        <button
-          onClick={() => handleCompleteReminder(r.id)}
-          className="ml-3 flex-shrink-0 text-xs border rounded px-2 py-0.5 bg-white text-gray-500 hover:text-green-600 hover:border-green-300"
-        >
-          Done
-        </button>
+        <div className="ml-3 flex-shrink-0 flex items-center gap-1.5">
+          <button
+            onClick={() => navigate(`/leads/${r.lead.id}`)}
+            className="text-xs bg-green-primary text-white rounded px-2.5 py-1 font-medium whitespace-nowrap"
+          >
+            Log follow-up →
+          </button>
+          <button
+            onClick={() => handleCompleteReminder(r.id)}
+            className="text-xs bg-white border border-gray-300 text-gray-500 rounded px-2.5 py-1 font-medium whitespace-nowrap"
+          >
+            Skip
+          </button>
+        </div>
       </div>
     );
   };

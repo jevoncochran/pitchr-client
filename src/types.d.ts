@@ -76,6 +76,8 @@ export enum PipelineStage {
   ProposalSent = "PROPOSAL_SENT",
   Converted = "CONVERTED",
   Dormant = "DORMANT",
+  NotAFit = "NOT_A_FIT",
+  Lost = "LOST",
 }
 
 export enum LeadSource {
