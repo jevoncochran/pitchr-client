@@ -293,7 +293,13 @@ const AddLeadPage = () => {
                         checked={source === opt.value}
                         onChange={() => {
                           setSource(opt.value);
-                          if (opt.value !== LeadSource.Form) {
+                          if (opt.value === LeadSource.Outreach) {
+                            setDiscoveredVia(DiscoveredVia.Outreach);
+                            setDiscoveredViaOther("");
+                          } else if (opt.value === LeadSource.Referral) {
+                            setDiscoveredVia(DiscoveredVia.Referral);
+                            setDiscoveredViaOther("");
+                          } else {
                             setDiscoveredVia("");
                             setDiscoveredViaOther("");
                           }
