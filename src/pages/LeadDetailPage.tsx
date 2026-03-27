@@ -1,701 +1,119 @@
-import { useEffect, useState, useContext, useRef, FormEvent } from "react";
-import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import InternalLayout from "../components/InternalLayout";
-import { AuthContext } from "../context/auth/AuthContext";
-import { PipelineStage } from "../types.d";
 import { FaInstagram, FaTiktok, FaYoutube, FaFacebook, FaFilePdf, FaFileVideo, FaFile, FaExpand, FaTimes } from "react-icons/fa";
-
-const PIPELINE_STAGES = [
-  { value: PipelineStage.New, label: "New" },
-  { value: PipelineStage.Contacted, label: "Contacted" },
-  { value: PipelineStage.Engaged, label: "Engaged" },
-  { value: PipelineStage.MeetingScheduled, label: "Meeting Scheduled" },
-  { value: PipelineStage.ProposalSent, label: "Proposal Sent" },
-  { value: PipelineStage.Converted, label: "Converted" },
-  { value: PipelineStage.Dormant, label: "Dormant" },
-  { value: PipelineStage.NotAFit, label: "Not a Fit" },
-  { value: PipelineStage.Lost, label: "Lost" },
-];
-
-// Sequence position options for the touchpoint form
-const IN_PERSON_TYPES = ["IN_PERSON", "MEETING"];
-
-export const SEQUENCE_POSITIONS_VISIT = [
-  { value: "", label: "None (one-off)" },
-  { value: "VISIT_A", label: "Visit A" },
-  { value: "VISIT_B", label: "Visit B" },
-  { value: "VISIT_C", label: "Visit C" },
-];
-
-export const SEQUENCE_POSITIONS_OUTREACH = [
-  { value: "", label: "None (one-off)" },
-  { value: "A1", label: "A1 — First outreach after Visit A" },
-  { value: "A2", label: "A2 — Second outreach" },
-  { value: "A3", label: "A3 — Third outreach" },
-  { value: "B1", label: "B1 — First outreach after Visit B" },
-  { value: "B2", label: "B2 — Second outreach" },
-  { value: "B3", label: "B3 — Third outreach" },
-  { value: "C1", label: "C1 — First outreach after Visit C" },
-  { value: "C2", label: "C2 — Second outreach" },
-  { value: "C3", label: "C3 — Third outreach" },
-];
-
-export const SEQUENCE_POSITIONS = [
-  ...SEQUENCE_POSITIONS_VISIT,
-  ...SEQUENCE_POSITIONS_OUTREACH.slice(1), // skip the duplicate "None"
-];
-
-const getSequencePositions = (type: string) =>
-  IN_PERSON_TYPES.includes(type)
-    ? SEQUENCE_POSITIONS_VISIT
-    : SEQUENCE_POSITIONS_OUTREACH;
-
-export const SEQUENCE_POSITION_LABEL: Record<string, string> = {
-  VISIT_A: "Visit A",
-  A1: "A1", A2: "A2", A3: "A3",
-  VISIT_B: "Visit B",
-  B1: "B1", B2: "B2", B3: "B3",
-  VISIT_C: "Visit C",
-  C1: "C1", C2: "C2", C3: "C3",
-};
-
-const SEQUENCE_POSITION_COLOR: Record<string, string> = {
-  VISIT_A: "bg-blue-100 text-blue-700",
-  A1: "bg-blue-50 text-blue-600",
-  A2: "bg-blue-50 text-blue-600",
-  A3: "bg-blue-50 text-blue-600",
-  VISIT_B: "bg-orange-100 text-orange-700",
-  B1: "bg-orange-50 text-orange-600",
-  B2: "bg-orange-50 text-orange-600",
-  B3: "bg-orange-50 text-orange-600",
-  VISIT_C: "bg-purple-100 text-purple-700",
-  C1: "bg-purple-50 text-purple-600",
-  C2: "bg-purple-50 text-purple-600",
-  C3: "bg-purple-50 text-purple-600",
-};
-
-// Follow-up sequence: what the check-in asks at step N (after outreach N)
-const CHECK_IN_LABELS: Record<number, string> = {
-  1: "Did they respond to outreach A1?",
-  2: "Did they respond to outreach A2?",
-  3: "Did they respond to outreach A3?",
-  4: "Did they respond to outreach B1?",
-  5: "Did they respond to outreach B2?",
-  6: "Did they respond to outreach B3?",
-  7: "Did they respond to outreach C1?",
-  8: "Did they respond to outreach C2?",
-  9: "Did they respond to outreach C3?",
-};
-
-// What happens at each step if no response
-const NEXT_ACTION_LABELS: Record<number, string> = {
-  1: "Outreach A2",
-  2: "Outreach A3",
-  3: "Visit B",
-  4: "Outreach B2",
-  5: "Outreach B3",
-  6: "Visit C",
-  7: "Outreach C2",
-  8: "Outreach C3",
-  9: "Deprioritize — full cycle complete",
-};
-
-const TOUCHPOINT_TYPES = [
-  { value: "IN_PERSON", label: "In Person" },
-  { value: "MEETING", label: "Meeting" },
-  { value: "CALL", label: "Call" },
-  { value: "EMAIL", label: "Email" },
-  { value: "TEXT", label: "Text" },
-  { value: "INSTAGRAM_DM", label: "Instagram DM" },
-];
-
-const stageColors: Record<string, string> = {
-  NEW: "bg-gray-100 text-gray-700",
-  CONTACTED: "bg-blue-100 text-blue-700",
-  ENGAGED: "bg-yellow-100 text-yellow-700",
-  MEETING_SCHEDULED: "bg-purple-100 text-purple-700",
-  PROPOSAL_SENT: "bg-orange-100 text-orange-700",
-  CONVERTED: "bg-green-100 text-green-700",
-  DORMANT: "bg-gray-200 text-gray-500",
-  NOT_A_FIT: "bg-red-100 text-red-600",
-  LOST: "bg-rose-100 text-rose-700",
-};
+import { useLeadDetail } from "../hooks/useLeadDetail";
+import {
+  PIPELINE_STAGES,
+  TOUCHPOINT_TYPES,
+  stageColors,
+  SEQUENCE_POSITION_LABEL,
+  SEQUENCE_POSITION_COLOR,
+  NEXT_ACTION_LABELS,
+  IN_PERSON_TYPES,
+} from "../constants/leads";
+import { getSequencePositions } from "../utils/leads";
 
 const LeadDetailPage = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const auth = useContext(AuthContext);
-  const user = auth?.user as { id: string; firstName: string } | null;
-
-
-  const [lead, setLead] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [industries, setIndustries] = useState<any[]>([]);
-  const [businessTypes, setBusinessTypes] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [allLeads, setAllLeads] = useState<{ id: string; business: string }[]>([]);
-
-  // Referral combobox state
-  const [referralSearch, setReferralSearch] = useState("");
-  const [showReferralSuggestions, setShowReferralSuggestions] = useState(false);
-
-  // Edit mode
-  const [editMode, setEditMode] = useState(false);
-  const [editForm, setEditForm] = useState<any>({});
-  const [saving, setSaving] = useState(false);
-
-  // Location form state
-  const [showLocationForm, setShowLocationForm] = useState(false);
-  const [locationForm, setLocationForm] = useState({
-    addressLine1: "", addressLine2: "", city: "", state: "", zip: "",
-    phoneNumber: "", phoneLabel: "MOBILE",
-  });
-  const [submittingLocation, setSubmittingLocation] = useState(false);
-
-  // Touchpoint form state
-  const [showTouchpointForm, setShowTouchpointForm] = useState(false);
-  const [tpType, setTpType] = useState("IN_PERSON");
-  const [tpDate, setTpDate] = useState<Date>(new Date());
-  const [tpReceivedResponse, setTpReceivedResponse] = useState(false);
-  const [tpSummary, setTpSummary] = useState("");
-  const [tpSequencePosition, setTpSequencePosition] = useState("");
-  const [submittingTp, setSubmittingTp] = useState(false);
-
-  // Touchpoint edit state
-  const [editingTpId, setEditingTpId] = useState<string | null>(null);
-  const [editTpForm, setEditTpForm] = useState<any>({});
-  const [savingTp, setSavingTp] = useState(false);
-  const [deletingTpId, setDeletingTpId] = useState<string | null>(null);
-
-  // Reminder form state
-  const [showReminderForm, setShowReminderForm] = useState(false);
-  const [reminderForm, setReminderForm] = useState({
-    type: "EMAIL",
-    dueDate: new Date(),
-    note: "",
-  });
-  const [submittingReminder, setSubmittingReminder] = useState(false);
-
-  // Note form state
-  const [showNoteForm, setShowNoteForm] = useState(false);
-  const [noteText, setNoteText] = useState("");
-  const [submittingNote, setSubmittingNote] = useState(false);
-
-  const [contacts, setContacts] = useState<any[]>([]);
-  const [showContactForm, setShowContactForm] = useState(false);
-  const [editingContactId, setEditingContactId] = useState<string | null>(null);
-  const [deletingContactId, setDeletingContactId] = useState<string | null>(null);
-  const [contactForm, setContactForm] = useState({
-    firstName: "", lastName: "", title: "",
-    email: "", phone: "", isDecisionMaker: false, notes: "",
-  });
-  const [savingContact, setSavingContact] = useState(false);
-
-  const fetchContacts = () => {
-    api
-      .get(`/api/contacts/lead/${id}`)
-      .then((res) => setContacts(res.data))
-      .catch(() => {});
-  };
-
-  const resetContactForm = () =>
-    setContactForm({ firstName: "", lastName: "", title: "", email: "", phone: "", isDecisionMaker: false, notes: "" });
-
-  const handleContactSave = async () => {
-    if (!contactForm.firstName.trim()) return;
-    setSavingContact(true);
-    try {
-      if (editingContactId) {
-        await api.patch(
-          `/api/contacts/${editingContactId}`,
-          contactForm,
-          
-        );
-        setEditingContactId(null);
-      } else {
-        await api.post(
-          "/api/contacts",
-          { ...contactForm, lead: { connect: { id } } },
-          
-        );
-        setShowContactForm(false);
-      }
-      resetContactForm();
-      fetchContacts();
-    } catch {
-      alert("Failed to save contact");
-    } finally {
-      setSavingContact(false);
-    }
-  };
-
-  const handleContactDelete = async (contactId: string) => {
-    try {
-      await api.delete(`/api/contacts/${contactId}`);
-      setDeletingContactId(null);
-      fetchContacts();
-    } catch {
-      alert("Failed to delete contact");
-    }
-  };
-
-  // Attachments
-  const [attachments, setAttachments] = useState<any[]>([]);
-  const [uploadingAttachment, setUploadingAttachment] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null);
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const fetchAttachments = () => {
-    api.get(`/api/attachments/lead/${id}`)
-      .then((res) => setAttachments(res.data))
-      .catch(() => {});
-  };
-
-  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingAttachment(true);
-    setUploadProgress(0);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("leadId", id!);
-    try {
-      await api.post("/api/attachments", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        onUploadProgress: (ev: any) => {
-          setUploadProgress(Math.round((ev.loaded * 100) / (ev.total || 1)));
-        },
-      });
-      fetchAttachments();
-    } catch {
-      alert("Failed to upload file");
-    } finally {
-      setUploadingAttachment(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
-  const handleAttachmentDelete = async (attachmentId: string) => {
-    try {
-      await api.delete(`/api/attachments/${attachmentId}`);
-      setDeletingAttachmentId(null);
-      fetchAttachments();
-    } catch {
-      alert("Failed to delete attachment");
-    }
-  };
-
-  const [socialForm, setSocialForm] = useState({
-    instagramHandle: "", instagramFollowers: "",
-    tiktokHandle: "", tiktokFollowers: "",
-    youtubeHandle: "", youtubeFollowers: "",
-    facebookHandle: "", facebookFollowers: "",
-  });
-  const [editingSocial, setEditingSocial] = useState(false);
-  const [savingSocial, setSavingSocial] = useState(false);
-
-  const fetchLead = () => {
-    api
-      .get(`/api/leads/${id}`)
-      .then((res) => {
-        setLead(res.data);
-        setLoading(false);
-        const d = res.data;
-        setSocialForm({
-          instagramHandle: d.instagramHandle ?? "",
-          instagramFollowers: d.instagramFollowers != null ? String(d.instagramFollowers) : "",
-          tiktokHandle: d.tiktokHandle ?? "",
-          tiktokFollowers: d.tiktokFollowers != null ? String(d.tiktokFollowers) : "",
-          youtubeHandle: d.youtubeHandle ?? "",
-          youtubeFollowers: d.youtubeFollowers != null ? String(d.youtubeFollowers) : "",
-          facebookHandle: d.facebookHandle ?? "",
-          facebookFollowers: d.facebookFollowers != null ? String(d.facebookFollowers) : "",
-        });
-      })
-      .catch(() => {
-        alert("Failed to load lead");
-        navigate("/leads");
-      });
-  };
-
-  useEffect(() => {
-    fetchLead();
-    fetchContacts();
-    fetchAttachments();
-    Promise.all([
-      api.get("/api/industries"),
-      api.get("/api/business-types"),
-      api.get("/api/users"),
-      api.get("/api/leads"),
-    ]).then(([indRes, btRes, usersRes, leadsRes]) => {
-      setIndustries(indRes.data);
-      setBusinessTypes(btRes.data);
-      setUsers(usersRes.data);
-      setAllLeads(leadsRes.data.map((l: any) => ({ id: l.id, business: l.business })));
-    });
-  }, [id]);
-
-  const startEdit = () => {
-    setReferralSearch(
-      lead.referredByLead?.business ?? lead.referredByName ?? ""
-    );
-    setEditForm({
-      business: lead.business ?? "",
-      email: lead.email ?? "",
-      website: lead.website ?? "",
-      source: lead.source ?? "",
-      discoveredVia: lead.discoveredVia ?? "",
-      discoveredViaOther: lead.discoveredViaOther ?? "",
-      industryId: lead.industryId ?? "",
-      businessTypeId: lead.businessTypeId ?? "",
-      referredByLeadId: lead.referredByLeadId ?? "",
-      referredByName: lead.referredByName ?? "",
-      isBlackOwned: lead.isBlackOwned ?? false,
-      isLatinoOwned: lead.isLatinoOwned ?? false,
-      isWomanOwned: lead.isWomanOwned ?? false,
-      isImmigrantOwned: lead.isImmigrantOwned ?? false,
-    });
-    setEditMode(true);
-  };
-
-  const handleEditSave = () => {
-    setSaving(true);
-    const payload: any = {
-      business: editForm.business,
-      email: editForm.email || null,
-      website: editForm.website || null,
-      source: editForm.source || null,
-      discoveredVia: editForm.discoveredVia || null,
-      discoveredViaOther: editForm.discoveredViaOther || null,
-      isBlackOwned: editForm.isBlackOwned,
-      isLatinoOwned: editForm.isLatinoOwned,
-      isWomanOwned: editForm.isWomanOwned,
-      isImmigrantOwned: editForm.isImmigrantOwned,
-    };
-    if (editForm.industryId) {
-      payload.industry = { connect: { id: editForm.industryId } };
-    }
-    if (editForm.businessTypeId) {
-      payload.businessType = { connect: { id: editForm.businessTypeId } };
-    }
-    if (editForm.referredByLeadId) {
-      payload.referredByLead = { connect: { id: editForm.referredByLeadId } };
-      payload.referredByName = null;
-    } else {
-      payload.referredByName = editForm.referredByName || null;
-      payload.referredByLead = lead.referredByLeadId
-        ? { disconnect: true }
-        : undefined;
-    }
-    api
-      .patch(`/api/leads/${id}`, payload)
-      .then(() => {
-        setEditMode(false);
-        fetchLead();
-      })
-      .catch(() => alert("Failed to save changes"))
-      .finally(() => setSaving(false));
-  };
-
-  const handleSaveSocial = () => {
-    setSavingSocial(true);
-    const payload: any = {
-      instagramHandle: socialForm.instagramHandle || null,
-      instagramFollowers: socialForm.instagramFollowers ? parseInt(socialForm.instagramFollowers) : null,
-      tiktokHandle: socialForm.tiktokHandle || null,
-      tiktokFollowers: socialForm.tiktokFollowers ? parseInt(socialForm.tiktokFollowers) : null,
-      youtubeHandle: socialForm.youtubeHandle || null,
-      youtubeFollowers: socialForm.youtubeFollowers ? parseInt(socialForm.youtubeFollowers) : null,
-      facebookHandle: socialForm.facebookHandle || null,
-      facebookFollowers: socialForm.facebookFollowers ? parseInt(socialForm.facebookFollowers) : null,
-    };
-    api
-      .patch(`/api/leads/${id}`, payload)
-      .then(() => { setEditingSocial(false); fetchLead(); })
-      .catch(() => alert("Failed to save social info"))
-      .finally(() => setSavingSocial(false));
-  };
-
-  const handleAssigneeChange = (userId: string | null) => {
-    const payload = userId
-      ? { assignedTo: { connect: { id: userId } } }
-      : { assignedTo: { disconnect: true } };
-    api
-      .patch(`/api/leads/${id}`, payload)
-      .then(() => fetchLead())
-      .catch(() => alert("Failed to update assignee"));
-  };
-
-  const handleStageChange = (stage: PipelineStage) => {
-    const update: any = { pipelineStage: stage };
-    if (stage === PipelineStage.Converted && !lead.convertedAt) {
-      update.convertedAt = new Date().toISOString();
-    }
-    api
-      .patch(`/api/leads/${id}`, update, {
-      })
-      .then(() => setLead((prev: any) => ({ ...prev, ...update })))
-      .catch(() => alert("Failed to update stage"));
-  };
-
-  const handleLocationSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setSubmittingLocation(true);
-    try {
-      const locRes = await api.post(
-        "/api/locations",
-        {
-          addressLine1: locationForm.addressLine1,
-          addressLine2: locationForm.addressLine2 || null,
-          city: locationForm.city,
-          state: locationForm.state,
-          zip: locationForm.zip,
-          business: { connect: { id } },
-        },
-        
-      );
-      // If a phone number was provided, create it linked to the location
-      if (locationForm.phoneNumber) {
-        await api.post(
-          "/api/phone-numbers",
-          {
-            number: locationForm.phoneNumber,
-            label: locationForm.phoneLabel,
-            location: { connect: { id: locRes.data.id } },
-          },
-          
-        );
-      }
-      // If this is the first location, set it as primary
-      if (!lead.locations || lead.locations.length === 0) {
-        await api.patch(
-          `/api/leads/${id}`,
-          { primaryLocation: { connect: { id: locRes.data.id } } },
-          
-        );
-      }
-      setShowLocationForm(false);
-      setLocationForm({ addressLine1: "", addressLine2: "", city: "", state: "", zip: "", phoneNumber: "", phoneLabel: "MOBILE" });
-      fetchLead();
-    } catch {
-      alert("Failed to add location");
-    } finally {
-      setSubmittingLocation(false);
-    }
-  };
-
-  const handleTouchpointSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setSubmittingTp(true);
-
-    try {
-      const tpRes = await api.post(
-        "/api/touchpoints",
-        {
-          date: tpDate.toISOString(),
-          type: tpType,
-          receivedResponse: tpReceivedResponse,
-          summary: tpSummary,
-          sequencePosition: tpSequencePosition || null,
-          lead: { connect: { id } },
-          contactedBy: { connect: { id: user?.id } },
-        },
-        
-      );
-      const newTpId: string = tpRes.data.id;
-
-      const wasInPerson = tpType === "IN_PERSON";
-      const wasEmail = tpType === "EMAIL";
-
-      setShowTouchpointForm(false);
-      setTpType("IN_PERSON");
-      setTpDate(new Date());
-      setTpReceivedResponse(false);
-      setTpSummary("");
-      setTpSequencePosition("");
-
-      if (wasInPerson) {
-        // Start sequence if not already running
-        if (!lead.sequenceActive) {
-          await api.patch(
-            `/api/leads/${id}`,
-            { sequenceActive: true },
-            
-          );
-        }
-        // Immediately create "Did you send the follow-up email?" check
-        await api.post(
-          "/api/reminders",
-          {
-            type: "EMAIL",
-            dueDate: new Date().toISOString(),
-            note: "Did you send the follow-up email?",
-            isEmailSentCheck: true,
-            lead: { connect: { id } },
-            touchPoint: { connect: { id: newTpId } },
-          },
-          
-        );
-      } else if (wasEmail && lead.sequenceActive) {
-        // Auto-complete any pending "did you send email?" checks — email was just logged
-        const pendingEmailCheck = lead.reminders?.find(
-          (r: any) => r.isEmailSentCheck && !r.completed
-        );
-        if (pendingEmailCheck) {
-          await api.patch(
-            `/api/reminders/${pendingEmailCheck.id}/complete`,
-            {},
-            
-          );
-        }
-
-        // Advance sequence step and auto-create check-in reminder for 4 days
-        const newStep = (lead.sequenceStep ?? 0) + 1;
-        await api.patch(
-          `/api/leads/${id}`,
-          { sequenceStep: newStep },
-          
-        );
-        const checkInDate = new Date(tpDate);
-        checkInDate.setDate(checkInDate.getDate() + 4);
-        await api.post(
-          "/api/reminders",
-          {
-            type: "EMAIL",
-            dueDate: checkInDate.toISOString(),
-            note: CHECK_IN_LABELS[newStep] ?? "Did they respond?",
-            isCheckIn: true,
-            lead: { connect: { id } },
-            touchPoint: { connect: { id: newTpId } },
-          },
-          
-        );
-      }
-
-      fetchLead();
-    } catch {
-      alert("Failed to log touchpoint");
-    } finally {
-      setSubmittingTp(false);
-    }
-  };
-
-  const handleReminderSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    setSubmittingReminder(true);
-    api
-      .post(
-        "/api/reminders",
-        {
-          type: reminderForm.type,
-          dueDate: reminderForm.dueDate.toISOString(),
-          note: reminderForm.note || null,
-          lead: { connect: { id } },
-        },
-        
-      )
-      .then(() => {
-        setShowReminderForm(false);
-        setReminderForm({ type: "EMAIL", dueDate: new Date(), note: "" });
-        fetchLead();
-      })
-      .catch(() => alert("Failed to schedule reminder"))
-      .finally(() => setSubmittingReminder(false));
-  };
-
-  const handleReminderComplete = (reminderId: string) => {
-    api
-      .patch(
-        `/api/reminders/${reminderId}/complete`,
-        {},
-        
-      )
-      .then(fetchLead)
-      .catch(() => alert("Failed to mark reminder complete"));
-  };
-
-  const handleCheckInRespond = (reminderId: string, responded: boolean) => {
-    api
-      .patch(
-        `/api/reminders/${reminderId}/respond`,
-        { responded },
-        
-      )
-      .then(fetchLead)
-      .catch(() => alert("Failed to update check-in"));
-  };
-
-  const startEditTp = (tp: any) => {
-    setEditingTpId(tp.id);
-    setEditTpForm({
-      type: tp.type,
-      date: new Date(tp.date),
-      summary: tp.summary ?? "",
-      receivedResponse: tp.receivedResponse ?? false,
-      sequencePosition: tp.sequencePosition ?? "",
-    });
-  };
-
-  const handleTouchpointEditSave = () => {
-    setSavingTp(true);
-    api
-      .patch(
-        `/api/touchpoints/${editingTpId}`,
-        {
-          type: editTpForm.type,
-          date: editTpForm.date.toISOString(),
-          summary: editTpForm.summary || null,
-          receivedResponse: editTpForm.receivedResponse,
-          sequencePosition: editTpForm.sequencePosition || null,
-        },
-        
-      )
-      .then(() => {
-        setEditingTpId(null);
-        fetchLead();
-      })
-      .catch(() => alert("Failed to save touchpoint"))
-      .finally(() => setSavingTp(false));
-  };
-
-  const handleTouchpointDelete = async (id: string) => {
-    try {
-      await api.delete(`/api/touchpoints/${id}`, {
-      });
-      setDeletingTpId(null);
-      fetchLead();
-    } catch {
-      alert("Failed to delete touchpoint");
-    }
-  };
-
-  const handleNoteSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    setSubmittingNote(true);
-
-    api
-      .post(
-        "/api/notes",
-        {
-          text: noteText,
-          lead: { connect: { id } },
-          author: { connect: { id: user?.id } },
-        },
-        
-      )
-      .then(() => {
-        setShowNoteForm(false);
-        setNoteText("");
-        fetchLead();
-      })
-      .catch(() => alert("Failed to add note"))
-      .finally(() => setSubmittingNote(false));
-  };
+  const {
+    id,
+    navigate,
+    lead,
+    loading,
+    industries,
+    businessTypes,
+    users,
+    allLeads,
+    referralSearch,
+    setReferralSearch,
+    showReferralSuggestions,
+    setShowReferralSuggestions,
+    editMode,
+    setEditMode,
+    editForm,
+    setEditForm,
+    saving,
+    showLocationForm,
+    setShowLocationForm,
+    locationForm,
+    setLocationForm,
+    submittingLocation,
+    showTouchpointForm,
+    setShowTouchpointForm,
+    tpType,
+    setTpType,
+    tpDate,
+    setTpDate,
+    tpReceivedResponse,
+    setTpReceivedResponse,
+    tpSummary,
+    setTpSummary,
+    tpSequencePosition,
+    setTpSequencePosition,
+    submittingTp,
+    editingTpId,
+    setEditingTpId,
+    editTpForm,
+    setEditTpForm,
+    savingTp,
+    deletingTpId,
+    setDeletingTpId,
+    showReminderForm,
+    setShowReminderForm,
+    reminderForm,
+    setReminderForm,
+    submittingReminder,
+    showNoteForm,
+    setShowNoteForm,
+    noteText,
+    setNoteText,
+    submittingNote,
+    contacts,
+    showContactForm,
+    setShowContactForm,
+    editingContactId,
+    setEditingContactId,
+    deletingContactId,
+    setDeletingContactId,
+    contactForm,
+    setContactForm,
+    savingContact,
+    attachments,
+    uploadingAttachment,
+    uploadProgress,
+    deletingAttachmentId,
+    setDeletingAttachmentId,
+    lightboxUrl,
+    setLightboxUrl,
+    fileInputRef,
+    socialForm,
+    setSocialForm,
+    editingSocial,
+    setEditingSocial,
+    savingSocial,
+    startEdit,
+    handleEditSave,
+    handleSaveSocial,
+    handleAssigneeChange,
+    handleStageChange,
+    handleLocationSubmit,
+    handleTouchpointSubmit,
+    handleReminderSubmit,
+    handleReminderComplete,
+    handleCheckInRespond,
+    startEditTp,
+    handleTouchpointEditSave,
+    handleTouchpointDelete,
+    handleNoteSubmit,
+    handleToggleHot,
+    resetContactForm,
+    handleContactSave,
+    handleContactDelete,
+    handleAttachmentUpload,
+    handleAttachmentDelete,
+    fetchLead,
+  } = useLeadDetail();
 
   if (loading) {
     return (
@@ -708,14 +126,6 @@ const LeadDetailPage = () => {
   const stageLabel =
     PIPELINE_STAGES.find((s) => s.value === lead.pipelineStage)?.label ??
     lead.pipelineStage;
-
-  const handleToggleHot = () => {
-    const newValue = !lead.isHot;
-    setLead((prev: any) => ({ ...prev, isHot: newValue }));
-    api
-      .patch(`/api/leads/${id}`, { isHot: newValue })
-      .catch(() => setLead((prev: any) => ({ ...prev, isHot: !newValue })));
-  };
 
   return (
     <InternalLayout>
@@ -785,12 +195,12 @@ const LeadDetailPage = () => {
         {/* Pipeline Stage Selector */}
         <div className="bg-white border rounded-lg p-4 mb-6">
           <p className="text-sm font-semibold mb-3">Pipeline Stage</p>
-          <div className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0">
             {PIPELINE_STAGES.map((stage) => (
               <button
                 key={stage.value}
                 onClick={() => handleStageChange(stage.value)}
-                className={`px-3 py-1 rounded-full text-sm font-medium border transition ${
+                className={`flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-medium border transition md:px-3 md:py-1 md:text-sm ${
                   lead.pipelineStage === stage.value
                     ? "bg-green-primary text-white border-green-primary"
                     : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
@@ -864,7 +274,7 @@ const LeadDetailPage = () => {
           </div>
 
           {!editMode ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
               <div>
                 <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Business Name</p>
                 <p className="text-sm font-medium text-gray-800">{lead.business}</p>
@@ -881,9 +291,9 @@ const LeadDetailPage = () => {
                 <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Email</p>
                 <p className="text-sm font-medium text-gray-800">{lead.email ?? "—"}</p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Website</p>
-                <p className="text-sm font-medium text-gray-800">{lead.website ?? "—"}</p>
+                <p className="text-sm font-medium text-gray-800 break-all">{lead.website ?? "—"}</p>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Lead Source</p>
@@ -936,7 +346,7 @@ const LeadDetailPage = () => {
                   <p className="text-sm text-gray-400">—</p>
                 )}
               </div>
-              <div className="col-span-2">
+              <div className="md:col-span-2">
                 <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Owner Identity</p>
                 <div className="flex gap-2">
                   {lead.isBlackOwned && <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">Black-owned</span>}
@@ -950,7 +360,7 @@ const LeadDetailPage = () => {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">Business Name</label>
                 <input
@@ -1548,7 +958,6 @@ const LeadDetailPage = () => {
                             .patch(
                               `/api/leads/${id}`,
                               { primaryLocation: { connect: { id: loc.id } } },
-                              
                             )
                             .then(fetchLead)
                         }
