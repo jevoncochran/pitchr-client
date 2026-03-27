@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext, FormEvent } from "react";
+import { useEffect, useState, useContext, useRef, FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
 import DatePicker from "react-datepicker";
@@ -6,7 +6,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import InternalLayout from "../components/InternalLayout";
 import { AuthContext } from "../context/auth/AuthContext";
 import { PipelineStage } from "../types.d";
-import { FaInstagram, FaTiktok, FaYoutube, FaFacebook } from "react-icons/fa";
+import { FaInstagram, FaTiktok, FaYoutube, FaFacebook, FaFilePdf, FaFileVideo, FaFile, FaExpand, FaTimes } from "react-icons/fa";
 
 const PIPELINE_STAGES = [
   { value: PipelineStage.New, label: "New" },
@@ -242,6 +242,54 @@ const LeadDetailPage = () => {
     }
   };
 
+  // Attachments
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchAttachments = () => {
+    api.get(`/api/attachments/lead/${id}`)
+      .then((res) => setAttachments(res.data))
+      .catch(() => {});
+  };
+
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAttachment(true);
+    setUploadProgress(0);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("leadId", id!);
+    try {
+      await api.post("/api/attachments", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (ev: any) => {
+          setUploadProgress(Math.round((ev.loaded * 100) / (ev.total || 1)));
+        },
+      });
+      fetchAttachments();
+    } catch {
+      alert("Failed to upload file");
+    } finally {
+      setUploadingAttachment(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleAttachmentDelete = async (attachmentId: string) => {
+    try {
+      await api.delete(`/api/attachments/${attachmentId}`);
+      setDeletingAttachmentId(null);
+      fetchAttachments();
+    } catch {
+      alert("Failed to delete attachment");
+    }
+  };
+
   const [socialForm, setSocialForm] = useState({
     instagramHandle: "", instagramFollowers: "",
     tiktokHandle: "", tiktokFollowers: "",
@@ -278,6 +326,7 @@ const LeadDetailPage = () => {
   useEffect(() => {
     fetchLead();
     fetchContacts();
+    fetchAttachments();
     Promise.all([
       api.get("/api/industries"),
       api.get("/api/business-types"),
@@ -1515,7 +1564,127 @@ const LeadDetailPage = () => {
           )}
         </div>
 
+        {/* Attachments */}
+        <div className="bg-white border rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold">Attachments ({attachments.length})</p>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAttachment}
+              className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg disabled:opacity-50"
+            >
+              {uploadingAttachment ? `Uploading... ${uploadProgress}%` : "+ Add"}
+            </button>
+          </div>
+
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*,application/pdf"
+            className="hidden"
+            onChange={handleAttachmentUpload}
+          />
+
+          {attachments.length === 0 && !uploadingAttachment ? (
+            <p className="text-sm text-gray-400">No attachments yet. Add photos, PDFs, or videos.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {attachments.map((att: any) => {
+                const isImage = att.mimeType.startsWith("image/");
+                const isPdf = att.mimeType === "application/pdf";
+                const isVideo = att.mimeType.startsWith("video/");
+                return (
+                  <div key={att.id} className="relative group rounded-lg overflow-hidden border bg-gray-50">
+                    {/* Thumbnail / icon */}
+                    {isImage ? (
+                      <div
+                        className="w-full h-28 cursor-pointer overflow-hidden"
+                        onClick={() => setLightboxUrl(att.url)}
+                      >
+                        <img
+                          src={att.url}
+                          alt={att.filename}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                          <FaExpand className="text-white drop-shadow" size="1.2em" />
+                        </div>
+                      </div>
+                    ) : isVideo ? (
+                      <div className="w-full h-28 flex flex-col items-center justify-center gap-1 text-gray-400">
+                        <FaFileVideo size="2em" className="text-blue-400" />
+                        <span className="text-xs text-center px-2 truncate w-full text-center">{att.filename}</span>
+                        <a href={att.url} target="_blank" rel="noreferrer"
+                          className="text-xs text-blue-500 underline">Open</a>
+                      </div>
+                    ) : isPdf ? (
+                      <div className="w-full h-28 flex flex-col items-center justify-center gap-1 text-gray-400">
+                        <FaFilePdf size="2em" className="text-red-400" />
+                        <span className="text-xs text-center px-2 truncate w-full text-center">{att.filename}</span>
+                        <a href={att.url} target="_blank" rel="noreferrer"
+                          className="text-xs text-blue-500 underline">Open</a>
+                      </div>
+                    ) : (
+                      <div className="w-full h-28 flex flex-col items-center justify-center gap-1 text-gray-400">
+                        <FaFile size="2em" />
+                        <span className="text-xs px-2 truncate w-full text-center">{att.filename}</span>
+                        <a href={att.url} target="_blank" rel="noreferrer"
+                          className="text-xs text-blue-500 underline">Open</a>
+                      </div>
+                    )}
+
+                    {/* Caption + delete */}
+                    <div className="px-2 py-1.5 flex items-center justify-between gap-1">
+                      <span className="text-xs text-gray-400 truncate flex-1">
+                        {att.caption || new Date(att.createdAt).toLocaleDateString()}
+                      </span>
+                      {deletingAttachmentId === att.id ? (
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <span className="text-xs text-gray-500">Delete?</span>
+                          <button onClick={() => handleAttachmentDelete(att.id)}
+                            className="text-xs text-red-500 font-medium">Yes</button>
+                          <button onClick={() => setDeletingAttachmentId(null)}
+                            className="text-xs text-gray-400">No</button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setDeletingAttachmentId(att.id)}
+                          className="text-xs text-gray-300 hover:text-red-400 flex-shrink-0"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         </div>{/* /left column */}
+
+        {/* Lightbox */}
+        {lightboxUrl && (
+          <div
+            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+            onClick={() => setLightboxUrl(null)}
+          >
+            <button
+              className="absolute top-4 right-4 text-white"
+              onClick={() => setLightboxUrl(null)}
+            >
+              <FaTimes size="1.5em" />
+            </button>
+            <img
+              src={lightboxUrl}
+              alt="Attachment preview"
+              className="max-w-full max-h-full rounded-lg shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
 
         {/* ── RIGHT COLUMN — activity ── */}
         <div className="min-w-0">
