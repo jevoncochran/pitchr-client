@@ -176,7 +176,7 @@ const AddLeadPage = () => {
             </div>
 
             {/* Industry & Business Type */}
-            <div className="flex gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row gap-4 mb-4">
               <div className="flex-1">
                 <label
                   htmlFor="industry"
@@ -227,7 +227,7 @@ const AddLeadPage = () => {
             </div>
 
             {/* Email and Website */}
-            <div className="flex gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row gap-4 mb-4">
               <div className="flex-1">
                 <label
                   htmlFor="email"
@@ -270,7 +270,7 @@ const AddLeadPage = () => {
             </div>
 
             {/* Source & Discovered Via */}
-            <div className="flex gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row gap-4 mb-4">
               {/* Source */}
               <div className="flex-1">
                 <label className="block text-sm font-semibold mb-1">
