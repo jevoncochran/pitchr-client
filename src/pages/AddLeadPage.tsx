@@ -291,7 +291,19 @@ const AddLeadPage = () => {
                         name="source"
                         value={opt.value}
                         checked={source === opt.value}
-                        onChange={() => setSource(opt.value)}
+                        onChange={() => {
+                          setSource(opt.value);
+                          if (opt.value === LeadSource.Outreach) {
+                            setDiscoveredVia(DiscoveredVia.Outreach);
+                            setDiscoveredViaOther("");
+                          } else if (opt.value === LeadSource.Referral) {
+                            setDiscoveredVia(DiscoveredVia.Referral);
+                            setDiscoveredViaOther("");
+                          } else {
+                            setDiscoveredVia("");
+                            setDiscoveredViaOther("");
+                          }
+                        }}
                         className="text-blackPrimary focus:ring-blackPrimary"
                       />
                       <span>{opt.label}</span>
@@ -304,24 +316,27 @@ const AddLeadPage = () => {
               <div className="flex-1">
                 <label
                   htmlFor="discoveredVia"
-                  className="block text-sm font-semibold mb-1"
+                  className={`block text-sm font-semibold mb-1 ${source !== LeadSource.Form ? "text-gray-400" : ""}`}
                 >
                   How Did They Hear About Us?
                 </label>
                 <select
                   id="discoveredVia"
                   value={discoveredVia}
+                  disabled={source !== LeadSource.Form}
                   onChange={(e) => {
                     setDiscoveredVia(e.target.value as DiscoveredVia);
                     if (e.target.value !== DiscoveredVia.Other) {
                       setDiscoveredViaOther("");
                     }
                   }}
-                  className="w-full px-4 py-2 bg-white border rounded-lg focus:outline-none focus:ring-1 focus:ring-blackPrimary"
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blackPrimary ${
+                    source !== LeadSource.Form
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-white"
+                  }`}
                 >
                   <option value="">Select...</option>
-                  <option value={DiscoveredVia.Outreach}>Outreach</option>
-                  <option value={DiscoveredVia.Referral}>Referral</option>
                   <option value={DiscoveredVia.Instagram}>Instagram</option>
                   <option value={DiscoveredVia.Facebook}>Facebook</option>
                   <option value={DiscoveredVia.TikTok}>TikTok</option>
@@ -329,7 +344,7 @@ const AddLeadPage = () => {
                   <option value={DiscoveredVia.Google}>Google</option>
                   <option value={DiscoveredVia.Other}>Other</option>
                 </select>
-                {discoveredVia === DiscoveredVia.Other && (
+                {discoveredVia === DiscoveredVia.Other && source === LeadSource.Form && (
                   <input
                     type="text"
                     placeholder="Please explain..."
