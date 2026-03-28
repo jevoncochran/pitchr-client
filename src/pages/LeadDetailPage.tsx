@@ -1,4 +1,5 @@
 import api from "../api";
+import AddressAutocomplete from "../components/AddressAutocomplete";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import InternalLayout from "../components/InternalLayout";
@@ -835,8 +836,23 @@ const LeadDetailPage = () => {
 
           {showLocationForm && (
             <form onSubmit={handleLocationSubmit} className="bg-gray-50 rounded-lg p-4 mb-4 text-sm">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                <div className="col-span-2">
+              <div className="grid grid-cols-1 gap-3 mb-3">
+                <div>
+                  <label className="block font-semibold mb-1">Search Address</label>
+                  <AddressAutocomplete
+                    placeholder="Type to search address..."
+                    onSelect={(parsed) =>
+                      setLocationForm((f) => ({
+                        ...f,
+                        addressLine1: parsed.addressLine1,
+                        city: parsed.city,
+                        state: parsed.state,
+                        zip: parsed.zip,
+                      }))
+                    }
+                  />
+                </div>
+                <div>
                   <label className="block font-semibold mb-1">Address Line 1</label>
                   <input
                     required
@@ -846,7 +862,7 @@ const LeadDetailPage = () => {
                     className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
                   />
                 </div>
-                <div className="col-span-2">
+                <div>
                   <label className="block font-semibold mb-1">Address Line 2 <span className="text-gray-400 font-normal">(optional)</span></label>
                   <input
                     type="text"
@@ -855,25 +871,27 @@ const LeadDetailPage = () => {
                     className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
                   />
                 </div>
-                <div>
-                  <label className="block font-semibold mb-1">City</label>
-                  <input
-                    required
-                    type="text"
-                    value={locationForm.city}
-                    onChange={(e) => setLocationForm((f) => ({ ...f, city: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold mb-1">State</label>
-                  <input
-                    required
-                    type="text"
-                    value={locationForm.state}
-                    onChange={(e) => setLocationForm((f) => ({ ...f, state: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold mb-1">City</label>
+                    <input
+                      required
+                      type="text"
+                      value={locationForm.city}
+                      onChange={(e) => setLocationForm((f) => ({ ...f, city: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold mb-1">State</label>
+                    <input
+                      required
+                      type="text"
+                      value={locationForm.state}
+                      onChange={(e) => setLocationForm((f) => ({ ...f, state: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block font-semibold mb-1">Zip</label>
