@@ -50,14 +50,18 @@ export const useLeadDetail = () => {
   const [savingTp, setSavingTp] = useState(false);
   const [deletingTpId, setDeletingTpId] = useState<string | null>(null);
 
-  // Reminder form state
-  const [showReminderForm, setShowReminderForm] = useState(false);
-  const [reminderForm, setReminderForm] = useState({
-    type: "EMAIL",
-    dueDate: new Date(),
+  // Task form state
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [taskForm, setTaskForm] = useState<{
+    type: string;
+    dueDate: Date | null;
+    note: string;
+  }>({
+    type: "IN_PERSON",
+    dueDate: null,
     note: "",
   });
-  const [submittingReminder, setSubmittingReminder] = useState(false);
+  const [submittingTaskForm, setSubmittingTaskForm] = useState(false);
 
   // Note form state
   const [showNoteForm, setShowNoteForm] = useState(false);
@@ -384,6 +388,7 @@ export const useLeadDetail = () => {
 
       const wasInPerson = tpType === "IN_PERSON";
       const wasEmail = tpType === "EMAIL";
+      const wasAttempt = tpType === "VISIT_ATTEMPT";
 
       setShowTouchpointForm(false);
       setTpType("IN_PERSON");
@@ -392,7 +397,9 @@ export const useLeadDetail = () => {
       setTpSummary("");
       setTpSequencePosition("");
 
-      if (wasInPerson) {
+      if (wasAttempt) {
+        // No contact made — just log the attempt, no automatic reminder
+      } else if (wasInPerson) {
         // Start sequence if not already running
         if (!lead.sequenceActive) {
           await api.patch(
@@ -402,7 +409,7 @@ export const useLeadDetail = () => {
         }
         // Immediately create "Did you send the follow-up email?" check
         await api.post(
-          "/api/reminders",
+          "/api/tasks",
           {
             type: "EMAIL",
             dueDate: new Date().toISOString(),
@@ -414,12 +421,12 @@ export const useLeadDetail = () => {
         );
       } else if (wasEmail && lead.sequenceActive) {
         // Auto-complete any pending "did you send email?" checks — email was just logged
-        const pendingEmailCheck = lead.reminders?.find(
+        const pendingEmailCheck = lead.tasks?.find(
           (r: any) => r.isEmailSentCheck && !r.completed
         );
         if (pendingEmailCheck) {
           await api.patch(
-            `/api/reminders/${pendingEmailCheck.id}/complete`,
+            `/api/tasks/${pendingEmailCheck.id}/complete`,
             {},
           );
         }
@@ -433,7 +440,7 @@ export const useLeadDetail = () => {
         const checkInDate = new Date(tpDate);
         checkInDate.setDate(checkInDate.getDate() + 4);
         await api.post(
-          "/api/reminders",
+          "/api/tasks",
           {
             type: "EMAIL",
             dueDate: checkInDate.toISOString(),
@@ -453,42 +460,42 @@ export const useLeadDetail = () => {
     }
   };
 
-  const handleReminderSubmit = (e: FormEvent) => {
+  const handleTaskSubmit = (e: FormEvent) => {
     e.preventDefault();
-    setSubmittingReminder(true);
+    setSubmittingTaskForm(true);
     api
       .post(
-        "/api/reminders",
+        "/api/tasks",
         {
-          type: reminderForm.type,
-          dueDate: reminderForm.dueDate.toISOString(),
-          note: reminderForm.note || null,
+          type: taskForm.type,
+          dueDate: taskForm.dueDate ? taskForm.dueDate.toISOString() : null,
+          note: taskForm.note || null,
           lead: { connect: { id } },
         },
       )
       .then(() => {
-        setShowReminderForm(false);
-        setReminderForm({ type: "EMAIL", dueDate: new Date(), note: "" });
+        setShowTaskForm(false);
+        setTaskForm({ type: "IN_PERSON", dueDate: null, note: "" });
         fetchLead();
       })
-      .catch(() => alert("Failed to schedule reminder"))
-      .finally(() => setSubmittingReminder(false));
+      .catch(() => alert("Failed to save task"))
+      .finally(() => setSubmittingTaskForm(false));
   };
 
-  const handleReminderComplete = (reminderId: string) => {
+  const handleTaskComplete = (reminderId: string) => {
     api
       .patch(
-        `/api/reminders/${reminderId}/complete`,
+        `/api/tasks/${reminderId}/complete`,
         {},
       )
       .then(fetchLead)
-      .catch(() => alert("Failed to mark reminder complete"));
+      .catch(() => alert("Failed to mark task complete"));
   };
 
   const handleCheckInRespond = (reminderId: string, responded: boolean) => {
     api
       .patch(
-        `/api/reminders/${reminderId}/respond`,
+        `/api/tasks/${reminderId}/respond`,
         { responded },
       )
       .then(fetchLead)
@@ -627,11 +634,11 @@ export const useLeadDetail = () => {
     setDeletingTpId,
 
     // reminder form
-    showReminderForm,
-    setShowReminderForm,
-    reminderForm,
-    setReminderForm,
-    submittingReminder,
+    showTaskForm,
+    setShowTaskForm,
+    taskForm,
+    setTaskForm,
+    submittingTaskForm,
 
     // note form
     showNoteForm,
@@ -680,8 +687,8 @@ export const useLeadDetail = () => {
     handleStageChange,
     handleLocationSubmit,
     handleTouchpointSubmit,
-    handleReminderSubmit,
-    handleReminderComplete,
+    handleTaskSubmit,
+    handleTaskComplete,
     handleCheckInRespond,
     startEditTp,
     handleTouchpointEditSave,

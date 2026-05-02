@@ -90,13 +90,23 @@ export const NEXT_ACTION_LABELS: Record<number, string> = {
   9: "Deprioritize — full cycle complete",
 };
 
+// Task types — actions you can assign to a lead (no due date required)
+export const TASK_TYPES = [
+  { value: "IN_PERSON",    label: "In Person Visit" },
+  { value: "CALL",         label: "Call" },
+  { value: "TEXT",         label: "Text" },
+  { value: "EMAIL",        label: "Email" },
+  { value: "INSTAGRAM_DM", label: "Instagram DM" },
+];
+
 export const TOUCHPOINT_TYPES = [
-  { value: "IN_PERSON", label: "In Person" },
+  { value: "IN_PERSON", label: "In Person Visit" },
   { value: "MEETING", label: "Meeting" },
   { value: "CALL", label: "Call" },
   { value: "EMAIL", label: "Email" },
   { value: "TEXT", label: "Text" },
   { value: "INSTAGRAM_DM", label: "Instagram DM" },
+  { value: "VISIT_ATTEMPT", label: "Visit attempt — no contact" },
 ];
 
 export const stageColors: Record<string, string> = {

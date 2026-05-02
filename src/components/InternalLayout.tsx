@@ -10,7 +10,7 @@ const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: <MdDashboard size="1.2em" /> },
   { to: "/leads",     label: "Leads",     icon: <MdPeople size="1.2em" /> },
   { to: "/pipeline",  label: "Pipeline",  icon: <MdViewKanban size="1.2em" /> },
-  { to: "/sequence",  label: "Follow-up", icon: <MdTimeline size="1.2em" /> },
+  { to: "/sequence",  label: "Tasks",     icon: <MdTimeline size="1.2em" /> },
   { to: "/settings",  label: "Settings",  icon: <MdSettings size="1.2em" /> },
 ];
 

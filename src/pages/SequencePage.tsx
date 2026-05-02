@@ -3,6 +3,100 @@ import api from "../api";
 import { useNavigate } from "react-router-dom";
 import InternalLayout from "../components/InternalLayout";
 
+// ─── Tasks view ───────────────────────────────────────────────────────────────
+
+const TASK_SECTIONS = [
+  { type: "IN_PERSON",    label: "In Person Visit", icon: "🚶", accent: "bg-amber-100 text-amber-700 border-amber-200" },
+  { type: "EMAIL",        label: "Email",            icon: "✉️",  accent: "bg-blue-100  text-blue-700  border-blue-200"  },
+  { type: "INSTAGRAM_DM", label: "Instagram DM",     icon: "📸", accent: "bg-pink-100  text-pink-700  border-pink-200"  },
+];
+
+const TaskCard = ({ task, onClick }: { task: any; onClick: () => void }) => {
+  const due = task.dueDate ? new Date(task.dueDate) : null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isOverdue = due ? due < today : false;
+  const isToday   = due ? due.toDateString() === new Date().toDateString() : false;
+
+  return (
+    <div
+      onClick={onClick}
+      className="bg-white border rounded-lg p-3 cursor-pointer hover:shadow-sm hover:border-gray-300 transition-all text-sm"
+    >
+      <p className="font-semibold text-gray-800 leading-tight">{task.lead?.business}</p>
+
+      {task.note && (
+        <p className="text-xs text-gray-500 mt-1">{task.note}</p>
+      )}
+
+      {due && (
+        <p
+          className={`text-xs mt-1.5 font-medium ${
+            isOverdue ? "text-red-500" : isToday ? "text-amber-500" : "text-gray-400"
+          }`}
+        >
+          {isOverdue ? "Overdue · " : isToday ? "Today · " : ""}
+          {due.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+        </p>
+      )}
+    </div>
+  );
+};
+
+const TasksView = () => {
+  const navigate = useNavigate();
+  const [tasks, setTasks]     = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api
+      .get("/api/tasks")
+      .then((res) => setTasks(res.data))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="p-8 text-gray-400">Loading...</div>;
+
+  return (
+    <div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {TASK_SECTIONS.map((section) => {
+          const sectionTasks = tasks.filter((t) => t.type === section.type);
+          return (
+            <div key={section.type} className="flex flex-col rounded-xl border bg-gray-50">
+              {/* Section header */}
+              <div className={`px-4 py-3 rounded-t-xl flex items-center justify-between border-b ${section.accent} border-opacity-60`}>
+                <div className="flex items-center gap-2">
+                  <span>{section.icon}</span>
+                  <span className="text-sm font-semibold">{section.label}</span>
+                </div>
+                <span className="text-xs font-medium bg-white/60 px-2 py-0.5 rounded-full">
+                  {sectionTasks.length}
+                </span>
+              </div>
+
+              {/* Task cards */}
+              <div className="flex flex-col gap-2 p-3 min-h-[80px]">
+                {sectionTasks.length === 0 ? (
+                  <p className="text-xs text-gray-300 text-center pt-4">No tasks</p>
+                ) : (
+                  sectionTasks.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onClick={() => navigate(`/leads/${task.lead?.id}`)}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 // ─── Step metadata ──────────────────────────────────────────────────────────
 
 const STEP_LABEL: Record<number, string> = {
@@ -229,89 +323,119 @@ const LeadCard = ({
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
+type ActiveTab = "tasks" | "sequence";
+
 const SequencePage = () => {
   const navigate = useNavigate();
 
-  const [leads, setLeads] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<ActiveTab>("tasks");
+  const [leads, setLeads]         = useState<any[]>([]);
+  const [loading, setLoading]     = useState(true);
 
   useEffect(() => {
+    if (activeTab !== "sequence") return;
+    setLoading(true);
     api
       .get("/api/leads")
       .then((res) => setLeads(res.data))
       .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) {
-    return (
-      <InternalLayout>
-        <div className="p-8 text-gray-400">Loading...</div>
-      </InternalLayout>
-    );
-  }
+  }, [activeTab]);
 
   return (
     <InternalLayout>
       <div className="p-4 md:p-8 h-full flex flex-col">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Follow-up Sequence</h1>
-          <p className="text-sm text-gray-400 mt-1">
-            Where each lead is in the 3-visit nurture cycle
-          </p>
+        {/* Page header */}
+        <div className="mb-5">
+          <h1 className="text-2xl font-bold text-gray-800">Tasks</h1>
         </div>
 
-        {/* Kanban board */}
-        <div className="flex gap-4 overflow-x-auto pb-6 flex-1 items-start">
-          {COLUMNS.map((col) => {
-            const colLeads = leads.filter(col.filter);
-            return (
-              <div
-                key={col.id}
-                className="flex-shrink-0 w-60 flex flex-col rounded-xl border bg-gray-50"
-              >
-                {/* Column header */}
-                <div
-                  className={`px-4 py-3 rounded-t-xl ${col.headerBg} flex items-start justify-between gap-2`}
-                >
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      {col.isActionRequired && (
-                        <span className="text-amber-500 text-xs">⚑</span>
-                      )}
-                      <span className="text-sm font-semibold text-gray-700">
-                        {col.label}
-                      </span>
-                    </div>
-                    {col.subtitle && (
-                      <p className="text-xs text-gray-500 mt-0.5">{col.subtitle}</p>
-                    )}
-                  </div>
-                  <span className="flex-shrink-0 text-xs font-medium bg-white/70 px-2 py-0.5 rounded-full text-gray-600">
-                    {colLeads.length}
-                  </span>
-                </div>
-
-                {/* Cards */}
-                <div className="flex flex-col gap-2 p-3 min-h-[100px]">
-                  {colLeads.length === 0 ? (
-                    <p className="text-xs text-gray-300 text-center pt-4">
-                      No leads
-                    </p>
-                  ) : (
-                    colLeads.map((lead) => (
-                      <LeadCard
-                        key={lead.id}
-                        lead={lead}
-                        column={col}
-                        onClick={() => navigate(`/leads/${lead.id}`)}
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        {/* Tab toggle */}
+        <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
+          {(["tasks", "sequence"] as ActiveTab[]).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${
+                activeTab === tab
+                  ? "bg-white text-gray-800 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {tab === "tasks" ? "Tasks" : "Sequence"}
+            </button>
+          ))}
         </div>
+
+        {/* ── Tasks view ─────────────────────────────────────────────────────── */}
+        {activeTab === "tasks" && <TasksView />}
+
+        {/* ── Sequence view ──────────────────────────────────────────────────── */}
+        {activeTab === "sequence" && (
+          <>
+            {loading ? (
+              <div className="text-gray-400">Loading...</div>
+            ) : (
+              <>
+                <p className="text-sm text-gray-400 -mt-2 mb-5">
+                  Where each lead is in the 3-visit nurture cycle
+                </p>
+
+                {/* Kanban board */}
+                <div className="flex gap-4 overflow-x-auto pb-6 flex-1 items-start">
+                  {COLUMNS.map((col) => {
+                    const colLeads = leads.filter(col.filter);
+                    return (
+                      <div
+                        key={col.id}
+                        className="flex-shrink-0 w-60 flex flex-col rounded-xl border bg-gray-50"
+                      >
+                        {/* Column header */}
+                        <div
+                          className={`px-4 py-3 rounded-t-xl ${col.headerBg} flex items-start justify-between gap-2`}
+                        >
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              {col.isActionRequired && (
+                                <span className="text-amber-500 text-xs">⚑</span>
+                              )}
+                              <span className="text-sm font-semibold text-gray-700">
+                                {col.label}
+                              </span>
+                            </div>
+                            {col.subtitle && (
+                              <p className="text-xs text-gray-500 mt-0.5">{col.subtitle}</p>
+                            )}
+                          </div>
+                          <span className="flex-shrink-0 text-xs font-medium bg-white/70 px-2 py-0.5 rounded-full text-gray-600">
+                            {colLeads.length}
+                          </span>
+                        </div>
+
+                        {/* Cards */}
+                        <div className="flex flex-col gap-2 p-3 min-h-[100px]">
+                          {colLeads.length === 0 ? (
+                            <p className="text-xs text-gray-300 text-center pt-4">
+                              No leads
+                            </p>
+                          ) : (
+                            colLeads.map((lead) => (
+                              <LeadCard
+                                key={lead.id}
+                                lead={lead}
+                                column={col}
+                                onClick={() => navigate(`/leads/${lead.id}`)}
+                              />
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </>
+        )}
       </div>
     </InternalLayout>
   );
