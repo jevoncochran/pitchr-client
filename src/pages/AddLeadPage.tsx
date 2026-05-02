@@ -121,8 +121,8 @@ const AddLeadPage = () => {
     api
       .post("/api/leads", payload, {
       })
-      .then(() => {
-        navigate("/leads");
+      .then((res) => {
+        navigate(`/leads/${res.data.id}`);
       })
       .catch(() => {
         alert("Failed to create lead");
