@@ -88,7 +88,7 @@ export const DashboardPage = () => {
   const user = auth?.user as { id: string; firstName: string } | null;
 
   const [allLeads, setAllLeads] = useState<any[]>([]);
-  const [reminders, setReminders] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
   const [recentTouchpoints, setRecentTouchpoints] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -96,9 +96,9 @@ export const DashboardPage = () => {
     Promise.all([
       api.get("/api/leads"),
       api.get("/api/touchpoints", {}),
-      api.get("/api/reminders", {}),
+      api.get("/api/tasks", {}),
     ])
-      .then(([leadsRes, tpRes, remindersRes]) => {
+      .then(([leadsRes, tpRes, tasksRes]) => {
         setAllLeads(leadsRes.data);
         setRecentTouchpoints(
           [...tpRes.data]
@@ -107,7 +107,7 @@ export const DashboardPage = () => {
             )
             .slice(0, 5),
         );
-        setReminders(remindersRes.data);
+        setTasks(tasksRes.data);
       })
       .finally(() => setLoading(false));
   };
@@ -116,8 +116,8 @@ export const DashboardPage = () => {
     fetchAll();
   }, []);
 
-  const handleCompleteReminder = (reminderId: string) => {
-    api.patch(`/api/reminders/${reminderId}/complete`, {}).then(fetchAll);
+  const handleCompleteTask = (taskId: string) => {
+    api.patch(`/api/tasks/${taskId}/complete`, {}).then(fetchAll);
   };
 
   // Stats
@@ -145,24 +145,24 @@ export const DashboardPage = () => {
       new Date(l.convertedAt) >= startOfMonth,
   ).length;
 
-  // Reminder buckets
+  // Task buckets
   const todayStr = now.toDateString();
 
   // Urgent = email-sent checks (always immediate) + overdue items
-  const emailSentChecks = reminders.filter((r: any) => r.isEmailSentCheck);
-  const overdueReminders = reminders.filter(
+  const emailSentChecks = tasks.filter((r: any) => r.isEmailSentCheck);
+  const overdueReminders = tasks.filter(
     (r: any) =>
       !r.isEmailSentCheck &&
       new Date(r.dueDate) < now &&
       new Date(r.dueDate).toDateString() !== todayStr,
   );
-  const urgentReminders = [...emailSentChecks, ...overdueReminders];
+  const urgentTasks = [...emailSentChecks, ...overdueReminders];
 
-  const todayReminders = reminders.filter(
+  const todayTasks = tasks.filter(
     (r: any) =>
       !r.isEmailSentCheck && new Date(r.dueDate).toDateString() === todayStr,
   );
-  const upcomingReminders = reminders.filter((r: any) => {
+  const upcomingTasks = tasks.filter((r: any) => {
     if (r.isEmailSentCheck) return false;
     const d = new Date(r.dueDate);
     const in7 = new Date(now);
@@ -206,9 +206,9 @@ export const DashboardPage = () => {
     return "Good evening";
   };
 
-  const handleCheckInRespond = (reminderId: string, responded: boolean) => {
+  const handleCheckInRespond = (taskId: string, responded: boolean) => {
     api
-      .patch(`/api/reminders/${reminderId}/respond`, { responded })
+      .patch(`/api/tasks/${taskId}/respond`, { responded })
       .then(fetchAll);
   };
 
@@ -224,7 +224,7 @@ export const DashboardPage = () => {
     9: "Deprioritize",
   };
 
-  // Returns a due label and color class for an urgent reminder
+  // Returns a due label and color class for an urgent task
   const getDueLabel = (r: any): { label: string; colorClass: string } => {
     if (r.isEmailSentCheck) {
       return { label: "Needs immediate attention", colorClass: "text-red-500" };
@@ -291,7 +291,7 @@ export const DashboardPage = () => {
                 Log Follow-Up
               </button>
               <button
-                onClick={() => handleCompleteReminder(r.id)}
+                onClick={() => handleCompleteTask(r.id)}
                 className="flex-1 md:flex-none bg-white border border-gray-200 text-gray-500 text-sm font-medium rounded-lg px-4 py-2 whitespace-nowrap hover:bg-gray-50 transition"
               >
                 Skip
@@ -303,8 +303,8 @@ export const DashboardPage = () => {
     );
   };
 
-  // For non-urgent reminders (today, upcoming) — keep existing compact style
-  const ReminderRow = ({ r, urgent }: { r: any; urgent?: boolean }) => {
+  // For non-urgent tasks (today, upcoming) — keep existing compact style
+  const TaskRow = ({ r, urgent }: { r: any; urgent?: boolean }) => {
     if (r.isEmailSentCheck) {
       return (
         <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm bg-red-50 border border-red-300">
@@ -327,7 +327,7 @@ export const DashboardPage = () => {
               Log Follow-Up
             </button>
             <button
-              onClick={() => handleCompleteReminder(r.id)}
+              onClick={() => handleCompleteTask(r.id)}
               className="text-xs bg-white border border-gray-300 text-gray-500 rounded px-2.5 py-1 font-medium whitespace-nowrap"
             >
               Skip
@@ -366,7 +366,7 @@ export const DashboardPage = () => {
             Log Follow-Up
           </button>
           <button
-            onClick={() => handleCompleteReminder(r.id)}
+            onClick={() => handleCompleteTask(r.id)}
             className="text-xs bg-white border border-gray-300 text-gray-500 rounded px-2.5 py-1 font-medium whitespace-nowrap"
           >
             Skip
@@ -432,7 +432,7 @@ export const DashboardPage = () => {
               {/* LEFT — action items stacked */}
               <div className="flex flex-col gap-4">
                 {/* Urgent Tasks */}
-                {urgentReminders.length > 0 && (
+                {urgentTasks.length > 0 && (
                   <div className="bg-red-50/60 border border-red-200 rounded-2xl p-4 md:p-5 shadow-sm">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-4">
@@ -441,26 +441,26 @@ export const DashboardPage = () => {
                       </h2>
 
                       <span className="text-xs bg-red-100 text-red-600 border border-red-200 px-2.5 py-1 rounded-full font-semibold">
-                        {urgentReminders.length} item
-                        {urgentReminders.length !== 1 ? "s" : ""}
+                        {urgentTasks.length} item
+                        {urgentTasks.length !== 1 ? "s" : ""}
                       </span>
                     </div>
 
                     {/* Task cards — show top 3 */}
                     <div className="space-y-3">
-                      {urgentReminders.slice(0, 3).map((r: any) => (
+                      {urgentTasks.slice(0, 3).map((r: any) => (
                         <UrgentTaskCard key={r.id} r={r} />
                       ))}
                     </div>
 
                     {/* Footer CTA */}
-                    {urgentReminders.length > 3 && (
+                    {urgentTasks.length > 3 && (
                       <div className="pt-4 mt-4 border-t border-red-100 text-center">
                         <button
                           onClick={() => navigate("/sequence")}
                           className="text-sm text-red-600 font-semibold hover:text-red-700 transition"
                         >
-                          View all {urgentReminders.length} tasks →
+                          View all {urgentTasks.length} tasks →
                         </button>
                       </div>
                     )}
@@ -473,38 +473,38 @@ export const DashboardPage = () => {
                     <h2 className="font-semibold text-gray-700">
                       Today's Follow-ups
                     </h2>
-                    {todayReminders.length > 0 && (
+                    {todayTasks.length > 0 && (
                       <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">
-                        {todayReminders.length} due today
+                        {todayTasks.length} due today
                       </span>
                     )}
                   </div>
-                  {todayReminders.length === 0 ? (
+                  {todayTasks.length === 0 ? (
                     <p className="text-sm text-gray-400">
                       Nothing due today.{" "}
-                      {upcomingReminders.length > 0 && (
+                      {upcomingTasks.length > 0 && (
                         <span className="text-gray-500">
-                          Next up: {upcomingReminders[0].lead.business} on{" "}
+                          Next up: {upcomingTasks[0].lead.business} on{" "}
                           {new Date(
-                            upcomingReminders[0].dueDate,
+                            upcomingTasks[0].dueDate,
                           ).toLocaleDateString()}
                         </span>
                       )}
                     </p>
                   ) : (
                     <div className="space-y-2">
-                      {todayReminders.map((r: any) => (
-                        <ReminderRow key={r.id} r={r} />
+                      {todayTasks.map((r: any) => (
+                        <TaskRow key={r.id} r={r} />
                       ))}
                     </div>
                   )}
-                  {upcomingReminders.length > 0 && (
+                  {upcomingTasks.length > 0 && (
                     <div className="mt-4 pt-4 border-t">
                       <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">
                         Upcoming (next 7 days)
                       </p>
                       <div className="space-y-1">
-                        {upcomingReminders.slice(0, 4).map((r: any) => (
+                        {upcomingTasks.slice(0, 4).map((r: any) => (
                           <div
                             key={r.id}
                             className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 rounded px-2 py-1 -mx-2"

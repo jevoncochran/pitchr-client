@@ -18,6 +18,7 @@ import { useLeadDetail } from "../hooks/useLeadDetail";
 import {
   PIPELINE_STAGES,
   TOUCHPOINT_TYPES,
+  TASK_TYPES,
   stageColors,
   SEQUENCE_POSITION_LABEL,
   SEQUENCE_POSITION_COLOR,
@@ -70,11 +71,11 @@ const LeadDetailPage = () => {
     savingTp,
     deletingTpId,
     setDeletingTpId,
-    showReminderForm,
-    setShowReminderForm,
-    reminderForm,
-    setReminderForm,
-    submittingReminder,
+    showTaskForm,
+    setShowTaskForm,
+    taskForm,
+    setTaskForm,
+    submittingTaskForm,
     showNoteForm,
     setShowNoteForm,
     noteText,
@@ -110,8 +111,8 @@ const LeadDetailPage = () => {
     handleStageChange,
     handleLocationSubmit,
     handleTouchpointSubmit,
-    handleReminderSubmit,
-    handleReminderComplete,
+    handleTaskSubmit,
+    handleTaskComplete,
     handleCheckInRespond,
     startEditTp,
     handleTouchpointEditSave,
@@ -427,6 +428,35 @@ const LeadDetailPage = () => {
                           <span className="text-sm text-gray-400">—</span>
                         )}
                     </div>
+                  </div>
+
+                  {/* In-person contact flag */}
+                  <div className="md:col-span-2">
+                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">
+                      In-Person Outreach
+                    </p>
+                    <label className="flex items-center gap-3 cursor-pointer w-fit">
+                      <input
+                        type="checkbox"
+                        checked={!!lead.noInPersonContact}
+                        onChange={(e) =>
+                          api
+                            .patch(`/api/leads/${lead.id}`, {
+                              noInPersonContact: e.target.checked,
+                            })
+                            .then(fetchLead)
+                        }
+                        className="w-4 h-4 rounded"
+                      />
+                      <span className="text-sm text-gray-700">
+                        Cannot be contacted in person
+                      </span>
+                      {lead.noInPersonContact && (
+                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">
+                          In-person not viable
+                        </span>
+                      )}
+                    </label>
                   </div>
                 </div>
               ) : (
@@ -1618,41 +1648,38 @@ const LeadDetailPage = () => {
 
           {/* ── RIGHT COLUMN — activity ── */}
           <div className="min-w-0">
-            {/* Reminders */}
+            {/* Tasks */}
             <div className="bg-white border rounded-lg p-4 mb-6">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-semibold">
-                  Follow-up Reminders (
-                  {lead.reminders?.filter((r: any) => !r.completed).length ?? 0}
+                  Tasks (
+                  {lead.tasks?.filter((r: any) => !r.completed).length ?? 0}
                   )
                 </p>
                 <button
-                  onClick={() => setShowReminderForm((v) => !v)}
+                  onClick={() => setShowTaskForm((v) => !v)}
                   className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
                 >
-                  {showReminderForm ? "Cancel" : "+ Schedule"}
+                  {showTaskForm ? "Cancel" : "+ Schedule"}
                 </button>
               </div>
 
-              {showReminderForm && (
+              {showTaskForm && (
                 <form
-                  onSubmit={handleReminderSubmit}
+                  onSubmit={handleTaskSubmit}
                   className="bg-gray-50 rounded-lg p-4 mb-4 text-sm"
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                     <div>
                       <label className="block font-semibold mb-1">Type</label>
                       <select
-                        value={reminderForm.type}
+                        value={taskForm.type}
                         onChange={(e) =>
-                          setReminderForm((f) => ({
-                            ...f,
-                            type: e.target.value,
-                          }))
+                          setTaskForm((f) => ({ ...f, type: e.target.value }))
                         }
                         className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
                       >
-                        {TOUCHPOINT_TYPES.map((t) => (
+                        {TASK_TYPES.map((t) => (
                           <option key={t.value} value={t.value}>
                             {t.label}
                           </option>
@@ -1661,18 +1688,22 @@ const LeadDetailPage = () => {
                     </div>
                     <div>
                       <label className="block font-semibold mb-1">
-                        Due Date
+                        Due Date{" "}
+                        <span className="text-gray-400 font-normal">(optional)</span>
                       </label>
-                      <DatePicker
-                        selected={reminderForm.dueDate}
-                        onChange={(date: Date | null) =>
-                          date &&
-                          setReminderForm((f) => ({ ...f, dueDate: date }))
-                        }
-                        dateFormat="MM/dd/yyyy"
-                        className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
-                        wrapperClassName="w-full"
-                      />
+                      <div className="flex items-center gap-2">
+                        <DatePicker
+                          selected={taskForm.dueDate}
+                          onChange={(date: Date | null) =>
+                            setTaskForm((f) => ({ ...f, dueDate: date }))
+                          }
+                          isClearable
+                          placeholderText="No due date"
+                          dateFormat="MM/dd/yyyy"
+                          className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                          wrapperClassName="w-full"
+                        />
+                      </div>
                     </div>
                   </div>
                   <div className="mb-3">
@@ -1684,9 +1715,9 @@ const LeadDetailPage = () => {
                     </label>
                     <input
                       type="text"
-                      value={reminderForm.note}
+                      value={taskForm.note}
                       onChange={(e) =>
-                        setReminderForm((f) => ({ ...f, note: e.target.value }))
+                        setTaskForm((f) => ({ ...f, note: e.target.value }))
                       }
                       placeholder="e.g. Send reel link, follow up on proposal..."
                       className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
@@ -1695,28 +1726,31 @@ const LeadDetailPage = () => {
                   <div className="flex justify-end">
                     <button
                       type="submit"
-                      disabled={submittingReminder}
+                      disabled={submittingTaskForm}
                       className="bg-green-primary text-white px-4 py-1.5 rounded-lg"
                     >
-                      {submittingReminder ? "Saving..." : "Save"}
+                      {submittingTaskForm ? "Saving..." : "Save"}
                     </button>
                   </div>
                 </form>
               )}
 
-              {/* Reminder list */}
-              {lead.reminders?.filter((r: any) => !r.completed).length === 0 ? (
-                <p className="text-sm text-gray-400">No reminders scheduled.</p>
+              {/* Task list */}
+              {lead.tasks?.filter((r: any) => !r.completed).length === 0 ? (
+                <p className="text-sm text-gray-400">No tasks scheduled.</p>
               ) : (
                 <div className="space-y-2">
-                  {lead.reminders
+                  {lead.tasks
                     ?.filter((r: any) => !r.completed)
                     .map((r: any) => {
-                      const due = new Date(r.dueDate);
+                      const due = r.dueDate ? new Date(r.dueDate) : null;
                       const now = new Date();
-                      const isOverdue =
-                        due < now && due.toDateString() !== now.toDateString();
-                      const isToday = due.toDateString() === now.toDateString();
+                      const isOverdue = due
+                        ? due < now && due.toDateString() !== now.toDateString()
+                        : false;
+                      const isToday = due
+                        ? due.toDateString() === now.toDateString()
+                        : false;
 
                       // ── Email-sent check (compact urgent alert) ──────────
                       if (r.isEmailSentCheck) {
@@ -1747,7 +1781,7 @@ const LeadDetailPage = () => {
                                 Yes? Log follow up →
                               </button>
                               <button
-                                onClick={() => handleReminderComplete(r.id)}
+                                onClick={() => handleTaskComplete(r.id)}
                                 className="text-xs bg-white border border-gray-300 text-gray-500 rounded px-2.5 py-1 font-medium whitespace-nowrap"
                               >
                                 Skip
@@ -1758,7 +1792,7 @@ const LeadDetailPage = () => {
                       }
 
                       if (r.isCheckIn) {
-                        // Check-in reminder — shows Yes/No buttons
+                        // Check-in task — shows Yes/No buttons
                         return (
                           <div
                             key={r.id}
@@ -1827,7 +1861,7 @@ const LeadDetailPage = () => {
                         );
                       }
 
-                      // Regular action reminder
+                      // Regular action task
                       return (
                         <div
                           key={r.id}
@@ -1842,25 +1876,27 @@ const LeadDetailPage = () => {
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-medium text-gray-800">
-                                {TOUCHPOINT_TYPES.find(
+                                {TASK_TYPES.find(
                                   (t) => t.value === r.type,
                                 )?.label ?? r.type}
                               </span>
-                              <span
-                                className={`text-xs font-medium ${
-                                  isOverdue
-                                    ? "text-red-600"
+                              {due && (
+                                <span
+                                  className={`text-xs font-medium ${
+                                    isOverdue
+                                      ? "text-red-600"
+                                      : isToday
+                                        ? "text-yellow-600"
+                                        : "text-gray-400"
+                                  }`}
+                                >
+                                  {isOverdue
+                                    ? `Overdue · ${due.toLocaleDateString()}`
                                     : isToday
-                                      ? "text-yellow-600"
-                                      : "text-gray-400"
-                                }`}
-                              >
-                                {isOverdue
-                                  ? `Overdue · ${due.toLocaleDateString()}`
-                                  : isToday
-                                    ? "Today"
-                                    : due.toLocaleDateString()}
-                              </span>
+                                      ? "Today"
+                                      : due.toLocaleDateString()}
+                                </span>
+                              )}
                             </div>
                             {r.note && (
                               <p className="text-gray-500 mt-0.5">{r.note}</p>
@@ -1869,7 +1905,7 @@ const LeadDetailPage = () => {
                           <div className="ml-3 flex-shrink-0 flex gap-1.5">
                             <button
                               onClick={() => {
-                                setTpType("EMAIL");
+                                setTpType(r.type);
                                 setShowTouchpointForm(true);
                                 document
                                   .getElementById("touchpoints-section")
@@ -1877,13 +1913,13 @@ const LeadDetailPage = () => {
                               }}
                               className="text-xs bg-green-primary text-white rounded px-2.5 py-1 font-medium whitespace-nowrap"
                             >
-                              Log follow-up →
+                              Log Completion
                             </button>
                             <button
-                              onClick={() => handleReminderComplete(r.id)}
+                              onClick={() => handleTaskComplete(r.id)}
                               className="text-xs bg-white border border-gray-300 text-gray-500 rounded px-2.5 py-1 font-medium whitespace-nowrap"
                             >
-                              Skip
+                              Dismiss
                             </button>
                           </div>
                         </div>
@@ -1892,15 +1928,15 @@ const LeadDetailPage = () => {
                 </div>
               )}
 
-              {/* Completed reminders (collapsed) */}
-              {lead.reminders?.filter((r: any) => r.completed).length > 0 && (
+              {/* Completed tasks (collapsed) */}
+              {lead.tasks?.filter((r: any) => r.completed).length > 0 && (
                 <details className="mt-3">
                   <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">
-                    {lead.reminders.filter((r: any) => r.completed).length}{" "}
+                    {lead.tasks.filter((r: any) => r.completed).length}{" "}
                     completed
                   </summary>
                   <div className="space-y-1 mt-2">
-                    {lead.reminders
+                    {lead.tasks
                       .filter((r: any) => r.completed)
                       .map((r: any) => (
                         <div
