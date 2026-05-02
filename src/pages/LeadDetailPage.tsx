@@ -1819,10 +1819,10 @@ const LeadDetailPage = () => {
                                   }`}
                                 >
                                   {isOverdue
-                                    ? `Overdue · ${due.toLocaleDateString()}`
+                                    ? `Overdue · ${due?.toLocaleDateString()}`
                                     : isToday
                                       ? "Today"
-                                      : due.toLocaleDateString()}
+                                      : due?.toLocaleDateString()}
                                   {r.isResponseCheck &&
                                     " · Follow-up on their reply"}
                                 </p>
@@ -1891,10 +1891,10 @@ const LeadDetailPage = () => {
                                   }`}
                                 >
                                   {isOverdue
-                                    ? `Overdue · ${due.toLocaleDateString()}`
+                                    ? `Overdue · ${due?.toLocaleDateString()}`
                                     : isToday
                                       ? "Today"
-                                      : due.toLocaleDateString()}
+                                      : due?.toLocaleDateString()}
                                 </span>
                               )}
                             </div>
