@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { MdDashboard, MdPeople, MdBarChart, MdViewKanban, MdTimeline } from "react-icons/md";
+import { MdDashboard, MdPeople, MdViewKanban, MdTimeline, MdSettings } from "react-icons/md";
 
 interface Props {
   children: React.ReactNode;
@@ -11,7 +11,7 @@ const navItems = [
   { to: "/leads",     label: "Leads",     icon: <MdPeople size="1.2em" /> },
   { to: "/pipeline",  label: "Pipeline",  icon: <MdViewKanban size="1.2em" /> },
   { to: "/sequence",  label: "Follow-up", icon: <MdTimeline size="1.2em" /> },
-  { to: "/analytics", label: "Analytics", icon: <MdBarChart size="1.2em" /> },
+  { to: "/settings",  label: "Settings",  icon: <MdSettings size="1.2em" /> },
 ];
 
 const InternalLayout = ({ children }: Props) => {

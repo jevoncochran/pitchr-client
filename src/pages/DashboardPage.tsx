@@ -1,7 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
-import { MdLogout } from "react-icons/md";
 import { AuthContext } from "../context/auth/AuthContext";
 import InternalLayout from "../components/InternalLayout";
 
@@ -329,13 +328,6 @@ export const DashboardPage = () => {
             >
               + New Lead
             </button>
-            <div
-              className="flex items-center gap-1 cursor-pointer text-gray-500 hover:text-gray-800"
-              onClick={() => auth?.logout()}
-            >
-              <MdLogout size="1.4em" />
-              <span className="text-sm hidden md:inline">Sign out</span>
-            </div>
           </div>
         </div>
 

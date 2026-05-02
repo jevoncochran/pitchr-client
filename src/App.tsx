@@ -10,6 +10,7 @@ import LeadDetailPage from "./pages/LeadDetailPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import PipelinePage from "./pages/PipelinePage";
 import SequencePage from "./pages/SequencePage";
+import SettingsPage from "./pages/SettingsPage";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/pipeline" element={<PipelinePage />} />
         <Route path="/sequence" element={<SequencePage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
 
       {/* Catch-all: redirect everything else to login */}
