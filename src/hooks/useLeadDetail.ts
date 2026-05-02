@@ -384,6 +384,7 @@ export const useLeadDetail = () => {
 
       const wasInPerson = tpType === "IN_PERSON";
       const wasEmail = tpType === "EMAIL";
+      const wasAttempt = tpType === "VISIT_ATTEMPT";
 
       setShowTouchpointForm(false);
       setTpType("IN_PERSON");
@@ -392,7 +393,9 @@ export const useLeadDetail = () => {
       setTpSummary("");
       setTpSequencePosition("");
 
-      if (wasInPerson) {
+      if (wasAttempt) {
+        // No contact made — just log the attempt, no automatic reminder
+      } else if (wasInPerson) {
         // Start sequence if not already running
         if (!lead.sequenceActive) {
           await api.patch(

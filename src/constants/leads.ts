@@ -97,6 +97,7 @@ export const TOUCHPOINT_TYPES = [
   { value: "EMAIL", label: "Email" },
   { value: "TEXT", label: "Text" },
   { value: "INSTAGRAM_DM", label: "Instagram DM" },
+  { value: "VISIT_ATTEMPT", label: "Visit attempt — no contact" },
 ];
 
 export const stageColors: Record<string, string> = {
