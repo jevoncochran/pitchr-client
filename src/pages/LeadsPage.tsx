@@ -1,7 +1,29 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "../api";
 import InternalLayout from "../components/InternalLayout";
+
+// Quick-filter pill toggle — visually active when selected
+const QuickFilterPill = ({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    className={`flex-shrink-0 text-sm rounded-full px-4 h-[38px] font-medium border transition whitespace-nowrap ${
+      active
+        ? "bg-charcoal text-white border-charcoal"
+        : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+    }`}
+  >
+    {label}
+  </button>
+);
 
 // Generic multi-select checkbox dropdown
 const MultiSelectDropdown = ({
@@ -99,11 +121,17 @@ const STAGE_COLORS: Record<string, string> = {
 const ALL_STAGES = Object.keys(STAGE_LABELS);
 const DEFAULT_HIDDEN = new Set(["DORMANT", "NOT_A_FIT", "LOST"]);
 
+type QuickFilter = "new" | "recently-touched" | null;
+
 const LeadsPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [leads, setLeads] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>(
+    (location.state as { quickFilter?: QuickFilter })?.quickFilter ?? null
+  );
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
   const [industryFilter, setIndustryFilter] = useState<Set<string>>(new Set());
   const [businessTypeFilter, setBusinessTypeFilter] = useState<Set<string>>(new Set());
@@ -186,6 +214,22 @@ const LeadsPage = () => {
       search.trim() === "" ? true :
       l.business?.toLowerCase().includes(search.trim().toLowerCase())
     )
+    .filter((l) => {
+      if (quickFilter === "new") {
+        const startOfWeek = new Date();
+        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+        return new Date(l.createdAt) >= startOfWeek;
+      }
+      if (quickFilter === "recently-touched") {
+        if (!l.touchPoint || l.touchPoint.length === 0) return false;
+        const daysSince =
+          (Date.now() - new Date(l.touchPoint[0].date).getTime()) /
+          (1000 * 60 * 60 * 24);
+        return daysSince <= 7;
+      }
+      return true;
+    })
     .filter((l) =>
       ownerFilter === "all" ? true :
       ownerFilter === "unassigned" ? !l.assignedToId :
@@ -220,6 +264,20 @@ const LeadsPage = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="text-sm border rounded-lg px-3 h-[38px] w-56 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300"
+          />
+
+          {/* Quick-filter pills */}
+          <QuickFilterPill
+            label="New"
+            active={quickFilter === "new"}
+            onClick={() => setQuickFilter(quickFilter === "new" ? null : "new")}
+          />
+          <QuickFilterPill
+            label="Touched Recently"
+            active={quickFilter === "recently-touched"}
+            onClick={() =>
+              setQuickFilter(quickFilter === "recently-touched" ? null : "recently-touched")
+            }
           />
           <MultiSelectDropdown
             label="Industry"
@@ -305,10 +363,16 @@ const LeadsPage = () => {
             )}
           </div>
 
-          {(search || ownerFilter !== "all" || industryFilter.size > 0 || businessTypeFilter.size > 0) && (
+          {(search || quickFilter || ownerFilter !== "all" || industryFilter.size > 0 || businessTypeFilter.size > 0) && (
             <button
-              onClick={() => { setSearch(""); setOwnerFilter("all"); setIndustryFilter(new Set()); setBusinessTypeFilter(new Set()); }}
-              className="text-xs text-gray-400 hover:text-gray-600 underline h-[38px]"
+              onClick={() => {
+                setSearch("");
+                setQuickFilter(null);
+                setOwnerFilter("all");
+                setIndustryFilter(new Set());
+                setBusinessTypeFilter(new Set());
+              }}
+              className="text-xs text-gray-400 hover:text-gray-600 underline h-[38px] flex-shrink-0"
             >
               Clear filters
             </button>

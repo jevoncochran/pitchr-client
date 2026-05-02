@@ -40,11 +40,18 @@ const TP_LABELS: Record<string, string> = {
 const StatCard = ({
   label,
   value,
+  onClick,
 }: {
   label: string;
   value: number | string;
+  onClick?: () => void;
 }) => (
-  <div className="bg-white border rounded-xl p-5 flex flex-col gap-1">
+  <div
+    onClick={onClick}
+    className={`bg-white border rounded-xl p-5 flex flex-col gap-1 ${
+      onClick ? "cursor-pointer hover:border-gray-300 hover:shadow-sm transition" : ""
+    }`}
+  >
     <p className="text-xs uppercase tracking-wide text-gray-400">{label}</p>
     <p className="text-3xl font-bold text-gray-800">{value}</p>
   </div>
@@ -125,6 +132,11 @@ export const DashboardPage = () => {
   const meetingsScheduled = allLeads.filter(
     (l) => l.pipelineStage === "MEETING_SCHEDULED",
   ).length;
+  // Leads with a touchpoint logged this calendar week (regardless of when added)
+  const touchedThisWeek = allLeads.filter((l) => {
+    if (!l.touchPoint || l.touchPoint.length === 0) return false;
+    return new Date(l.touchPoint[0].date) >= startOfWeek;
+  }).length;
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const conversionsThisMonth = allLeads.filter(
     (l) =>
@@ -392,9 +404,22 @@ export const DashboardPage = () => {
         ) : (
           <>
             {/* Stats Row */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-              <StatCard label="Active Leads" value={activeLeads.length} />
-              <StatCard label="Added This Week" value={leadsThisWeek} />
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6 md:mb-8">
+              <StatCard
+                label="Active Leads"
+                value={activeLeads.length}
+                onClick={() => navigate("/leads")}
+              />
+              <StatCard
+                label="Added This Week"
+                value={leadsThisWeek}
+                onClick={() => navigate("/leads", { state: { quickFilter: "new" } })}
+              />
+              <StatCard
+                label="Touched This Week"
+                value={touchedThisWeek}
+                onClick={() => navigate("/leads", { state: { quickFilter: "recently-touched" } })}
+              />
               <StatCard label="Meetings Scheduled" value={meetingsScheduled} />
               <StatCard
                 label="Conversions This Month"
