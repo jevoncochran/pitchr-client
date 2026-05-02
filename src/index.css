@@ -25,6 +25,15 @@ button {
   cursor: pointer;
 }
 
+/* Prevent iOS Safari from auto-zooming into inputs (triggered when font-size < 16px) */
+@supports (-webkit-touch-callout: none) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* a {
   font-weight: 500;
   color: #646cff;
