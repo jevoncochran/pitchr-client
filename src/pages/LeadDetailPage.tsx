@@ -1453,7 +1453,6 @@ const LeadDetailPage = () => {
                     selected={tpDate}
                     onChange={(date: Date | null) => date && setTpDate(date)}
                     dateFormat="MM/dd/yyyy"
-                    maxDate={new Date()}
                     className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none text-sm"
                     wrapperClassName="w-full"
                   />
@@ -1542,7 +1541,6 @@ const LeadDetailPage = () => {
                           selected={editTpForm.date}
                           onChange={(date: Date | null) => date && setEditTpForm((f: any) => ({ ...f, date }))}
                           dateFormat="MM/dd/yyyy"
-                          maxDate={new Date()}
                           className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
                           wrapperClassName="w-full"
                         />
