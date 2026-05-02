@@ -196,8 +196,78 @@ export const DashboardPage = () => {
     9: "Deprioritize",
   };
 
+  // Returns a due label and color class for an urgent reminder
+  const getDueLabel = (r: any): { label: string; colorClass: string } => {
+    if (r.isEmailSentCheck) {
+      return { label: "Needs immediate attention", colorClass: "text-red-500" };
+    }
+    const due = new Date(r.dueDate);
+    const diffMs = now.getTime() - due.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (due.toDateString() === todayStr) {
+      return { label: "Due today", colorClass: "text-amber-500" };
+    }
+    if (diffDays === 1) {
+      return { label: "Overdue • Yesterday", colorClass: "text-red-500" };
+    }
+    if (diffDays > 1) {
+      return { label: `Overdue • ${diffDays} days ago`, colorClass: "text-red-500" };
+    }
+    // upcoming (shouldn't appear in urgent but just in case)
+    return { label: "Upcoming", colorClass: "text-gray-400" };
+  };
+
+  const getTaskPrompt = (r: any): string => {
+    if (r.isEmailSentCheck) return "Follow-up email sent?";
+    if (r.isCheckIn) return r.note ?? "Did they respond?";
+    const typeLabel = TP_LABELS[r.type] ?? r.type;
+    return r.note ? `${typeLabel} — ${r.note}` : `Log ${typeLabel}`;
+  };
+
+  const UrgentTaskCard = ({ r }: { r: any }) => {
+    const { label: dueLabel, colorClass: dueColor } = getDueLabel(r);
+    const prompt = getTaskPrompt(r);
+
+    return (
+      <div className="bg-white border border-red-100 rounded-xl p-4 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+        {/* Icon */}
+        <div className="flex-shrink-0 w-9 h-9 rounded-full bg-red-100 flex items-center justify-center text-red-500 text-base">
+          📬
+        </div>
+
+        {/* Content */}
+        <div
+          className="flex-1 min-w-0 cursor-pointer"
+          onClick={() => navigate(`/leads/${r.lead.id}`)}
+        >
+          <p className="font-semibold text-gray-900 text-sm leading-snug">
+            {r.lead.business}
+          </p>
+          <p className="text-sm text-gray-500 mt-0.5 leading-snug">{prompt}</p>
+          <p className={`text-xs mt-1 font-medium ${dueColor}`}>{dueLabel}</p>
+        </div>
+
+        {/* Actions — stacked on mobile, inline on desktop */}
+        <div className="flex flex-row md:flex-row gap-2 md:flex-shrink-0">
+          <button
+            onClick={() => navigate(`/leads/${r.lead.id}`)}
+            className="flex-1 md:flex-none bg-green-primary text-white text-sm font-medium rounded-lg px-4 py-2 whitespace-nowrap hover:opacity-90 transition"
+          >
+            Log Follow-Up
+          </button>
+          <button
+            onClick={() => handleCompleteReminder(r.id)}
+            className="flex-1 md:flex-none bg-white border border-gray-200 text-gray-500 text-sm font-medium rounded-lg px-4 py-2 whitespace-nowrap hover:bg-gray-50 transition"
+          >
+            Skip
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // For non-urgent reminders (today, upcoming) — keep existing compact style
   const ReminderRow = ({ r, urgent }: { r: any; urgent?: boolean }) => {
-    // Email-sent check — compact urgent alert
     if (r.isEmailSentCheck) {
       return (
         <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm bg-red-50 border border-red-300">
@@ -213,7 +283,7 @@ export const DashboardPage = () => {
               onClick={() => navigate(`/leads/${r.lead.id}`)}
               className="text-xs bg-green-primary text-white rounded px-2.5 py-1 font-medium whitespace-nowrap"
             >
-              Yes? Log follow up →
+              Log Follow-Up
             </button>
             <button
               onClick={() => handleCompleteReminder(r.id)}
@@ -225,77 +295,25 @@ export const DashboardPage = () => {
         </div>
       );
     }
-
-    // Regular check-in
-    if (r.isCheckIn) {
-      return (
-        <div
-          className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm border ${
-            urgent
-              ? "bg-red-50 border-red-200"
-              : "bg-yellow-50 border-yellow-200"
-          }`}
-        >
-          <div
-            className="flex-1 min-w-0 cursor-pointer"
-            onClick={() => navigate(`/leads/${r.lead.id}`)}
-          >
-            <p className="font-medium text-gray-800 truncate">{r.lead.business}</p>
-            <p
-              className={`text-xs mt-0.5 truncate ${
-                urgent ? "text-red-500" : "text-yellow-600"
-              }`}
-            >
-              {r.note ?? "Did they respond?"}
-              {urgent && ` · Due ${new Date(r.dueDate).toLocaleDateString()}`}
-            </p>
-          </div>
-          <div className="flex gap-1.5 flex-shrink-0">
-            <button
-              onClick={() => navigate(`/leads/${r.lead.id}`)}
-              className="text-xs bg-green-primary text-white rounded px-2.5 py-1 font-medium whitespace-nowrap"
-            >
-              Log follow-up →
-            </button>
-            <button
-              onClick={() => handleCompleteReminder(r.id)}
-              className="text-xs bg-white border border-gray-300 text-gray-500 rounded px-2.5 py-1 font-medium whitespace-nowrap"
-            >
-              Skip
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    // Action reminder
     return (
       <div
-        className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-sm border ${
-          urgent ? "bg-red-50 border-red-100" : "bg-yellow-50 border-yellow-100"
+        className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm border ${
+          urgent ? "bg-red-50 border-red-200" : "bg-yellow-50 border-yellow-200"
         }`}
       >
-        <div
-          className="flex-1 cursor-pointer"
-          onClick={() => navigate(`/leads/${r.lead.id}`)}
-        >
-          <p className="font-medium text-gray-800">{r.lead.business}</p>
-          <p
-            className={`text-xs mt-0.5 ${
-              urgent ? "text-red-500" : "text-yellow-600"
-            }`}
-          >
-            {TP_LABELS[r.type] ?? r.type}
-            {urgent && ` · Due ${new Date(r.dueDate).toLocaleDateString()}`}
-            {r.note && ` · ${r.note}`}
+        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/leads/${r.lead.id}`)}>
+          <p className="font-medium text-gray-800 truncate">{r.lead.business}</p>
+          <p className={`text-xs mt-0.5 truncate ${urgent ? "text-red-500" : "text-yellow-600"}`}>
+            {r.isCheckIn ? (r.note ?? "Did they respond?") : (TP_LABELS[r.type] ?? r.type)}
+            {r.note && !r.isCheckIn && ` · ${r.note}`}
           </p>
         </div>
-        <div className="ml-3 flex-shrink-0 flex items-center gap-1.5">
+        <div className="flex gap-1.5 flex-shrink-0">
           <button
             onClick={() => navigate(`/leads/${r.lead.id}`)}
             className="text-xs bg-green-primary text-white rounded px-2.5 py-1 font-medium whitespace-nowrap"
           >
-            Log follow-up →
+            Log Follow-Up
           </button>
           <button
             onClick={() => handleCompleteReminder(r.id)}
@@ -354,18 +372,35 @@ export const DashboardPage = () => {
 
                 {/* Urgent Tasks */}
                 {urgentReminders.length > 0 && (
-                  <div className="bg-red-50 border-2 border-red-200 rounded-xl p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <h2 className="font-semibold text-red-700">⚠️ Urgent Tasks</h2>
-                      <span className="text-xs bg-red-200 text-red-700 px-2 py-0.5 rounded-full font-medium">
+                  <div className="bg-white border border-red-200 rounded-xl overflow-hidden">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-red-100 bg-red-50">
+                      <h2 className="font-semibold text-red-700 flex items-center gap-2">
+                        ⚠️ Urgent Tasks
+                      </h2>
+                      <span className="text-xs bg-red-100 text-red-600 border border-red-200 px-2.5 py-1 rounded-full font-semibold">
                         {urgentReminders.length} item{urgentReminders.length !== 1 ? "s" : ""}
                       </span>
                     </div>
-                    <div className="space-y-2">
-                      {urgentReminders.map((r: any) => (
-                        <ReminderRow key={r.id} r={r} urgent />
+
+                    {/* Task cards — show top 3 */}
+                    <div className="divide-y divide-red-50 px-4 py-3 space-y-3">
+                      {urgentReminders.slice(0, 3).map((r: any) => (
+                        <UrgentTaskCard key={r.id} r={r} />
                       ))}
                     </div>
+
+                    {/* Footer CTA */}
+                    {urgentReminders.length > 3 && (
+                      <div className="px-5 py-3 border-t border-red-100 bg-red-50">
+                        <button
+                          onClick={() => navigate("/sequence")}
+                          className="text-sm text-red-600 font-medium hover:text-red-700 transition"
+                        >
+                          View all {urgentReminders.length} tasks →
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
