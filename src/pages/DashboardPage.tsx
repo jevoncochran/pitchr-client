@@ -121,7 +121,9 @@ export const DashboardPage = () => {
   };
 
   // Stats
-  const activeLeads = allLeads.filter((l) => l.pipelineStage !== "CONVERTED");
+  const activeLeads = allLeads.filter(
+    (l) => !["CONVERTED", "DORMANT", "NOT_A_FIT", "LOST"].includes(l.pipelineStage)
+  );
   const now = new Date();
   const startOfWeek = new Date(now);
   startOfWeek.setDate(now.getDate() - now.getDay());
