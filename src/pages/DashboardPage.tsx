@@ -240,19 +240,36 @@ export const DashboardPage = () => {
 
   const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
+  // Period end boundaries (exclusive upper bound)
+  const startOfTomorrow = new Date(startOfToday);
+  startOfTomorrow.setDate(startOfToday.getDate() + 1);
+
+  const startOfNextCalendarWeek = new Date(startOfCalendarWeek);
+  startOfNextCalendarWeek.setDate(startOfCalendarWeek.getDate() + 7);
+
+  const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
   const PERIOD_START: Record<GoalPeriod, Date> = {
     today: startOfToday,
     week:  startOfCalendarWeek,
     month: startOfMonth,
   };
 
-  // Count unique (leadId × calendar-day) pairs for a given type since `since`.
+  const PERIOD_END: Record<GoalPeriod, Date> = {
+    today: startOfTomorrow,
+    week:  startOfNextCalendarWeek,
+    month: startOfNextMonth,
+  };
+
+  // Count unique (leadId × calendar-day) pairs for a given type within [since, until).
   // Multiple touchpoints to the same lead on the same day = 1 toward the goal.
   // Same lead on a different day = 1 more.
-  const activityCount = (type: string, since: Date): number => {
-    const relevant = allTouchpoints.filter(
-      (tp) => tp.type === type && new Date(tp.date) >= since,
-    );
+  // The upper bound prevents future-dated touchpoints from inflating the current period.
+  const activityCount = (type: string, since: Date, until: Date): number => {
+    const relevant = allTouchpoints.filter((tp) => {
+      const d = new Date(tp.date);
+      return tp.type === type && d >= since && d < until;
+    });
     const seen = new Set<string>();
     relevant.forEach((tp) => {
       seen.add(`${tp.leadId}_${new Date(tp.date).toDateString()}`);
@@ -576,7 +593,7 @@ export const DashboardPage = () => {
                         .map(([type, { label, daily }]) => {
                           const isExtraCredit = goalPeriod === "today" && isWeekend;
                           const target = daily * TARGET_MULTIPLIER[goalPeriod];
-                          const count  = activityCount(type, PERIOD_START[goalPeriod]);
+                          const count  = activityCount(type, PERIOD_START[goalPeriod], PERIOD_END[goalPeriod]);
                           const pct    = Math.min(Math.round((count / target) * 100), 100);
                           const color  = isExtraCredit
                             ? "bg-purple-400"
