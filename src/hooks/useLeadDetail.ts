@@ -43,6 +43,10 @@ export const useLeadDetail = () => {
   const [tpSummary, setTpSummary] = useState("");
   const [tpSequencePosition, setTpSequencePosition] = useState("");
   const [submittingTp, setSubmittingTp] = useState(false);
+  // Contact selection for new touchpoint
+  const [tpContactIds, setTpContactIds] = useState<string[]>([]);
+  const [showNewContactForm, setShowNewContactForm] = useState(false);
+  const [newContactForm, setNewContactForm] = useState({ firstName: "", lastName: "", title: "", email: "" });
 
   // Touchpoint edit state
   const [editingTpId, setEditingTpId] = useState<string | null>(null);
@@ -372,6 +376,22 @@ export const useLeadDetail = () => {
     setSubmittingTp(true);
 
     try {
+      // Create any new inline contact first
+      let allContactIds = [...tpContactIds];
+      if (
+        showNewContactForm &&
+        (newContactForm.firstName.trim() || newContactForm.lastName.trim())
+      ) {
+        const contactRes = await api.post("/api/contacts", {
+          firstName: newContactForm.firstName.trim(),
+          lastName: newContactForm.lastName.trim(),
+          title: newContactForm.title.trim() || null,
+          email: newContactForm.email.trim() || null,
+          lead: { connect: { id } },
+        });
+        allContactIds = [...allContactIds, contactRes.data.id];
+      }
+
       const tpRes = await api.post(
         "/api/touchpoints",
         {
@@ -382,6 +402,9 @@ export const useLeadDetail = () => {
           sequencePosition: tpSequencePosition || null,
           lead: { connect: { id } },
           contactedBy: { connect: { id: user?.id } },
+          ...(allContactIds.length > 0 && {
+            contacts: { connect: allContactIds.map((cid) => ({ id: cid })) },
+          }),
         },
       );
       const newTpId: string = tpRes.data.id;
@@ -396,6 +419,9 @@ export const useLeadDetail = () => {
       setTpReceivedResponse(false);
       setTpSummary("");
       setTpSequencePosition("");
+      setTpContactIds([]);
+      setShowNewContactForm(false);
+      setNewContactForm({ firstName: "", lastName: "", title: "", email: "" });
 
       if (wasAttempt) {
         // No contact made — just log the attempt, no automatic reminder
@@ -453,6 +479,7 @@ export const useLeadDetail = () => {
       }
 
       fetchLead();
+      fetchContacts();
     } catch {
       alert("Failed to log touchpoint");
     } finally {
@@ -510,13 +537,32 @@ export const useLeadDetail = () => {
       summary: tp.summary ?? "",
       receivedResponse: tp.receivedResponse ?? false,
       sequencePosition: tp.sequencePosition ?? "",
+      contactIds: (tp.contacts ?? []).map((c: any) => c.id),
+      showNewContact: false,
+      newContact: { firstName: "", lastName: "", title: "" },
     });
   };
 
-  const handleTouchpointEditSave = () => {
+  const handleTouchpointEditSave = async () => {
     setSavingTp(true);
-    api
-      .patch(
+    try {
+      // Create any new inline contact
+      let allContactIds: string[] = [...(editTpForm.contactIds ?? [])];
+      if (
+        editTpForm.showNewContact &&
+        (editTpForm.newContact?.firstName?.trim() || editTpForm.newContact?.lastName?.trim())
+      ) {
+        const contactRes = await api.post("/api/contacts", {
+          firstName: editTpForm.newContact.firstName.trim(),
+          lastName: editTpForm.newContact.lastName.trim(),
+          title: editTpForm.newContact.title?.trim() || null,
+          email: editTpForm.newContact.email?.trim() || null,
+          lead: { connect: { id } },
+        });
+        allContactIds = [...allContactIds, contactRes.data.id];
+      }
+
+      await api.patch(
         `/api/touchpoints/${editingTpId}`,
         {
           type: editTpForm.type,
@@ -524,14 +570,17 @@ export const useLeadDetail = () => {
           summary: editTpForm.summary || null,
           receivedResponse: editTpForm.receivedResponse,
           sequencePosition: editTpForm.sequencePosition || null,
+          contacts: { set: allContactIds.map((cid) => ({ id: cid })) },
         },
-      )
-      .then(() => {
-        setEditingTpId(null);
-        fetchLead();
-      })
-      .catch(() => alert("Failed to save touchpoint"))
-      .finally(() => setSavingTp(false));
+      );
+      setEditingTpId(null);
+      fetchLead();
+      fetchContacts();
+    } catch {
+      alert("Failed to save touchpoint");
+    } finally {
+      setSavingTp(false);
+    }
   };
 
   const handleTouchpointDelete = async (touchpointId: string) => {
@@ -634,6 +683,12 @@ export const useLeadDetail = () => {
     tpSequencePosition,
     setTpSequencePosition,
     submittingTp,
+    tpContactIds,
+    setTpContactIds,
+    showNewContactForm,
+    setShowNewContactForm,
+    newContactForm,
+    setNewContactForm,
 
     // touchpoint edit
     editingTpId,

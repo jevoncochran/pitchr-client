@@ -89,7 +89,9 @@ export const DashboardPage = () => {
 
   const [allLeads, setAllLeads] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [allTouchpoints, setAllTouchpoints] = useState<any[]>([]);
   const [recentTouchpoints, setRecentTouchpoints] = useState<any[]>([]);
+  const [goalPeriod, setGoalPeriod] = useState<"today" | "week" | "month">("today");
   const [outreachStats, setOutreachStats] = useState<{
     dm:    { sent: number; responded: number; rate: number };
     email: { sent: number; responded: number; rate: number };
@@ -105,6 +107,7 @@ export const DashboardPage = () => {
     ])
       .then(([leadsRes, tpRes, tasksRes, statsRes]) => {
         setAllLeads(leadsRes.data);
+        setAllTouchpoints(tpRes.data);
         setRecentTouchpoints(
           [...tpRes.data]
             .sort(
@@ -203,6 +206,59 @@ export const DashboardPage = () => {
     Math.floor(
       (Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24),
     );
+
+  // ── Activity goals ───────────────────────────────────────────────────────
+  const REVENUE_GOAL  = 5000;
+  const AVG_DEAL_SIZE = 700;
+  const closesNeeded  = Math.ceil(REVENUE_GOAL / AVG_DEAL_SIZE); // 8
+
+  type GoalPeriod = "today" | "week" | "month";
+
+  const ACTIVITY_CHANNELS: Record<string, { label: string; category: "outreach" | "followup"; daily: number }> = {
+    IN_PERSON:    { label: "Door Knocks",   category: "outreach", daily: 10  },
+    INSTAGRAM_DM: { label: "Instagram DMs", category: "outreach", daily: 10  },
+    EMAIL:        { label: "Emails",        category: "followup", daily: 20  },
+    CALL:         { label: "Calls",         category: "followup", daily: 5   },
+    TEXT:         { label: "Texts",         category: "followup", daily: 10  },
+  };
+
+  const TARGET_MULTIPLIER: Record<GoalPeriod, number> = {
+    today: 1,
+    week:  5,   // 5 working days
+    month: 22,  // ~22 working days
+  };
+
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+
+  // Monday of the current calendar week
+  const startOfCalendarWeek = new Date(now);
+  const dayOfWeek = now.getDay(); // 0=Sun … 6=Sat
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  startOfCalendarWeek.setDate(now.getDate() - daysFromMonday);
+  startOfCalendarWeek.setHours(0, 0, 0, 0);
+
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+  const PERIOD_START: Record<GoalPeriod, Date> = {
+    today: startOfToday,
+    week:  startOfCalendarWeek,
+    month: startOfMonth,
+  };
+
+  // Count unique (leadId × calendar-day) pairs for a given type since `since`.
+  // Multiple touchpoints to the same lead on the same day = 1 toward the goal.
+  // Same lead on a different day = 1 more.
+  const activityCount = (type: string, since: Date): number => {
+    const relevant = allTouchpoints.filter(
+      (tp) => tp.type === type && new Date(tp.date) >= since,
+    );
+    const seen = new Set<string>();
+    relevant.forEach((tp) => {
+      seen.add(`${tp.leadId}_${new Date(tp.date).toDateString()}`);
+    });
+    return seen.size;
+  };
 
   const greeting = () => {
     const hour = new Date().getHours();
@@ -472,6 +528,86 @@ export const DashboardPage = () => {
                 </div>
               </div>
             )}
+
+            {/* Activity Goals */}
+            <div className="bg-white border rounded-2xl p-4 md:p-5 shadow-sm mb-6">
+              {/* Header row */}
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-semibold text-gray-800">Activity Goals</p>
+                {/* Period toggle */}
+                <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
+                  {(["today", "week", "month"] as const).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setGoalPeriod(p)}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition ${
+                        goalPeriod === p
+                          ? "bg-white text-gray-800 shadow-sm"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      {p === "today" ? "Today" : p === "week" ? "This Week" : "This Month"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 mb-4">
+                Goal: <span className="font-medium text-gray-600">${REVENUE_GOAL.toLocaleString()}/mo</span>
+                {" · "}~{closesNeeded} closes at ${AVG_DEAL_SIZE} avg
+              </p>
+
+              {/* Weekend banner on Today tab */}
+              {goalPeriod === "today" && isWeekend && (
+                <div className="flex items-center gap-2 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2 mb-4 text-xs text-purple-700">
+                  <span>🎉</span>
+                  <span>It's the weekend — no targets today. Anything you log is extra credit.</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {(["outreach", "followup"] as const).map((category) => (
+                  <div key={category}>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                      {category === "outreach" ? "Cold Outreach" : "Follow-Up"}
+                    </p>
+                    <div className="flex flex-col gap-3">
+                      {Object.entries(ACTIVITY_CHANNELS)
+                        .filter(([, v]) => v.category === category)
+                        .map(([type, { label, daily }]) => {
+                          const isExtraCredit = goalPeriod === "today" && isWeekend;
+                          const target = daily * TARGET_MULTIPLIER[goalPeriod];
+                          const count  = activityCount(type, PERIOD_START[goalPeriod]);
+                          const pct    = Math.min(Math.round((count / target) * 100), 100);
+                          const color  = isExtraCredit
+                            ? "bg-purple-400"
+                            : pct >= 80 ? "bg-green-500"
+                            : pct >= 40 ? "bg-amber-400"
+                            : "bg-red-400";
+                          return (
+                            <div key={type}>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs text-gray-600">{label}</span>
+                                <span className="text-xs font-semibold text-gray-700">
+                                  {count}
+                                  {!isExtraCredit && (
+                                    <span className="text-gray-400 font-normal"> / {target}</span>
+                                  )}
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-100 rounded-full h-1.5">
+                                <div
+                                  className={`${color} h-1.5 rounded-full transition-all`}
+                                  style={{ width: isExtraCredit ? `${Math.min(count * 10, 100)}%` : `${pct}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             {/* Main two-column layout */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8">
