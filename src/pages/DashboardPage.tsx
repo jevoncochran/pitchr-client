@@ -131,19 +131,16 @@ export const DashboardPage = () => {
     (l) => !["CONVERTED", "DORMANT", "NOT_A_FIT", "LOST"].includes(l.pipelineStage)
   );
   const now = new Date();
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay());
-  startOfWeek.setHours(0, 0, 0, 0);
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const leadsThisWeek = allLeads.filter(
-    (l) => new Date(l.createdAt) >= startOfWeek,
+    (l) => new Date(l.createdAt) >= sevenDaysAgo,
   ).length;
   const meetingsScheduled = allLeads.filter(
     (l) => l.pipelineStage === "MEETING_SCHEDULED",
   ).length;
-  // Leads with a touchpoint logged this calendar week (regardless of when added)
   const touchedThisWeek = allLeads.filter((l) => {
     if (!l.touchPoint || l.touchPoint.length === 0) return false;
-    return new Date(l.touchPoint[0].date) >= startOfWeek;
+    return new Date(l.touchPoint[0].date) >= sevenDaysAgo;
   }).length;
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const conversionsThisMonth = allLeads.filter(
