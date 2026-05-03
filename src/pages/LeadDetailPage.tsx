@@ -64,6 +64,12 @@ const LeadDetailPage = () => {
     tpSequencePosition,
     setTpSequencePosition,
     submittingTp,
+    tpContactIds,
+    setTpContactIds,
+    showNewContactForm,
+    setShowNewContactForm,
+    newContactForm,
+    setNewContactForm,
     editingTpId,
     setEditingTpId,
     editTpForm,
@@ -2063,11 +2069,96 @@ const LeadDetailPage = () => {
                     <textarea
                       value={tpSummary}
                       onChange={(e) => setTpSummary(e.target.value)}
-                      placeholder="What happened? Who did you speak to?"
+                      placeholder="What happened?"
                       rows={3}
                       className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none resize-none"
                     />
                   </div>
+
+                  {/* Contact section — hidden for visit attempts */}
+                  {tpType !== "VISIT_ATTEMPT" && (
+                    <div className="mb-4">
+                      <label className="block font-semibold mb-2">Who did you interact with?</label>
+                      {/* Existing contacts */}
+                      {lead.contacts?.length > 0 && (
+                        <div className="flex flex-col gap-1 mb-2">
+                          {lead.contacts.map((c: any) => (
+                            <label key={c.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                              <input
+                                type="checkbox"
+                                checked={tpContactIds.includes(c.id)}
+                                onChange={(e) =>
+                                  setTpContactIds(
+                                    e.target.checked
+                                      ? [...tpContactIds, c.id]
+                                      : tpContactIds.filter((x) => x !== c.id)
+                                  )
+                                }
+                              />
+                              <span className="text-gray-700">
+                                {c.firstName} {c.lastName}
+                                {c.title && <span className="text-gray-400 ml-1">· {c.title}</span>}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {/* Inline new contact form */}
+                      {showNewContactForm ? (
+                        <div className="bg-gray-50 border rounded-lg p-3 mt-2">
+                          <p className="text-xs font-semibold text-gray-600 mb-2">New contact</p>
+                          <div className="grid grid-cols-2 gap-2 mb-2">
+                            <input
+                              type="text"
+                              placeholder="First name"
+                              value={newContactForm.firstName}
+                              onChange={(e) => setNewContactForm({ ...newContactForm, firstName: e.target.value })}
+                              className="px-2 py-1.5 border rounded text-sm focus:outline-none"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Last name"
+                              value={newContactForm.lastName}
+                              onChange={(e) => setNewContactForm({ ...newContactForm, lastName: e.target.value })}
+                              className="px-2 py-1.5 border rounded text-sm focus:outline-none"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 mb-2">
+                            <input
+                              type="text"
+                              placeholder="Title (optional)"
+                              value={newContactForm.title}
+                              onChange={(e) => setNewContactForm({ ...newContactForm, title: e.target.value })}
+                              className="px-2 py-1.5 border rounded text-sm focus:outline-none"
+                            />
+                            <input
+                              type="email"
+                              placeholder="Email (optional)"
+                              value={newContactForm.email}
+                              onChange={(e) => setNewContactForm({ ...newContactForm, email: e.target.value })}
+                              className="px-2 py-1.5 border rounded text-sm focus:outline-none"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => { setShowNewContactForm(false); setNewContactForm({ firstName: "", lastName: "", title: "", email: "" }); }}
+                            className="text-xs text-gray-400 hover:text-gray-600"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowNewContactForm(true)}
+                          className="text-xs text-green-700 hover:text-green-800 font-medium mt-1"
+                        >
+                          + Add contact
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -2199,6 +2290,90 @@ const LeadDetailPage = () => {
                             className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none resize-none"
                           />
                         </div>
+
+                        {/* Contact section — edit form */}
+                        {editTpForm.type !== "VISIT_ATTEMPT" && (
+                          <div className="mb-3">
+                            <label className="block font-semibold mb-2">Who did you interact with?</label>
+                            {lead.contacts?.length > 0 && (
+                              <div className="flex flex-col gap-1 mb-2">
+                                {lead.contacts.map((c: any) => (
+                                  <label key={c.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                                    <input
+                                      type="checkbox"
+                                      checked={(editTpForm.contactIds ?? []).includes(c.id)}
+                                      onChange={(e) =>
+                                        setEditTpForm((f: any) => ({
+                                          ...f,
+                                          contactIds: e.target.checked
+                                            ? [...(f.contactIds ?? []), c.id]
+                                            : (f.contactIds ?? []).filter((x: string) => x !== c.id),
+                                        }))
+                                      }
+                                    />
+                                    <span className="text-gray-700">
+                                      {c.firstName} {c.lastName}
+                                      {c.title && <span className="text-gray-400 ml-1">· {c.title}</span>}
+                                    </span>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                            {editTpForm.showNewContact ? (
+                              <div className="bg-gray-50 border rounded-lg p-3 mt-2">
+                                <p className="text-xs font-semibold text-gray-600 mb-2">New contact</p>
+                                <div className="grid grid-cols-2 gap-2 mb-2">
+                                  <input
+                                    type="text"
+                                    placeholder="First name"
+                                    value={editTpForm.newContact?.firstName ?? ""}
+                                    onChange={(e) => setEditTpForm((f: any) => ({ ...f, newContact: { ...f.newContact, firstName: e.target.value } }))}
+                                    className="px-2 py-1.5 border rounded text-sm focus:outline-none"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="Last name"
+                                    value={editTpForm.newContact?.lastName ?? ""}
+                                    onChange={(e) => setEditTpForm((f: any) => ({ ...f, newContact: { ...f.newContact, lastName: e.target.value } }))}
+                                    className="px-2 py-1.5 border rounded text-sm focus:outline-none"
+                                  />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 mb-2">
+                                  <input
+                                    type="text"
+                                    placeholder="Title (optional)"
+                                    value={editTpForm.newContact?.title ?? ""}
+                                    onChange={(e) => setEditTpForm((f: any) => ({ ...f, newContact: { ...f.newContact, title: e.target.value } }))}
+                                    className="px-2 py-1.5 border rounded text-sm focus:outline-none"
+                                  />
+                                  <input
+                                    type="email"
+                                    placeholder="Email (optional)"
+                                    value={editTpForm.newContact?.email ?? ""}
+                                    onChange={(e) => setEditTpForm((f: any) => ({ ...f, newContact: { ...f.newContact, email: e.target.value } }))}
+                                    className="px-2 py-1.5 border rounded text-sm focus:outline-none"
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditTpForm((f: any) => ({ ...f, showNewContact: false, newContact: { firstName: "", lastName: "", title: "", email: "" } }))}
+                                  className="text-xs text-gray-400 hover:text-gray-600"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setEditTpForm((f: any) => ({ ...f, showNewContact: true }))}
+                                className="text-xs text-green-700 hover:text-green-800 font-medium mt-1"
+                              >
+                                + Add contact
+                              </button>
+                            )}
+                          </div>
+                        )}
+
                         <div className="flex items-center justify-between">
                           <label className="flex items-center gap-2 cursor-pointer">
                             <input
@@ -2254,6 +2429,14 @@ const LeadDetailPage = () => {
                             <p className="text-gray-400 text-xs mt-0.5">
                               By {tp.contactedBy?.firstName}{" "}
                               {tp.contactedBy?.lastName}
+                              {tp.contacts?.length > 0 && (
+                                <span className="ml-1">
+                                  · with{" "}
+                                  {tp.contacts
+                                    .map((c: any) => `${c.firstName} ${c.lastName}`)
+                                    .join(", ")}
+                                </span>
+                              )}
                             </p>
                           </div>
                           <div className="flex items-center gap-2 ml-3 flex-shrink-0">
@@ -2328,6 +2511,14 @@ const LeadDetailPage = () => {
                             <p className="text-gray-400 text-xs mt-0.5">
                               By {tp.contactedBy?.firstName}{" "}
                               {tp.contactedBy?.lastName}
+                              {tp.contacts?.length > 0 && (
+                                <span className="ml-1">
+                                  · with{" "}
+                                  {tp.contacts
+                                    .map((c: any) => `${c.firstName} ${c.lastName}`)
+                                    .join(", ")}
+                                </span>
+                              )}
                             </p>
                           </div>
                           <div className="flex items-center gap-2 ml-3 flex-shrink-0">
