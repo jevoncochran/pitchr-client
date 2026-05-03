@@ -216,10 +216,8 @@ const LeadsPage = () => {
     )
     .filter((l) => {
       if (quickFilter === "new") {
-        const startOfWeek = new Date();
-        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-        startOfWeek.setHours(0, 0, 0, 0);
-        return new Date(l.createdAt) >= startOfWeek;
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        return new Date(l.createdAt) >= sevenDaysAgo;
       }
       if (quickFilter === "recently-touched") {
         if (!l.touchPoint || l.touchPoint.length === 0) return false;

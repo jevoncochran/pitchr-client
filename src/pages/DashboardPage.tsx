@@ -90,6 +90,10 @@ export const DashboardPage = () => {
   const [allLeads, setAllLeads] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
   const [recentTouchpoints, setRecentTouchpoints] = useState<any[]>([]);
+  const [outreachStats, setOutreachStats] = useState<{
+    dm:    { sent: number; responded: number; rate: number };
+    email: { sent: number; responded: number; rate: number };
+  } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchAll = () => {
@@ -97,8 +101,9 @@ export const DashboardPage = () => {
       api.get("/api/leads"),
       api.get("/api/touchpoints", {}),
       api.get("/api/tasks", {}),
+      api.get("/api/touchpoints/stats/outreach"),
     ])
-      .then(([leadsRes, tpRes, tasksRes]) => {
+      .then(([leadsRes, tpRes, tasksRes, statsRes]) => {
         setAllLeads(leadsRes.data);
         setRecentTouchpoints(
           [...tpRes.data]
@@ -108,6 +113,7 @@ export const DashboardPage = () => {
             .slice(0, 5),
         );
         setTasks(tasksRes.data);
+        setOutreachStats(statsRes.data);
       })
       .finally(() => setLoading(false));
   };
@@ -125,19 +131,16 @@ export const DashboardPage = () => {
     (l) => !["CONVERTED", "DORMANT", "NOT_A_FIT", "LOST"].includes(l.pipelineStage)
   );
   const now = new Date();
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay());
-  startOfWeek.setHours(0, 0, 0, 0);
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const leadsThisWeek = allLeads.filter(
-    (l) => new Date(l.createdAt) >= startOfWeek,
+    (l) => new Date(l.createdAt) >= sevenDaysAgo,
   ).length;
   const meetingsScheduled = allLeads.filter(
     (l) => l.pipelineStage === "MEETING_SCHEDULED",
   ).length;
-  // Leads with a touchpoint logged this calendar week (regardless of when added)
   const touchedThisWeek = allLeads.filter((l) => {
     if (!l.touchPoint || l.touchPoint.length === 0) return false;
-    return new Date(l.touchPoint[0].date) >= startOfWeek;
+    return new Date(l.touchPoint[0].date) >= sevenDaysAgo;
   }).length;
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const conversionsThisMonth = allLeads.filter(
@@ -428,6 +431,47 @@ export const DashboardPage = () => {
                 value={conversionsThisMonth}
               />
             </div>
+
+            {/* Outreach response rates */}
+            {outreachStats && (
+              <div className="bg-white border rounded-2xl p-4 md:p-5 shadow-sm mb-6">
+                <p className="text-sm font-semibold text-gray-700 mb-3">Outreach Response Rates</p>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Instagram DMs */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-gray-500">Instagram DMs</span>
+                      <span className="text-sm font-bold text-gray-800">{outreachStats.dm.rate}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div
+                        className="bg-pink-400 h-1.5 rounded-full transition-all"
+                        style={{ width: `${outreachStats.dm.rate}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {outreachStats.dm.responded} of {outreachStats.dm.sent} responded
+                    </p>
+                  </div>
+                  {/* Emails */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-gray-500">Emails</span>
+                      <span className="text-sm font-bold text-gray-800">{outreachStats.email.rate}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div
+                        className="bg-blue-400 h-1.5 rounded-full transition-all"
+                        style={{ width: `${outreachStats.email.rate}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {outreachStats.email.responded} of {outreachStats.email.sent} responded
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Main two-column layout */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8">
