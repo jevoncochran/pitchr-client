@@ -544,6 +544,17 @@ export const useLeadDetail = () => {
     }
   };
 
+  const handleToggleResponse = async (tp: any) => {
+    try {
+      await api.patch(`/api/touchpoints/${tp.id}`, {
+        receivedResponse: !tp.receivedResponse,
+      });
+      fetchLead();
+    } catch {
+      alert("Failed to update response status");
+    }
+  };
+
   const handleNoteSubmit = (e: FormEvent) => {
     e.preventDefault();
     setSubmittingNote(true);
@@ -693,6 +704,7 @@ export const useLeadDetail = () => {
     startEditTp,
     handleTouchpointEditSave,
     handleTouchpointDelete,
+    handleToggleResponse,
     handleNoteSubmit,
     handleToggleHot,
     resetContactForm,

@@ -117,6 +117,7 @@ const LeadDetailPage = () => {
     startEditTp,
     handleTouchpointEditSave,
     handleTouchpointDelete,
+    handleToggleResponse,
     handleNoteSubmit,
     handleToggleHot,
     resetContactForm,
@@ -2327,7 +2328,6 @@ const LeadDetailPage = () => {
                             <p className="text-gray-400 text-xs mt-0.5">
                               By {tp.contactedBy?.firstName}{" "}
                               {tp.contactedBy?.lastName}
-                              {tp.receivedResponse && " · Got a response"}
                             </p>
                           </div>
                           <div className="flex items-center gap-2 ml-3 flex-shrink-0">
@@ -2351,6 +2351,21 @@ const LeadDetailPage = () => {
                               </>
                             ) : (
                               <>
+                                {(tp.type === "EMAIL" ||
+                                  tp.type === "INSTAGRAM_DM") && (
+                                  <button
+                                    onClick={() => handleToggleResponse(tp)}
+                                    className={`text-xs font-medium px-2 py-0.5 rounded-full border transition ${
+                                      tp.receivedResponse
+                                        ? "bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
+                                        : "bg-white text-gray-400 border-gray-200 hover:text-gray-600"
+                                    }`}
+                                  >
+                                    {tp.receivedResponse
+                                      ? "✓ Responded"
+                                      : "Mark responded"}
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => startEditTp(tp)}
                                   className="text-xs text-gray-400 hover:text-gray-700"
