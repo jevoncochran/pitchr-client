@@ -94,6 +94,8 @@ export enum DiscoveredVia {
   TikTok = "TIKTOK",
   YouTube = "YOUTUBE",
   Google = "GOOGLE",
+  Networking = "NETWORKING",
+  InPerson = "IN_PERSON",
   Other = "OTHER",
 }
 
