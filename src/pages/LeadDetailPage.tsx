@@ -51,6 +51,7 @@ const LeadDetailPage = () => {
     locationForm,
     setLocationForm,
     submittingLocation,
+    setCompletingTaskId,
     showTouchpointForm,
     setShowTouchpointForm,
     tpType,
@@ -347,9 +348,17 @@ const LeadDetailPage = () => {
                     <p className="text-sm font-medium text-gray-800 capitalize">
                       {lead.discoveredVia === "OTHER"
                         ? (lead.discoveredViaOther ?? "Other")
-                        : (lead.discoveredVia
-                            ?.toLowerCase()
-                            .replace("_", " ") ?? "—")}
+                        : ({
+                            OUTREACH: "Outreach",
+                            REFERRAL: "Referral",
+                            INSTAGRAM: "Instagram",
+                            FACEBOOK: "Facebook",
+                            TIKTOK: "TikTok",
+                            YOUTUBE: "YouTube",
+                            GOOGLE: "Google",
+                            NETWORKING: "Networking Event",
+                            IN_PERSON: "In Person / Walk-Up",
+                          }[lead.discoveredVia as string] ?? lead.discoveredVia ?? "—")}
                     </p>
                   </div>
                   <div>
@@ -603,6 +612,8 @@ const LeadDetailPage = () => {
                       <option value="TIKTOK">TikTok</option>
                       <option value="YOUTUBE">YouTube</option>
                       <option value="GOOGLE">Google</option>
+                      <option value="NETWORKING">Networking Event</option>
+                      <option value="IN_PERSON">In Person / Walk-Up</option>
                       <option value="OTHER">Other</option>
                     </select>
                     {editForm.discoveredVia === "OTHER" && (
@@ -1912,6 +1923,7 @@ const LeadDetailPage = () => {
                           <div className="ml-3 flex-shrink-0 flex gap-1.5">
                             <button
                               onClick={() => {
+                                setCompletingTaskId(r.id);
                                 setTpType(r.type);
                                 setShowTouchpointForm(true);
                                 document
@@ -1980,7 +1992,10 @@ const LeadDetailPage = () => {
                   )
                 </p>
                 <button
-                  onClick={() => setShowTouchpointForm((v) => !v)}
+                  onClick={() => {
+                    if (showTouchpointForm) setCompletingTaskId(null);
+                    setShowTouchpointForm((v) => !v);
+                  }}
                   className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
                 >
                   {showTouchpointForm ? "Cancel" : "+ Log Touchpoint"}

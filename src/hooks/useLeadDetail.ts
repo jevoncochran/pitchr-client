@@ -54,6 +54,10 @@ export const useLeadDetail = () => {
   const [savingTp, setSavingTp] = useState(false);
   const [deletingTpId, setDeletingTpId] = useState<string | null>(null);
 
+  // When a task's "Log Completion" button is clicked, we track which task is
+  // being fulfilled so we can auto-complete it once the touchpoint is saved.
+  const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
+
   // Task form state
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [taskForm, setTaskForm] = useState<{
@@ -413,6 +417,13 @@ export const useLeadDetail = () => {
       const wasEmail = tpType === "EMAIL";
       const wasAttempt = tpType === "VISIT_ATTEMPT";
 
+      // If this touchpoint was logged via "Log Completion" on a specific task,
+      // mark that task complete now.
+      if (completingTaskId) {
+        await api.patch(`/api/tasks/${completingTaskId}/complete`, {});
+        setCompletingTaskId(null);
+      }
+
       setShowTouchpointForm(false);
       setTpType("IN_PERSON");
       setTpDate(new Date());
@@ -668,6 +679,10 @@ export const useLeadDetail = () => {
     locationForm,
     setLocationForm,
     submittingLocation,
+
+    // task-completion link
+    completingTaskId,
+    setCompletingTaskId,
 
     // touchpoint form
     showTouchpointForm,

@@ -342,6 +342,8 @@ const AddLeadPage = () => {
                   <option value={DiscoveredVia.TikTok}>TikTok</option>
                   <option value={DiscoveredVia.YouTube}>YouTube</option>
                   <option value={DiscoveredVia.Google}>Google</option>
+                  <option value={DiscoveredVia.Networking}>Networking Event</option>
+                  <option value={DiscoveredVia.InPerson}>In Person / Walk-Up</option>
                   <option value={DiscoveredVia.Other}>Other</option>
                 </select>
                 {discoveredVia === DiscoveredVia.Other && source === LeadSource.Form && (
