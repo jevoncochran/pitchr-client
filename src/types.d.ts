@@ -84,18 +84,16 @@ export enum LeadSource {
   Outreach = "OUTREACH",
   Referral = "REFERRAL",
   Form = "FORM",
+  Networking = "NETWORKING",
+  InPerson = "IN_PERSON",
 }
 
 export enum DiscoveredVia {
-  Outreach = "OUTREACH",
-  Referral = "REFERRAL",
   Instagram = "INSTAGRAM",
   Facebook = "FACEBOOK",
   TikTok = "TIKTOK",
   YouTube = "YOUTUBE",
   Google = "GOOGLE",
-  Networking = "NETWORKING",
-  InPerson = "IN_PERSON",
   Other = "OTHER",
 }
 

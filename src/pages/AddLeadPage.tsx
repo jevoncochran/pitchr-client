@@ -280,6 +280,8 @@ const AddLeadPage = () => {
                   {[
                     { label: "Outreach", value: LeadSource.Outreach },
                     { label: "Referral", value: LeadSource.Referral },
+                    { label: "Networking Group / Event", value: LeadSource.Networking },
+                    { label: "In Person / Walk-Up", value: LeadSource.InPerson },
                     { label: "Form", value: LeadSource.Form },
                   ].map((opt) => (
                     <label
@@ -293,13 +295,8 @@ const AddLeadPage = () => {
                         checked={source === opt.value}
                         onChange={() => {
                           setSource(opt.value);
-                          if (opt.value === LeadSource.Outreach) {
-                            setDiscoveredVia(DiscoveredVia.Outreach);
-                            setDiscoveredViaOther("");
-                          } else if (opt.value === LeadSource.Referral) {
-                            setDiscoveredVia(DiscoveredVia.Referral);
-                            setDiscoveredViaOther("");
-                          } else {
+                          // Clear discoveredVia unless switching to Form
+                          if (opt.value !== LeadSource.Form) {
                             setDiscoveredVia("");
                             setDiscoveredViaOther("");
                           }
@@ -342,8 +339,6 @@ const AddLeadPage = () => {
                   <option value={DiscoveredVia.TikTok}>TikTok</option>
                   <option value={DiscoveredVia.YouTube}>YouTube</option>
                   <option value={DiscoveredVia.Google}>Google</option>
-                  <option value={DiscoveredVia.Networking}>Networking Event</option>
-                  <option value={DiscoveredVia.InPerson}>In Person / Walk-Up</option>
                   <option value={DiscoveredVia.Other}>Other</option>
                 </select>
                 {discoveredVia === DiscoveredVia.Other && source === LeadSource.Form && (
