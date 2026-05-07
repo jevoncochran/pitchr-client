@@ -100,11 +100,13 @@ export const TASK_TYPES = [
 ];
 
 export const TOUCHPOINT_TYPES = [
-  { value: "IN_PERSON", label: "In Person Visit" },
-  { value: "MEETING", label: "Meeting" },
-  { value: "CALL", label: "Call" },
-  { value: "EMAIL", label: "Email" },
-  { value: "TEXT", label: "Text" },
+  { value: "IN_PERSON",    label: "In Person Visit" },
+  { value: "NETWORKING",   label: "Networking Event" },
+  { value: "WALK_UP",      label: "Walk-Up / Organic Inquiry" },
+  { value: "MEETING",      label: "Meeting" },
+  { value: "CALL",         label: "Call" },
+  { value: "EMAIL",        label: "Email" },
+  { value: "TEXT",         label: "Text" },
   { value: "INSTAGRAM_DM", label: "Instagram DM" },
   { value: "VISIT_ATTEMPT", label: "Visit attempt — no contact" },
 ];

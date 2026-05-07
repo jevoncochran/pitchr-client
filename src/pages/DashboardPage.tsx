@@ -214,18 +214,19 @@ export const DashboardPage = () => {
 
   type GoalPeriod = "today" | "week" | "month";
 
-  const ACTIVITY_CHANNELS: Record<string, { label: string; category: "outreach" | "followup"; daily: number }> = {
-    IN_PERSON:    { label: "Door Knocks",   category: "outreach", daily: 10  },
-    INSTAGRAM_DM: { label: "Instagram DMs", category: "outreach", daily: 10  },
-    EMAIL:        { label: "Emails",        category: "followup", daily: 20  },
-    CALL:         { label: "Calls",         category: "followup", daily: 5   },
-    TEXT:         { label: "Texts",         category: "followup", daily: 10  },
-  };
-
-  const TARGET_MULTIPLIER: Record<GoalPeriod, number> = {
-    today: 1,
-    week:  5,   // 5 working days
-    month: 22,  // ~22 working days
+  // Targets are explicit per period. Omitting "today" means the channel is
+  // not shown on the Today tab (e.g. networking — you can't plan for it daily).
+  const ACTIVITY_CHANNELS: Record<string, {
+    label: string;
+    category: "outreach" | "followup";
+    targets: Partial<Record<GoalPeriod, number>>;
+  }> = {
+    IN_PERSON:    { label: "Door Knocks",     category: "outreach", targets: { today: 10, week: 50,  month: 220 } },
+    INSTAGRAM_DM: { label: "Instagram DMs",   category: "outreach", targets: { today: 10, week: 50,  month: 220 } },
+    EMAIL:        { label: "Emails",          category: "followup", targets: { today: 20, week: 100, month: 440 } },
+    CALL:         { label: "Calls",           category: "followup", targets: { today: 5,  week: 25,  month: 110 } },
+    TEXT:         { label: "Texts",           category: "followup", targets: { today: 10, week: 50,  month: 220 } },
+    NETWORKING:   { label: "Networking",      category: "outreach", targets: {            week: 3,   month: 12  } },
   };
 
   const startOfToday = new Date(now);
@@ -590,12 +591,15 @@ export const DashboardPage = () => {
                     <div className="flex flex-col gap-3">
                       {Object.entries(ACTIVITY_CHANNELS)
                         .filter(([, v]) => v.category === category)
-                        .map(([type, { label, daily }]) => {
+                        .map(([type, { label, targets }]) => {
+                          const target = targets[goalPeriod];
+                          // Skip channels with no target for this period
+                          // (e.g. Networking has no daily target)
+                          if (target === undefined) return null;
                           const isExtraCredit = goalPeriod === "today" && isWeekend;
-                          const target = daily * TARGET_MULTIPLIER[goalPeriod];
-                          const count  = activityCount(type, PERIOD_START[goalPeriod], PERIOD_END[goalPeriod]);
-                          const pct    = Math.min(Math.round((count / target) * 100), 100);
-                          const color  = isExtraCredit
+                          const count = activityCount(type, PERIOD_START[goalPeriod], PERIOD_END[goalPeriod]);
+                          const pct   = Math.min(Math.round((count / target) * 100), 100);
+                          const color = isExtraCredit
                             ? "bg-purple-400"
                             : pct >= 80 ? "bg-green-500"
                             : pct >= 40 ? "bg-amber-400"
