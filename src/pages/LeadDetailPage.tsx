@@ -338,7 +338,13 @@ const LeadDetailPage = () => {
                       Lead Source
                     </p>
                     <p className="text-sm font-medium text-gray-800 capitalize">
-                      {lead.source?.toLowerCase() ?? "—"}
+                      {({
+                        OUTREACH:   "Outreach",
+                        REFERRAL:   "Referral",
+                        FORM:       "Form",
+                        NETWORKING: "Networking Group / Event",
+                        IN_PERSON:  "In Person / Walk-Up",
+                      }[lead.source as string] ?? lead.source ?? "—")}
                     </p>
                   </div>
                   <div>
@@ -586,9 +592,12 @@ const LeadDetailPage = () => {
                       <option value="">Select...</option>
                       <option value="OUTREACH">Outreach</option>
                       <option value="REFERRAL">Referral</option>
+                      <option value="NETWORKING">Networking Event</option>
+                      <option value="IN_PERSON">In Person / Walk-Up</option>
                       <option value="FORM">Form</option>
                     </select>
                   </div>
+                  {editForm.source === "FORM" && (
                   <div>
                     <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">
                       How They Heard About Us
@@ -605,15 +614,11 @@ const LeadDetailPage = () => {
                       className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none bg-white"
                     >
                       <option value="">Select...</option>
-                      <option value="OUTREACH">Outreach</option>
-                      <option value="REFERRAL">Referral</option>
                       <option value="INSTAGRAM">Instagram</option>
                       <option value="FACEBOOK">Facebook</option>
                       <option value="TIKTOK">TikTok</option>
                       <option value="YOUTUBE">YouTube</option>
                       <option value="GOOGLE">Google</option>
-                      <option value="NETWORKING">Networking Event</option>
-                      <option value="IN_PERSON">In Person / Walk-Up</option>
                       <option value="OTHER">Other</option>
                     </select>
                     {editForm.discoveredVia === "OTHER" && (
@@ -631,6 +636,7 @@ const LeadDetailPage = () => {
                       />
                     )}
                   </div>
+                  )}
                   <div className="col-span-2">
                     <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">
                       Referred By
