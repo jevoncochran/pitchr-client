@@ -100,15 +100,16 @@ export const TASK_TYPES = [
 ];
 
 export const TOUCHPOINT_TYPES = [
-  { value: "IN_PERSON",    label: "In Person Visit" },
-  { value: "NETWORKING",   label: "Networking Event" },
-  { value: "WALK_UP",      label: "Walk-Up / Organic Inquiry" },
-  { value: "MEETING",      label: "Meeting" },
-  { value: "CALL",         label: "Call" },
-  { value: "EMAIL",        label: "Email" },
-  { value: "TEXT",         label: "Text" },
-  { value: "INSTAGRAM_DM", label: "Instagram DM" },
-  { value: "VISIT_ATTEMPT", label: "Visit attempt — no contact" },
+  { value: "IN_PERSON",         label: "In Person Visit" },
+  { value: "NETWORKING",        label: "Networking Event" },
+  { value: "WALK_UP",           label: "Walk-Up / Organic Inquiry" },
+  { value: "REFERRAL_OUTREACH", label: "Referral / 3rd-Party Contact" },
+  { value: "MEETING",           label: "Meeting" },
+  { value: "CALL",              label: "Call" },
+  { value: "EMAIL",             label: "Email" },
+  { value: "TEXT",              label: "Text" },
+  { value: "INSTAGRAM_DM",      label: "Instagram DM" },
+  { value: "VISIT_ATTEMPT",     label: "Visit attempt — no contact" },
 ];
 
 export const stageColors: Record<string, string> = {
@@ -122,3 +123,12 @@ export const stageColors: Record<string, string> = {
   NOT_A_FIT: "bg-red-100 text-red-600",
   LOST: "bg-rose-100 text-rose-700",
 };
+
+export const DORMANT_REASONS = [
+  { value: "BUDGET",              label: "Budget constraints / slow season" },
+  { value: "NOT_RIGHT_TIME",      label: "Not right time — check back later" },
+  { value: "HIRED_COMPETITOR",    label: "Hired another vendor" },
+  { value: "ACCESS_BLOCKED",      label: "Can't reach decision-maker / access blocked" },
+  { value: "NO_RESPONSE",         label: "No response after full sequence" },
+  { value: "OTHER",               label: "Other" },
+];

@@ -35,6 +35,10 @@ const TP_LABELS: Record<string, string> = {
   TEXT: "Text",
   MEETING: "Meeting",
   INSTAGRAM_DM: "Instagram DM",
+  NETWORKING: "Networking Event",
+  WALK_UP: "Walk-Up",
+  VISIT_ATTEMPT: "Visit Attempt",
+  REFERRAL_OUTREACH: "Referral / 3rd-Party Contact",
 };
 
 const StatCard = ({
@@ -92,6 +96,7 @@ export const DashboardPage = () => {
   const [allTouchpoints, setAllTouchpoints] = useState<any[]>([]);
   const [recentTouchpoints, setRecentTouchpoints] = useState<any[]>([]);
   const [goalPeriod, setGoalPeriod] = useState<"today" | "week" | "month">("today");
+  const [visibleActivityCount, setVisibleActivityCount] = useState(20);
   const [outreachStats, setOutreachStats] = useState<{
     dm:    { sent: number; responded: number; rate: number };
     email: { sent: number; responded: number; rate: number };
@@ -109,11 +114,9 @@ export const DashboardPage = () => {
         setAllLeads(leadsRes.data);
         setAllTouchpoints(tpRes.data);
         setRecentTouchpoints(
-          [...tpRes.data]
-            .sort(
-              (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-            )
-            .slice(0, 5),
+          [...tpRes.data].sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+          ),
         );
         setTasks(tasksRes.data);
         setOutreachStats(statsRes.data);
@@ -838,29 +841,41 @@ export const DashboardPage = () => {
                     No activity logged yet.
                   </p>
                 ) : (
-                  <div className="space-y-3">
-                    {recentTouchpoints.map((tp) => (
-                      <div
-                        key={tp.id}
-                        className="flex items-start justify-between text-sm border-l-2 border-green-primary pl-3"
-                      >
-                        <div>
-                          <p className="font-medium text-gray-800">
-                            {tp.lead?.business ?? "Unknown"}
-                          </p>
-                          <p className="text-gray-400 text-xs">
-                            {TP_LABELS[tp.type] ?? tp.type} ·{" "}
-                            {tp.contactedBy?.firstName}{" "}
-                            {tp.contactedBy?.lastName}
-                            {tp.summary && ` · "${tp.summary}"`}
-                          </p>
+                  <>
+                    <div className="space-y-3">
+                      {recentTouchpoints.slice(0, visibleActivityCount).map((tp) => (
+                        <div
+                          key={tp.id}
+                          className="flex items-start justify-between text-sm border-l-2 border-green-primary pl-3"
+                        >
+                          <div>
+                            <p className="font-medium text-gray-800">
+                              {tp.lead?.business ?? "Unknown"}
+                            </p>
+                            <p className="text-gray-400 text-xs">
+                              {TP_LABELS[tp.type] ?? tp.type} ·{" "}
+                              {tp.contactedBy?.firstName}{" "}
+                              {tp.contactedBy?.lastName}
+                              {tp.summary && ` · "${tp.summary}"`}
+                            </p>
+                          </div>
+                          <span className="text-xs text-gray-400 whitespace-nowrap ml-4">
+                            {new Date(tp.date).toLocaleDateString()}
+                          </span>
                         </div>
-                        <span className="text-xs text-gray-400 whitespace-nowrap ml-4">
-                          {new Date(tp.date).toLocaleDateString()}
-                        </span>
+                      ))}
+                    </div>
+                    {visibleActivityCount < recentTouchpoints.length && (
+                      <div className="pt-4 mt-2 border-t text-center">
+                        <button
+                          onClick={() => setVisibleActivityCount((c) => c + 20)}
+                          className="text-sm text-gray-500 hover:text-gray-700 font-medium transition"
+                        >
+                          Show more ({recentTouchpoints.length - visibleActivityCount} remaining)
+                        </button>
                       </div>
-                    ))}
-                  </div>
+                    )}
+                  </>
                 )}
               </div>
               {/* end RIGHT */}
