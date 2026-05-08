@@ -2708,7 +2708,7 @@ const LeadDetailPage = () => {
               </label>
               <DatePicker
                 selected={dormantRevisitAt}
-                onChange={(date) => setDormantRevisitAt(date)}
+                onChange={(date: Date | null) => setDormantRevisitAt(date)}
                 minDate={new Date()}
                 dateFormat="MMMM d, yyyy"
                 placeholderText="Pick a date"
