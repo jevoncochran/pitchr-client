@@ -103,6 +103,12 @@ export const useLeadDetail = () => {
   const [editingSocial, setEditingSocial] = useState(false);
   const [savingSocial, setSavingSocial] = useState(false);
 
+  // Dormant modal state
+  const [showDormantModal, setShowDormantModal] = useState(false);
+  const [dormantReason, setDormantReason] = useState("");
+  const [dormantRevisitAt, setDormantRevisitAt] = useState<Date | null>(null);
+  const [submittingDormant, setSubmittingDormant] = useState(false);
+
   const fetchContacts = () => {
     api
       .get(`/api/contacts/lead/${id}`)
@@ -322,6 +328,13 @@ export const useLeadDetail = () => {
   };
 
   const handleStageChange = (stage: PipelineStage) => {
+    // Dormant requires extra info — open the modal instead of patching immediately
+    if (stage === PipelineStage.Dormant) {
+      setDormantReason("");
+      setDormantRevisitAt(null);
+      setShowDormantModal(true);
+      return;
+    }
     const update: any = { pipelineStage: stage };
     if (stage === PipelineStage.Converted && !lead.convertedAt) {
       update.convertedAt = new Date().toISOString();
@@ -330,6 +343,32 @@ export const useLeadDetail = () => {
       .patch(`/api/leads/${id}`, update)
       .then(() => setLead((prev: any) => ({ ...prev, ...update })))
       .catch(() => alert("Failed to update stage"));
+  };
+
+  const handleDormantSubmit = async () => {
+    if (!dormantReason || !dormantRevisitAt) return;
+    setSubmittingDormant(true);
+    try {
+      const update = {
+        pipelineStage: "DORMANT",
+        dormantReason,
+        dormantRevisitAt: dormantRevisitAt.toISOString(),
+      };
+      await api.patch(`/api/leads/${id}`, update);
+      // Create a revisit task due on the selected date
+      await api.post("/api/tasks", {
+        leadId: id,
+        type: "IN_PERSON",
+        dueDate: dormantRevisitAt.toISOString(),
+        note: `Revisit dormant lead — ${dormantReason}`,
+      });
+      setLead((prev: any) => ({ ...prev, ...update }));
+      setShowDormantModal(false);
+    } catch {
+      alert("Failed to mark as dormant");
+    } finally {
+      setSubmittingDormant(false);
+    }
   };
 
   const handleLocationSubmit = async (e: FormEvent) => {
@@ -756,6 +795,16 @@ export const useLeadDetail = () => {
     editingSocial,
     setEditingSocial,
     savingSocial,
+
+    // dormant modal
+    showDormantModal,
+    setShowDormantModal,
+    dormantReason,
+    setDormantReason,
+    dormantRevisitAt,
+    setDormantRevisitAt,
+    submittingDormant,
+    handleDormantSubmit,
 
     // handlers
     fetchLead,

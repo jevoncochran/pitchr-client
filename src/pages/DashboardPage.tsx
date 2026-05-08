@@ -38,6 +38,7 @@ const TP_LABELS: Record<string, string> = {
   NETWORKING: "Networking Event",
   WALK_UP: "Walk-Up",
   VISIT_ATTEMPT: "Visit Attempt",
+  REFERRAL_OUTREACH: "Referral / 3rd-Party Contact",
 };
 
 const StatCard = ({
