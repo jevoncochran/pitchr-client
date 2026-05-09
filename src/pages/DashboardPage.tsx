@@ -86,8 +86,8 @@ export const DashboardPage = () => {
   const leadsThisWeek = countLeadsThisWeek(allLeads, now);
   const leadsLastWeek = countLeadsLastWeek(allLeads, now);
   const leadsThisWeekDiff = leadsThisWeek - leadsLastWeek;
-  const touchedThisWeek = countTouchedThisWeek(allLeads, now);
-  const touchedLastWeek = countTouchedLastWeek(allLeads, now);
+  const touchedThisWeek = countTouchedThisWeek(allTouchpoints, now);
+  const touchedLastWeek = countTouchedLastWeek(allTouchpoints, now);
   const touchedThisWeekDiff = touchedThisWeek - touchedLastWeek;
   const meetingsScheduled = countMeetingsScheduled(allLeads);
   const conversionsThisMonth = countConversionsThisMonth(allLeads, now);
