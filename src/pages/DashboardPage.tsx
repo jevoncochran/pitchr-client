@@ -19,6 +19,18 @@ import {
   TrendIcon,
 } from "../components/dashboard/DashboardIcons";
 import { TP_LABELS } from "../components/dashboard/dashboardConstants";
+import {
+  getActiveLeads,
+  countLeadsThisWeek,
+  countLeadsLastWeek,
+  countTouchedThisWeek,
+  countTouchedLastWeek,
+  countMeetingsScheduled,
+  countConversionsThisMonth,
+  filterNewLeads,
+  filterGoneSilent,
+  bucketTasks,
+} from "../utils/dashboardCalcs";
 
 export const DashboardPage = () => {
   const navigate = useNavigate();
@@ -69,92 +81,23 @@ export const DashboardPage = () => {
   };
 
   // Stats
-  const activeLeads = allLeads.filter(
-    (l) =>
-      !["CONVERTED", "DORMANT", "NOT_A_FIT", "LOST"].includes(l.pipelineStage),
-  );
   const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const leadsThisWeek = allLeads.filter(
-    (l) => new Date(l.createdAt) >= sevenDaysAgo,
-  ).length;
-  const meetingsScheduled = allLeads.filter(
-    (l) => l.pipelineStage === "MEETING_SCHEDULED",
-  ).length;
-  const touchedThisWeek = allLeads.filter((l) => {
-    if (!l.touchPoint || l.touchPoint.length === 0) return false;
-    return new Date(l.touchPoint[0].date) >= sevenDaysAgo;
-  }).length;
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const conversionsThisMonth = allLeads.filter(
-    (l) =>
-      l.pipelineStage === "CONVERTED" &&
-      l.convertedAt &&
-      new Date(l.convertedAt) >= startOfMonth,
-  ).length;
-
-  // Trend comparisons (vs last week)
-  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-  const leadsLastWeek = allLeads.filter((l) => {
-    const d = new Date(l.createdAt);
-    return d >= fourteenDaysAgo && d < sevenDaysAgo;
-  }).length;
+  const activeLeads = getActiveLeads(allLeads);
+  const leadsThisWeek = countLeadsThisWeek(allLeads, now);
+  const leadsLastWeek = countLeadsLastWeek(allLeads, now);
   const leadsThisWeekDiff = leadsThisWeek - leadsLastWeek;
-
-  const touchedLastWeek = allLeads.filter((l) => {
-    if (!l.touchPoint || l.touchPoint.length === 0) return false;
-    const d = new Date(l.touchPoint[0].date);
-    return d >= fourteenDaysAgo && d < sevenDaysAgo;
-  }).length;
+  const touchedThisWeek = countTouchedThisWeek(allLeads, now);
+  const touchedLastWeek = countTouchedLastWeek(allLeads, now);
   const touchedThisWeekDiff = touchedThisWeek - touchedLastWeek;
+  const meetingsScheduled = countMeetingsScheduled(allLeads);
+  const conversionsThisMonth = countConversionsThisMonth(allLeads, now);
 
   // Task buckets
-  const todayStr = now.toDateString();
+  const { urgentTasks, todayTasks, upcomingTasks } = bucketTasks(tasks, now);
 
-  const emailSentChecks = tasks.filter((r: any) => r.isEmailSentCheck);
-  const overdueReminders = tasks.filter(
-    (r: any) =>
-      !r.isEmailSentCheck &&
-      new Date(r.dueDate) < now &&
-      new Date(r.dueDate).toDateString() !== todayStr,
-  );
-  const urgentTasks = [...emailSentChecks, ...overdueReminders];
-
-  const todayTasks = tasks.filter(
-    (r: any) =>
-      !r.isEmailSentCheck && new Date(r.dueDate).toDateString() === todayStr,
-  );
-  const upcomingTasks = tasks.filter((r: any) => {
-    if (r.isEmailSentCheck) return false;
-    const d = new Date(r.dueDate);
-    const in7 = new Date(now);
-    in7.setDate(now.getDate() + 7);
-    return d > now && d.toDateString() !== todayStr && d <= in7;
-  });
-
-  // New leads: no touchpoints yet
-  const newLeads = allLeads.filter(
-    (l) => !l.touchPoint || l.touchPoint.length === 0,
-  );
-
-  // Gone silent: has touchpoints but none in 7+ days
-  const goneSilent = allLeads
-    .filter((l) => {
-      if (
-        ["CONVERTED", "DORMANT", "NOT_A_FIT", "LOST"].includes(l.pipelineStage)
-      )
-        return false;
-      if (!l.touchPoint || l.touchPoint.length === 0) return false;
-      const daysSince =
-        (Date.now() - new Date(l.touchPoint[0].date).getTime()) /
-        (1000 * 60 * 60 * 24);
-      return daysSince >= 7;
-    })
-    .sort(
-      (a, b) =>
-        new Date(a.touchPoint[0].date).getTime() -
-        new Date(b.touchPoint[0].date).getTime(),
-    );
+  // Lead buckets
+  const newLeads = filterNewLeads(allLeads);
+  const goneSilent = filterGoneSilent(allLeads, now);
 
   const greeting = () => {
     const hour = new Date().getHours();
