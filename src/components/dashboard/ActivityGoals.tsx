@@ -1,5 +1,6 @@
 import {
   ACTIVITY_CHANNELS,
+  NO_CONTACT_TYPES,
   REVENUE_GOAL,
   AVG_DEAL_SIZE,
   type GoalPeriod,
@@ -58,7 +59,7 @@ export const ActivityGoals = ({
   const activityCount = (type: string, since: Date, until: Date): number => {
     const relevant = allTouchpoints.filter((tp) => {
       const d = new Date(tp.date);
-      return tp.type === type && d >= since && d < until;
+      return !NO_CONTACT_TYPES.has(tp.type) && tp.type === type && d >= since && d < until;
     });
     const seen = new Set<string>();
     relevant.forEach((tp) => {

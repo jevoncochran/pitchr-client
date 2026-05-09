@@ -35,6 +35,10 @@ export const TP_LABELS: Record<string, string> = {
   REFERRAL_OUTREACH: "Referral / 3rd-Party Contact",
 };
 
+// Touchpoint types that do NOT count as making contact (e.g. nobody answered).
+// Excluded from the Touchpoints stat card and the Activity Goals counts.
+export const NO_CONTACT_TYPES = new Set(["VISIT_ATTEMPT"]);
+
 export type GoalPeriod = "today" | "week" | "month";
 
 // Targets are explicit per period. Omitting "today" means the channel is

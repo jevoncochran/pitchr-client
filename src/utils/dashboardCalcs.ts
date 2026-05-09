@@ -4,6 +4,8 @@
 // are easy to unit-test without any React or API setup.
 // ---------------------------------------------------------------------------
 
+import { NO_CONTACT_TYPES } from "../components/dashboard/dashboardConstants";
+
 const INACTIVE_STAGES = ["CONVERTED", "DORMANT", "NOT_A_FIT", "LOST"];
 
 // ─── Lead stats ─────────────────────────────────────────────────────────────
@@ -26,28 +28,21 @@ export function countLeadsLastWeek(allLeads: any[], now: Date): number {
   }).length;
 }
 
-export function countTouchedThisWeek(allLeads: any[], now: Date): number {
+export function countTouchedThisWeek(allTouchpoints: any[], now: Date): number {
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  return allLeads.reduce((total, l) => {
-    if (!l.touchPoint || l.touchPoint.length === 0) return total;
-    const count = l.touchPoint.filter(
-      (tp: any) => new Date(tp.date) >= sevenDaysAgo,
-    ).length;
-    return total + count;
-  }, 0);
+  return allTouchpoints.filter(
+    (tp) => !NO_CONTACT_TYPES.has(tp.type) && new Date(tp.date) >= sevenDaysAgo,
+  ).length;
 }
 
-export function countTouchedLastWeek(allLeads: any[], now: Date): number {
+export function countTouchedLastWeek(allTouchpoints: any[], now: Date): number {
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-  return allLeads.reduce((total, l) => {
-    if (!l.touchPoint || l.touchPoint.length === 0) return total;
-    const count = l.touchPoint.filter((tp: any) => {
-      const d = new Date(tp.date);
-      return d >= fourteenDaysAgo && d < sevenDaysAgo;
-    }).length;
-    return total + count;
-  }, 0);
+  return allTouchpoints.filter((tp) => {
+    if (NO_CONTACT_TYPES.has(tp.type)) return false;
+    const d = new Date(tp.date);
+    return d >= fourteenDaysAgo && d < sevenDaysAgo;
+  }).length;
 }
 
 export function countMeetingsScheduled(allLeads: any[]): number {
