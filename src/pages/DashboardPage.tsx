@@ -44,21 +44,156 @@ const TP_LABELS: Record<string, string> = {
 const StatCard = ({
   label,
   value,
+  helper,
+  icon,
   onClick,
 }: {
   label: string;
   value: number | string;
+  helper?: string;
+  icon?: React.ReactNode;
   onClick?: () => void;
 }) => (
   <div
     onClick={onClick}
-    className={`bg-white border rounded-xl p-5 flex flex-col gap-1 ${
-      onClick ? "cursor-pointer hover:border-gray-300 hover:shadow-sm transition" : ""
+    className={`group bg-white border border-gray-100 rounded-2xl p-5 md:p-6 shadow-[0_4px_16px_rgba(15,23,42,0.10)] flex flex-col gap-4 transition ${
+      onClick
+        ? "cursor-pointer hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(15,23,42,0.18)] hover:border-gray-200"
+        : ""
     }`}
   >
-    <p className="text-xs uppercase tracking-wide text-gray-400">{label}</p>
-    <p className="text-3xl font-bold text-gray-800">{value}</p>
+    <div className="flex items-start gap-4">
+      {icon && (
+        <div className="flex-shrink-0 w-11 h-11 rounded-full bg-green-50 text-green-600 flex items-center justify-center border border-green-100 group-hover:scale-105 transition">
+          {icon}
+        </div>
+      )}
+
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.02em] font-semibold text-gray-400">
+          {label}
+        </p>
+
+        <p className="text-3xl md:text-[34px] leading-none font-bold text-gray-900 mt-2">
+          {value}
+        </p>
+      </div>
+    </div>
+
+    {helper && (
+      <p
+        className={`text-xs font-medium ${helper.startsWith("↑") ? "text-green-600" : "text-gray-400"}`}
+      >
+        {helper}
+      </p>
+    )}
   </div>
+);
+
+const UsersIcon = () => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    className="stroke-current"
+  >
+    <path
+      d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <path
+      d="M8 11c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3Z"
+      strokeWidth="2"
+    />
+    <path
+      d="M2.5 19c.7-2.4 2.7-4 5.5-4s4.8 1.6 5.5 4"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <path
+      d="M14.5 15c2.4.2 4.1 1.6 4.8 4"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    className="stroke-current"
+  >
+    <path d="M12 5v14M5 12h14" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const TouchIcon = () => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    className="stroke-current"
+  >
+    <path d="M9 11V7a2 2 0 1 1 4 0v6" strokeWidth="2" strokeLinecap="round" />
+    <path
+      d="M13 10.5V9a2 2 0 1 1 4 0v5"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <path
+      d="M17 13v-1a2 2 0 1 1 4 0v3c0 4-2.5 7-7 7h-1.5c-2.5 0-4.2-1.2-5.4-3.1L4.4 14.8a1.8 1.8 0 0 1 2.8-2.2L9 14"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const CalendarIcon = () => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    className="stroke-current"
+  >
+    <path d="M7 3v3M17 3v3" strokeWidth="2" strokeLinecap="round" />
+    <path d="M4 8h16" strokeWidth="2" />
+    <path
+      d="M5 5.5h14a1 1 0 0 1 1 1V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6.5a1 1 0 0 1 1-1Z"
+      strokeWidth="2"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const TrendIcon = () => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    className="stroke-current"
+  >
+    <path
+      d="M4 16l5-5 4 4 7-8"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M15 7h5v5"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
 );
 
 const MessageIcon = () => (
@@ -95,10 +230,12 @@ export const DashboardPage = () => {
   const [tasks, setTasks] = useState<any[]>([]);
   const [allTouchpoints, setAllTouchpoints] = useState<any[]>([]);
   const [recentTouchpoints, setRecentTouchpoints] = useState<any[]>([]);
-  const [goalPeriod, setGoalPeriod] = useState<"today" | "week" | "month">("today");
+  const [goalPeriod, setGoalPeriod] = useState<"today" | "week" | "month">(
+    "today",
+  );
   const [visibleActivityCount, setVisibleActivityCount] = useState(20);
   const [outreachStats, setOutreachStats] = useState<{
-    dm:    { sent: number; responded: number; rate: number };
+    dm: { sent: number; responded: number; rate: number };
     email: { sent: number; responded: number; rate: number };
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -134,7 +271,8 @@ export const DashboardPage = () => {
 
   // Stats
   const activeLeads = allLeads.filter(
-    (l) => !["CONVERTED", "DORMANT", "NOT_A_FIT", "LOST"].includes(l.pipelineStage)
+    (l) =>
+      !["CONVERTED", "DORMANT", "NOT_A_FIT", "LOST"].includes(l.pipelineStage),
   );
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -155,6 +293,21 @@ export const DashboardPage = () => {
       l.convertedAt &&
       new Date(l.convertedAt) >= startOfMonth,
   ).length;
+
+  // Trend comparisons (vs last week)
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const leadsLastWeek = allLeads.filter((l) => {
+    const d = new Date(l.createdAt);
+    return d >= fourteenDaysAgo && d < sevenDaysAgo;
+  }).length;
+  const leadsThisWeekDiff = leadsThisWeek - leadsLastWeek;
+
+  const touchedLastWeek = allLeads.filter((l) => {
+    if (!l.touchPoint || l.touchPoint.length === 0) return false;
+    const d = new Date(l.touchPoint[0].date);
+    return d >= fourteenDaysAgo && d < sevenDaysAgo;
+  }).length;
+  const touchedThisWeekDiff = touchedThisWeek - touchedLastWeek;
 
   // Task buckets
   const todayStr = now.toDateString();
@@ -211,25 +364,52 @@ export const DashboardPage = () => {
     );
 
   // ── Activity goals ───────────────────────────────────────────────────────
-  const REVENUE_GOAL  = 5000;
+  const REVENUE_GOAL = 5000;
   const AVG_DEAL_SIZE = 700;
-  const closesNeeded  = Math.ceil(REVENUE_GOAL / AVG_DEAL_SIZE); // 8
+  const closesNeeded = Math.ceil(REVENUE_GOAL / AVG_DEAL_SIZE); // 8
 
   type GoalPeriod = "today" | "week" | "month";
 
   // Targets are explicit per period. Omitting "today" means the channel is
   // not shown on the Today tab (e.g. networking — you can't plan for it daily).
-  const ACTIVITY_CHANNELS: Record<string, {
-    label: string;
-    category: "outreach" | "followup";
-    targets: Partial<Record<GoalPeriod, number>>;
-  }> = {
-    IN_PERSON:    { label: "Door Knocks",     category: "outreach", targets: { today: 10, week: 50,  month: 220 } },
-    INSTAGRAM_DM: { label: "Instagram DMs",   category: "outreach", targets: { today: 10, week: 50,  month: 220 } },
-    EMAIL:        { label: "Emails",          category: "followup", targets: { today: 20, week: 100, month: 440 } },
-    CALL:         { label: "Calls",           category: "followup", targets: { today: 5,  week: 25,  month: 110 } },
-    TEXT:         { label: "Texts",           category: "followup", targets: { today: 10, week: 50,  month: 220 } },
-    NETWORKING:   { label: "Networking",      category: "outreach", targets: {            week: 3,   month: 12  } },
+  const ACTIVITY_CHANNELS: Record<
+    string,
+    {
+      label: string;
+      category: "outreach" | "followup";
+      targets: Partial<Record<GoalPeriod, number>>;
+    }
+  > = {
+    IN_PERSON: {
+      label: "Door Knocks",
+      category: "outreach",
+      targets: { today: 10, week: 50, month: 220 },
+    },
+    INSTAGRAM_DM: {
+      label: "Instagram DMs",
+      category: "outreach",
+      targets: { today: 10, week: 50, month: 220 },
+    },
+    EMAIL: {
+      label: "Emails",
+      category: "followup",
+      targets: { today: 20, week: 100, month: 440 },
+    },
+    CALL: {
+      label: "Calls",
+      category: "followup",
+      targets: { today: 5, week: 25, month: 110 },
+    },
+    TEXT: {
+      label: "Texts",
+      category: "followup",
+      targets: { today: 10, week: 50, month: 220 },
+    },
+    NETWORKING: {
+      label: "Networking",
+      category: "outreach",
+      targets: { week: 3, month: 12 },
+    },
   };
 
   const startOfToday = new Date(now);
@@ -255,13 +435,13 @@ export const DashboardPage = () => {
 
   const PERIOD_START: Record<GoalPeriod, Date> = {
     today: startOfToday,
-    week:  startOfCalendarWeek,
+    week: startOfCalendarWeek,
     month: startOfMonth,
   };
 
   const PERIOD_END: Record<GoalPeriod, Date> = {
     today: startOfTomorrow,
-    week:  startOfNextCalendarWeek,
+    week: startOfNextCalendarWeek,
     month: startOfNextMonth,
   };
 
@@ -289,9 +469,7 @@ export const DashboardPage = () => {
   };
 
   const handleCheckInRespond = (taskId: string, responded: boolean) => {
-    api
-      .patch(`/api/tasks/${taskId}/respond`, { responded })
-      .then(fetchAll);
+    api.patch(`/api/tasks/${taskId}/respond`, { responded }).then(fetchAll);
   };
 
   const NEXT_ACTION_LABELS: Record<number, string> = {
@@ -342,39 +520,39 @@ export const DashboardPage = () => {
     const prompt = getTaskPrompt(r);
 
     return (
-      <div className="bg-white border border-red-100 rounded-xl p-4 shadow-sm">
-        <div className="flex items-start md:items-center gap-3 md:gap-4">
-          {" "}
-          {/* Icon */}
+      <div className="bg-white border border-red-100/80 rounded-2xl px-5 py-4 shadow-[0_4px_16px_rgba(15,23,42,0.10)]">
+        <div className="flex items-start gap-4">
           <MessageIcon />
-          {/* Right-side content column */}
-          <div className="flex-1 min-w-0 md:flex md:items-center md:gap-4">
+
+          <div className="flex-1 min-w-0 md:flex md:items-center md:justify-between md:gap-5">
             <div
-              className="flex-1 min-w-0 cursor-pointer"
+              className="min-w-0 cursor-pointer"
               onClick={() => navigate(`/leads/${r.lead.id}`)}
             >
-              <p className="font-semibold text-gray-900 text-sm leading-snug">
+              <p className="font-semibold text-gray-900 text-sm leading-tight">
                 {r.lead.business}
               </p>
-              <p className="text-sm text-gray-500 mt-0.5 leading-snug">
+
+              <p className="text-sm text-gray-500 mt-1 leading-snug">
                 {prompt}
               </p>
-              <p className={`text-xs mt-1 font-medium ${dueColor}`}>
+
+              <p className={`text-xs mt-2 font-semibold ${dueColor}`}>
                 {dueLabel}
               </p>
             </div>
-            {/* Actions — stacked on mobile, inline on desktop */}
-            <div className="flex flex-row gap-2 mt-3 md:mt-0 md:flex-shrink-0">
-              {" "}
+
+            <div className="flex gap-2 mt-4 md:mt-0 md:flex-shrink-0">
               <button
                 onClick={() => navigate(`/leads/${r.lead.id}`)}
-                className="flex-1 md:flex-none bg-green-primary text-white text-sm font-medium rounded-lg px-4 py-2 whitespace-nowrap hover:opacity-90 transition"
+                className="flex-1 md:flex-none bg-green-primary text-white text-sm font-semibold rounded-xl px-5 h-10 whitespace-nowrap shadow-[0_6px_14px_rgba(22,163,74,0.20)] hover:opacity-90 transition"
               >
                 Log Follow-Up
               </button>
+
               <button
                 onClick={() => handleCompleteTask(r.id)}
-                className="flex-1 md:flex-none bg-white border border-gray-200 text-gray-500 text-sm font-medium rounded-lg px-4 py-2 whitespace-nowrap hover:bg-gray-50 transition"
+                className="flex-1 md:flex-none bg-white border border-gray-200 text-gray-500 text-sm font-semibold rounded-xl px-5 h-10 whitespace-nowrap hover:bg-gray-50 hover:text-gray-700 transition"
               >
                 Skip
               </button>
@@ -486,39 +664,92 @@ export const DashboardPage = () => {
         ) : (
           <>
             {/* Stats Row */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6 md:mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 md:gap-5 mb-6 md:mb-8">
               <StatCard
                 label="Active Leads"
                 value={activeLeads.length}
+                helper={
+                  leadsThisWeek > 0
+                    ? `↑ ${leadsThisWeek} this week`
+                    : "No new leads this week"
+                }
+                icon={<UsersIcon />}
                 onClick={() => navigate("/leads")}
               />
+
               <StatCard
-                label="Added This Week"
+                label="New Leads"
                 value={leadsThisWeek}
-                onClick={() => navigate("/leads", { state: { quickFilter: "new" } })}
+                helper={
+                  leadsThisWeekDiff > 0
+                    ? `↑ ${leadsThisWeekDiff} vs last week`
+                    : leadsThisWeekDiff < 0
+                      ? `${leadsThisWeekDiff} vs last week`
+                      : "Same as last week"
+                }
+                icon={<PlusIcon />}
+                onClick={() =>
+                  navigate("/leads", { state: { quickFilter: "new" } })
+                }
               />
+
               <StatCard
-                label="Touched This Week"
+                label="Touchpoints"
                 value={touchedThisWeek}
-                onClick={() => navigate("/leads", { state: { quickFilter: "recently-touched" } })}
+                helper={
+                  touchedThisWeekDiff > 0
+                    ? `↑ ${touchedThisWeekDiff} vs last week`
+                    : touchedThisWeekDiff < 0
+                      ? `${touchedThisWeekDiff} vs last week`
+                      : "Same as last week"
+                }
+                icon={<TouchIcon />}
+                onClick={() =>
+                  navigate("/leads", {
+                    state: { quickFilter: "recently-touched" },
+                  })
+                }
               />
-              <StatCard label="Meetings Scheduled" value={meetingsScheduled} />
+
               <StatCard
-                label="Conversions This Month"
+                label="Meetings Scheduled"
+                value={meetingsScheduled}
+                helper={
+                  meetingsScheduled > 0
+                    ? "Follow up and close"
+                    : "No meetings yet"
+                }
+                icon={<CalendarIcon />}
+              />
+
+              <StatCard
+                label="Conversions"
                 value={conversionsThisMonth}
+                helper={
+                  conversionsThisMonth > 0
+                    ? "↑ Momentum building"
+                    : "Start the momentum"
+                }
+                icon={<TrendIcon />}
               />
             </div>
 
             {/* Outreach response rates */}
             {outreachStats && (
-              <div className="bg-white border rounded-2xl p-4 md:p-5 shadow-sm mb-6">
-                <p className="text-sm font-semibold text-gray-700 mb-3">Outreach Response Rates</p>
+              <div className="bg-white border border-gray-100 rounded-2xl p-4 md:p-5 shadow-[0_4px_16px_rgba(15,23,42,0.10)] mb-6">
+                <p className="text-sm font-semibold text-gray-700 mb-3">
+                  Outreach Response Rates
+                </p>
                 <div className="grid grid-cols-2 gap-4">
                   {/* Instagram DMs */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-gray-500">Instagram DMs</span>
-                      <span className="text-sm font-bold text-gray-800">{outreachStats.dm.rate}%</span>
+                      <span className="text-xs text-gray-500">
+                        Instagram DMs
+                      </span>
+                      <span className="text-sm font-bold text-gray-800">
+                        {outreachStats.dm.rate}%
+                      </span>
                     </div>
                     <div className="w-full bg-gray-100 rounded-full h-1.5">
                       <div
@@ -527,14 +758,17 @@ export const DashboardPage = () => {
                       />
                     </div>
                     <p className="text-xs text-gray-400 mt-1">
-                      {outreachStats.dm.responded} of {outreachStats.dm.sent} responded
+                      {outreachStats.dm.responded} of {outreachStats.dm.sent}{" "}
+                      responded
                     </p>
                   </div>
                   {/* Emails */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs text-gray-500">Emails</span>
-                      <span className="text-sm font-bold text-gray-800">{outreachStats.email.rate}%</span>
+                      <span className="text-sm font-bold text-gray-800">
+                        {outreachStats.email.rate}%
+                      </span>
                     </div>
                     <div className="w-full bg-gray-100 rounded-full h-1.5">
                       <div
@@ -543,7 +777,8 @@ export const DashboardPage = () => {
                       />
                     </div>
                     <p className="text-xs text-gray-400 mt-1">
-                      {outreachStats.email.responded} of {outreachStats.email.sent} responded
+                      {outreachStats.email.responded} of{" "}
+                      {outreachStats.email.sent} responded
                     </p>
                   </div>
                 </div>
@@ -551,29 +786,43 @@ export const DashboardPage = () => {
             )}
 
             {/* Activity Goals */}
-            <div className="bg-white border rounded-2xl p-4 md:p-5 shadow-sm mb-6">
+            <div className="bg-white border border-gray-100 rounded-2xl p-4 md:p-5 shadow-[0_4px_16px_rgba(15,23,42,0.10)] mb-6">
               {/* Header row */}
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-sm font-semibold text-gray-800">Activity Goals</p>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-1">
+                {" "}
+                <p className="text-sm font-semibold text-gray-800">
+                  Activity Goals
+                </p>
                 {/* Period toggle */}
-                <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
-                  {(["today", "week", "month"] as const).map((p) => (
-                    <button
-                      key={p}
-                      onClick={() => setGoalPeriod(p)}
-                      className={`px-3 py-1 rounded-md text-xs font-medium transition ${
-                        goalPeriod === p
-                          ? "bg-white text-gray-800 shadow-sm"
-                          : "text-gray-500 hover:text-gray-700"
-                      }`}
-                    >
-                      {p === "today" ? "Today" : p === "week" ? "This Week" : "This Month"}
-                    </button>
-                  ))}
+                <div className="inline-flex items-center rounded-2xl bg-gray-100 p-1 shadow-inner">
+                  {(["today", "week", "month"] as const).map((p) => {
+                    const isActive = goalPeriod === p;
+
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => setGoalPeriod(p)}
+                        className={`h-8 rounded-xl px-5 text-xs font-semibold transition-all duration-200 ${
+                          isActive
+                            ? "bg-white text-green-600 shadow-[0_2px_8px_rgba(15,23,42,0.12)] ring-1 ring-gray-200"
+                            : "text-gray-500 hover:text-gray-700"
+                        }`}
+                      >
+                        {p === "today"
+                          ? "Today"
+                          : p === "week"
+                            ? "This Week"
+                            : "This Month"}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               <p className="text-xs text-gray-400 mb-4">
-                Goal: <span className="font-medium text-gray-600">${REVENUE_GOAL.toLocaleString()}/mo</span>
+                Goal:{" "}
+                <span className="font-medium text-gray-600">
+                  ${REVENUE_GOAL.toLocaleString()}/mo
+                </span>
                 {" · "}~{closesNeeded} closes at ${AVG_DEAL_SIZE} avg
               </p>
 
@@ -581,7 +830,10 @@ export const DashboardPage = () => {
               {goalPeriod === "today" && isWeekend && (
                 <div className="flex items-center gap-2 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2 mb-4 text-xs text-purple-700">
                   <span>🎉</span>
-                  <span>It's the weekend — no targets today. Anything you log is extra credit.</span>
+                  <span>
+                    It's the weekend — no targets today. Anything you log is
+                    extra credit.
+                  </span>
                 </div>
               )}
 
@@ -599,29 +851,48 @@ export const DashboardPage = () => {
                           // Skip channels with no target for this period
                           // (e.g. Networking has no daily target)
                           if (target === undefined) return null;
-                          const isExtraCredit = goalPeriod === "today" && isWeekend;
-                          const count = activityCount(type, PERIOD_START[goalPeriod], PERIOD_END[goalPeriod]);
-                          const pct   = Math.min(Math.round((count / target) * 100), 100);
+                          const isExtraCredit =
+                            goalPeriod === "today" && isWeekend;
+                          const count = activityCount(
+                            type,
+                            PERIOD_START[goalPeriod],
+                            PERIOD_END[goalPeriod],
+                          );
+                          const pct = Math.min(
+                            Math.round((count / target) * 100),
+                            100,
+                          );
                           const color = isExtraCredit
                             ? "bg-purple-400"
-                            : pct >= 80 ? "bg-green-500"
-                            : pct >= 40 ? "bg-amber-400"
-                            : "bg-red-400";
+                            : pct >= 80
+                              ? "bg-green-500"
+                              : pct >= 40
+                                ? "bg-amber-400"
+                                : "bg-red-400";
                           return (
                             <div key={type}>
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-gray-600">{label}</span>
+                                <span className="text-xs text-gray-600">
+                                  {label}
+                                </span>
                                 <span className="text-xs font-semibold text-gray-700">
                                   {count}
                                   {!isExtraCredit && (
-                                    <span className="text-gray-400 font-normal"> / {target}</span>
+                                    <span className="text-gray-400 font-normal">
+                                      {" "}
+                                      / {target}
+                                    </span>
                                   )}
                                 </span>
                               </div>
                               <div className="w-full bg-gray-100 rounded-full h-1.5">
                                 <div
                                   className={`${color} h-1.5 rounded-full transition-all`}
-                                  style={{ width: isExtraCredit ? `${Math.min(count * 10, 100)}%` : `${pct}%` }}
+                                  style={{
+                                    width: isExtraCredit
+                                      ? `${Math.min(count * 10, 100)}%`
+                                      : `${pct}%`,
+                                  }}
                                 />
                               </div>
                             </div>
@@ -639,32 +910,36 @@ export const DashboardPage = () => {
               <div className="flex flex-col gap-4">
                 {/* Urgent Tasks */}
                 {urgentTasks.length > 0 && (
-                  <div className="bg-red-50/60 border border-red-200 rounded-2xl p-4 md:p-5 shadow-sm">
+                  <div className="bg-[#FFF7F7] border border-red-100 rounded-2xl p-5 md:p-6 shadow-[0_4px_16px_rgba(15,23,42,0.10)]">
+                    {" "}
                     {/* Header */}
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="font-semibold text-red-700 flex items-center gap-2">
-                        ⚠️ Urgent Tasks
-                      </h2>
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="flex items-center gap-2">
+                        {/* <div className="w-7 h-7 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-sm"> */}
+                        ⚠️
+                        {/* </div> */}
+                        <h2 className="font-semibold text-gray-900">
+                          Urgent Tasks
+                        </h2>
+                      </div>
 
-                      <span className="text-xs bg-red-100 text-red-600 border border-red-200 px-2.5 py-1 rounded-full font-semibold">
+                      <span className="text-xs bg-red-100/80 text-red-600 border border-red-200/70 px-3 py-1.5 rounded-full font-semibold">
                         {urgentTasks.length} item
                         {urgentTasks.length !== 1 ? "s" : ""}
                       </span>
                     </div>
-
                     {/* Task cards — show top 3 */}
-                    <div className="space-y-3">
+                    <div className="space-y-3.5">
                       {urgentTasks.slice(0, 3).map((r: any) => (
                         <UrgentTaskCard key={r.id} r={r} />
                       ))}
                     </div>
-
                     {/* Footer CTA */}
                     {urgentTasks.length > 3 && (
-                      <div className="pt-4 mt-4 border-t border-red-100 text-center">
+                      <div className="pt-5 mt-5 border-t border-red-100/80 text-center">
                         <button
                           onClick={() => navigate("/sequence")}
-                          className="text-sm text-red-600 font-semibold hover:text-red-700 transition"
+                          className="text-sm text-red-500 font-semibold hover:text-red-600 transition"
                         >
                           View all {urgentTasks.length} tasks →
                         </button>
@@ -674,7 +949,7 @@ export const DashboardPage = () => {
                 )}
 
                 {/* Today's Follow-ups */}
-                <div className="bg-white border rounded-xl p-5">
+                <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-[0_4px_16px_rgba(15,23,42,0.10)]">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="font-semibold text-gray-700">
                       Today's Follow-ups
@@ -731,7 +1006,7 @@ export const DashboardPage = () => {
                 </div>
 
                 {/* No Recent Contact */}
-                <div className="bg-white border rounded-xl p-5">
+                <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-[0_4px_16px_rgba(15,23,42,0.10)]">
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="font-semibold text-gray-700">
                       No Recent Contact
@@ -780,7 +1055,7 @@ export const DashboardPage = () => {
                 </div>
 
                 {/* Not Yet Contacted */}
-                <div className="bg-white border rounded-xl p-5">
+                <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-[0_4px_16px_rgba(15,23,42,0.10)]">
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="font-semibold text-gray-700">
                       Not Yet Contacted
@@ -832,7 +1107,7 @@ export const DashboardPage = () => {
               {/* end LEFT */}
 
               {/* RIGHT — Recent Activity */}
-              <div className="bg-white border rounded-xl p-5 self-start">
+              <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-[0_4px_16px_rgba(15,23,42,0.10)] self-start">
                 <h2 className="font-semibold text-gray-700 mb-4">
                   Recent Activity
                 </h2>
@@ -842,28 +1117,37 @@ export const DashboardPage = () => {
                   </p>
                 ) : (
                   <>
-                    <div className="space-y-3">
-                      {recentTouchpoints.slice(0, visibleActivityCount).map((tp) => (
-                        <div
-                          key={tp.id}
-                          className="flex items-start justify-between text-sm border-l-2 border-green-primary pl-3"
-                        >
-                          <div>
-                            <p className="font-medium text-gray-800">
-                              {tp.lead?.business ?? "Unknown"}
-                            </p>
-                            <p className="text-gray-400 text-xs">
-                              {TP_LABELS[tp.type] ?? tp.type} ·{" "}
-                              {tp.contactedBy?.firstName}{" "}
-                              {tp.contactedBy?.lastName}
-                              {tp.summary && ` · "${tp.summary}"`}
-                            </p>
+                    <div>
+                      {recentTouchpoints
+                        .slice(0, visibleActivityCount)
+                        .map((tp, index, arr) => (
+                          <div key={tp.id} className="flex gap-3">
+                            {/* Timeline spine */}
+                            <div className="flex flex-col items-center flex-shrink-0">
+                              <div className="w-2.5 h-2.5 rounded-full bg-green-primary mt-1 flex-shrink-0" />
+                              {index < arr.length - 1 && (
+                                <div className="w-px bg-green-primary flex-1 mt-1" />
+                              )}
+                            </div>
+                            {/* Content */}
+                            <div className={`flex items-start justify-between text-sm w-full ${index < arr.length - 1 ? "pb-3" : ""}`}>
+                              <div>
+                                <p className="font-medium text-gray-800">
+                                  {tp.lead?.business ?? "Unknown"}
+                                </p>
+                                <p className="text-gray-400 text-xs">
+                                  {TP_LABELS[tp.type] ?? tp.type} ·{" "}
+                                  {tp.contactedBy?.firstName}{" "}
+                                  {tp.contactedBy?.lastName}
+                                  {tp.summary && ` · "${tp.summary}"`}
+                                </p>
+                              </div>
+                              <span className="text-xs text-gray-400 whitespace-nowrap ml-4">
+                                {new Date(tp.date).toLocaleDateString()}
+                              </span>
+                            </div>
                           </div>
-                          <span className="text-xs text-gray-400 whitespace-nowrap ml-4">
-                            {new Date(tp.date).toLocaleDateString()}
-                          </span>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                     {visibleActivityCount < recentTouchpoints.length && (
                       <div className="pt-4 mt-2 border-t text-center">
@@ -871,7 +1155,9 @@ export const DashboardPage = () => {
                           onClick={() => setVisibleActivityCount((c) => c + 20)}
                           className="text-sm text-gray-500 hover:text-gray-700 font-medium transition"
                         >
-                          Show more ({recentTouchpoints.length - visibleActivityCount} remaining)
+                          Show more (
+                          {recentTouchpoints.length - visibleActivityCount}{" "}
+                          remaining)
                         </button>
                       </div>
                     )}
