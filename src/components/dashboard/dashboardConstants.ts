@@ -33,6 +33,7 @@ export const TP_LABELS: Record<string, string> = {
   WALK_UP: "Walk-Up",
   VISIT_ATTEMPT: "Visit Attempt",
   REFERRAL_OUTREACH: "Referral / 3rd-Party Contact",
+  OTHER: "Other",
 };
 
 // Touchpoint types that do NOT count as making contact (e.g. nobody answered).

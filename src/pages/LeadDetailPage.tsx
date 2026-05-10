@@ -17,15 +17,14 @@ import {
 import { useLeadDetail } from "../hooks/useLeadDetail";
 import {
   PIPELINE_STAGES,
-  TOUCHPOINT_TYPES,
   TASK_TYPES,
   stageColors,
   SEQUENCE_POSITION_LABEL,
   SEQUENCE_POSITION_COLOR,
   NEXT_ACTION_LABELS,
-  IN_PERSON_TYPES,
   DORMANT_REASONS,
 } from "../constants/leads";
+import { TOUCHPOINT_TYPES, IN_PERSON_TYPES } from "../constants/touchpoints";
 import { getSequencePositions } from "../utils/leads";
 import { SectionCard } from "../components/ui/SectionCard";
 import { SectionHeader } from "../components/ui/SectionHeader";

@@ -12,9 +12,6 @@ export const PIPELINE_STAGES = [
   { value: PipelineStage.Lost, label: "Lost" },
 ];
 
-// Sequence position options for the touchpoint form
-export const IN_PERSON_TYPES = ["IN_PERSON", "MEETING"];
-
 export const SEQUENCE_POSITIONS_VISIT = [
   { value: "", label: "None (one-off)" },
   { value: "VISIT_A", label: "Visit A" },
@@ -97,19 +94,6 @@ export const TASK_TYPES = [
   { value: "TEXT",         label: "Text" },
   { value: "EMAIL",        label: "Email" },
   { value: "INSTAGRAM_DM", label: "Instagram DM" },
-];
-
-export const TOUCHPOINT_TYPES = [
-  { value: "IN_PERSON",         label: "In Person Visit" },
-  { value: "NETWORKING",        label: "Networking Event" },
-  { value: "WALK_UP",           label: "Walk-Up / Organic Inquiry" },
-  { value: "REFERRAL_OUTREACH", label: "Referral / 3rd-Party Contact" },
-  { value: "MEETING",           label: "Meeting" },
-  { value: "CALL",              label: "Call" },
-  { value: "EMAIL",             label: "Email" },
-  { value: "TEXT",              label: "Text" },
-  { value: "INSTAGRAM_DM",      label: "Instagram DM" },
-  { value: "VISIT_ATTEMPT",     label: "Visit attempt — no contact" },
 ];
 
 export const stageColors: Record<string, string> = {

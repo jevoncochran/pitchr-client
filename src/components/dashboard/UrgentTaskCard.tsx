@@ -35,6 +35,26 @@ const getTaskPrompt = (r: any): string => {
   return r.note ? `${typeLabel} — ${r.note}` : `Log ${typeLabel}`;
 };
 
+// Resolve the display name and navigation path for a task,
+// which may belong to a lead OR a standalone contact.
+const resolveTask = (r: any) => {
+  if (r.lead) {
+    return {
+      name: r.lead.business,
+      path: `/leads/${r.lead.id}`,
+      actionLabel: "Log Follow-Up",
+    };
+  }
+  if (r.contact) {
+    return {
+      name: `${r.contact.firstName} ${r.contact.lastName}`,
+      path: `/contacts/${r.contact.id}`,
+      actionLabel: "View Contact",
+    };
+  }
+  return { name: "Unknown", path: "#", actionLabel: "View" };
+};
+
 export const UrgentTaskCard = ({
   r,
   onNavigate,
@@ -48,6 +68,7 @@ export const UrgentTaskCard = ({
   const todayStr = now.toDateString();
   const { label: dueLabel, colorClass: dueColor } = getDueLabel(r, now, todayStr);
   const prompt = getTaskPrompt(r);
+  const { name, path, actionLabel } = resolveTask(r);
 
   return (
     <div className="bg-white border border-red-100/80 rounded-2xl px-5 py-4 shadow-[0_4px_16px_rgba(15,23,42,0.10)]">
@@ -57,10 +78,10 @@ export const UrgentTaskCard = ({
         <div className="flex-1 min-w-0 md:flex md:items-center md:justify-between md:gap-5">
           <div
             className="min-w-0 cursor-pointer"
-            onClick={() => onNavigate(`/leads/${r.lead.id}`)}
+            onClick={() => onNavigate(path)}
           >
             <p className="font-semibold text-gray-900 text-sm leading-tight">
-              {r.lead.business}
+              {name}
             </p>
 
             <p className="text-sm text-gray-500 mt-1 leading-snug">
@@ -74,10 +95,10 @@ export const UrgentTaskCard = ({
 
           <div className="flex gap-2 mt-4 md:mt-0 md:flex-shrink-0">
             <button
-              onClick={() => onNavigate(`/leads/${r.lead.id}`)}
+              onClick={() => onNavigate(path)}
               className="flex-1 md:flex-none bg-green-primary text-white text-sm font-semibold rounded-xl px-5 h-10 whitespace-nowrap shadow-[0_6px_14px_rgba(22,163,74,0.20)] hover:opacity-90 transition"
             >
-              Log Follow-Up
+              {actionLabel}
             </button>
 
             <button
