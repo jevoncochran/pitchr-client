@@ -1,3 +1,6 @@
+import { SectionCard } from "../ui/SectionCard";
+import { SectionHeader } from "../ui/SectionHeader";
+
 export const NotYetContacted = ({
   leads,
   onNavigate,
@@ -5,13 +8,16 @@ export const NotYetContacted = ({
   leads: any[];
   onNavigate: (path: string) => void;
 }) => (
-  <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-[0_4px_16px_rgba(15,23,42,0.10)]">
-    <div className="flex justify-between items-center mb-4">
-      <h2 className="font-semibold text-gray-700">Not Yet Contacted</h2>
-      <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-medium">
-        {leads.length} leads
-      </span>
-    </div>
+  <SectionCard className="rounded-xl p-5">
+    <SectionHeader
+      title="Not Yet Contacted"
+      className="mb-4"
+      action={
+        <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-medium">
+          {leads.length} lead{leads.length !== 1 ? "s" : ""}
+        </span>
+      }
+    />
     {leads.length === 0 ? (
       <p className="text-sm text-gray-400">No uncontacted leads.</p>
     ) : (
@@ -44,5 +50,5 @@ export const NotYetContacted = ({
         ))}
       </div>
     )}
-  </div>
+  </SectionCard>
 );

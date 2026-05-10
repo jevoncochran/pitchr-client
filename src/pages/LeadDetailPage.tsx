@@ -27,6 +27,9 @@ import {
   DORMANT_REASONS,
 } from "../constants/leads";
 import { getSequencePositions } from "../utils/leads";
+import { SectionCard } from "../components/ui/SectionCard";
+import { SectionHeader } from "../components/ui/SectionHeader";
+import { FieldLabel } from "../components/ui/FieldLabel";
 
 const LeadDetailPage = () => {
   const {
@@ -222,8 +225,8 @@ const LeadDetailPage = () => {
         </div>
 
         {/* Pipeline Stage Selector */}
-        <div className="bg-white border rounded-lg p-4 mb-6">
-          <p className="text-sm font-semibold mb-3">Pipeline Stage</p>
+        <SectionCard className="rounded-xl p-4 mb-6">
+          <SectionHeader title="Pipeline Stage" />
           <div className="flex gap-1.5 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0">
             {PIPELINE_STAGES.map((stage) => (
               <button
@@ -239,7 +242,7 @@ const LeadDetailPage = () => {
               </button>
             ))}
           </div>
-        </div>
+        </SectionCard>
 
         {/* Gone silent warning */}
         {(() => {
@@ -269,30 +272,38 @@ const LeadDetailPage = () => {
           {/* ── LEFT COLUMN — lead details ── */}
           <div className="min-w-0">
             {/* Lead Info */}
-            <div className="bg-white border rounded-lg p-6 mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <p className="text-sm font-semibold uppercase tracking-wide text-gray-400">
-                  Lead Info
-                </p>
+            <SectionCard className="rounded-2xl p-5 md:p-6 mb-6">
+              <div className="flex justify-between items-center mb-7">
+                <div>
+                  <p className="text-base font-semibold text-gray-900">
+                    Lead Information
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Core business details and ownership info
+                  </p>
+                </div>
+
                 {!editMode ? (
                   <button
                     onClick={startEdit}
-                    className="text-sm text-gray-500 border rounded-lg px-3 py-1 hover:bg-gray-50"
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-600 shadow-sm hover:bg-gray-50 hover:text-gray-900 transition"
                   >
-                    Edit
+                    <span className="text-[13px] leading-none">✎</span>
+                    <span>Edit</span>
                   </button>
                 ) : (
                   <div className="flex gap-2">
                     <button
                       onClick={() => setEditMode(false)}
-                      className="text-sm text-gray-500 border rounded-lg px-3 py-1 hover:bg-gray-50"
+                      className="inline-flex h-9 items-center justify-center rounded-full border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-500 shadow-sm hover:bg-gray-50 hover:text-gray-800 transition"
                     >
                       Cancel
                     </button>
+
                     <button
                       onClick={handleEditSave}
                       disabled={saving}
-                      className="text-sm bg-green-primary text-white rounded-lg px-3 py-1"
+                      className="inline-flex h-9 items-center justify-center rounded-full bg-green-primary px-4 text-sm font-semibold text-white shadow-[0_6px_14px_rgba(22,163,74,0.18)] hover:opacity-90 disabled:opacity-50 transition"
                     >
                       {saving ? "Saving..." : "Save"}
                     </button>
@@ -300,303 +311,104 @@ const LeadDetailPage = () => {
                 )}
               </div>
 
-              {!editMode ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
-                      Business Name
-                    </p>
-                    <p className="text-sm font-medium text-gray-800">
-                      {lead.business}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
-                      Industry
-                    </p>
-                    <p className="text-sm font-medium text-gray-800">
-                      {lead.industry?.name ?? "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
-                      Business Type
-                    </p>
-                    <p className="text-sm font-medium text-gray-800">
-                      {lead.businessType?.name ?? "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
-                      Email
-                    </p>
-                    <p className="text-sm font-medium text-gray-800">
-                      {lead.email ?? "—"}
-                    </p>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
-                      Website
-                    </p>
-                    <p className="text-sm font-medium text-gray-800 break-all">
-                      {lead.website ?? "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
-                      Lead Source
-                    </p>
-                    <p className="text-sm font-medium text-gray-800 capitalize">
-                      {({
-                        OUTREACH:   "Outreach",
-                        REFERRAL:   "Referral",
-                        FORM:       "Form",
-                        NETWORKING: "Networking Group / Event",
-                        IN_PERSON:  "In Person / Walk-Up",
-                      }[lead.source as string] ?? lead.source ?? "—")}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
-                      How They Heard About Us
-                    </p>
-                    <p className="text-sm font-medium text-gray-800 capitalize">
-                      {lead.discoveredVia === "OTHER"
-                        ? (lead.discoveredViaOther ?? "Other")
-                        : ({
-                            OUTREACH: "Outreach",
-                            REFERRAL: "Referral",
-                            INSTAGRAM: "Instagram",
-                            FACEBOOK: "Facebook",
-                            TIKTOK: "TikTok",
-                            YOUTUBE: "YouTube",
-                            GOOGLE: "Google",
-                            NETWORKING: "Networking Event",
-                            IN_PERSON: "In Person / Walk-Up",
-                          }[lead.discoveredVia as string] ?? lead.discoveredVia ?? "—")}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
-                      Assigned To
-                    </p>
-                    <div className="flex items-center gap-2">
-                      {lead.assignedTo ? (
-                        <span className="text-sm font-medium text-gray-800">
-                          {lead.assignedTo.firstName} {lead.assignedTo.lastName}
-                        </span>
-                      ) : (
-                        <span className="text-sm text-gray-400">
-                          Unassigned
-                        </span>
-                      )}
-                      <select
-                        value={lead.assignedToId ?? ""}
-                        onChange={(e) =>
-                          handleAssigneeChange(e.target.value || null)
-                        }
-                        className="ml-auto text-xs border rounded-lg px-2 py-1 bg-white text-gray-600 focus:outline-none"
-                      >
-                        <option value="">Unassigned</option>
-                        {users.map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.firstName} {u.lastName}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">
-                      Referred By
-                    </p>
-                    {lead.referredByLead ? (
-                      <button
-                        onClick={() =>
-                          navigate(`/leads/${lead.referredByLead.id}`)
-                        }
-                        className="text-sm font-medium text-green-700 hover:underline"
-                      >
-                        {lead.referredByLead.business}
-                      </button>
-                    ) : lead.referredByName ? (
-                      <p className="text-sm font-medium text-gray-800">
-                        {lead.referredByName}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-gray-400">—</p>
-                    )}
-                  </div>
-                  <div className="md:col-span-2">
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">
-                      Owner Identity
-                    </p>
-                    <div className="flex gap-2">
-                      {lead.isBlackOwned && (
-                        <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
-                          Black-owned
-                        </span>
-                      )}
-                      {lead.isLatinoOwned && (
-                        <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
-                          Latino-owned
-                        </span>
-                      )}
-                      {lead.isWomanOwned && (
-                        <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
-                          Woman-owned
-                        </span>
-                      )}
-                      {lead.isImmigrantOwned && (
-                        <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
-                          Immigrant-owned
-                        </span>
-                      )}
-                      {!lead.isBlackOwned &&
-                        !lead.isLatinoOwned &&
-                        !lead.isWomanOwned &&
-                        !lead.isImmigrantOwned && (
-                          <span className="text-sm text-gray-400">—</span>
-                        )}
-                    </div>
-                  </div>
-
-                  {/* In-person contact flag */}
-                  <div className="md:col-span-2">
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">
-                      In-Person Outreach
-                    </p>
-                    <label className="flex items-center gap-3 cursor-pointer w-fit">
-                      <input
-                        type="checkbox"
-                        checked={!!lead.noInPersonContact}
-                        onChange={(e) =>
-                          api
-                            .patch(`/api/leads/${lead.id}`, {
-                              noInPersonContact: e.target.checked,
-                            })
-                            .then(fetchLead)
-                        }
-                        className="w-4 h-4 rounded"
-                      />
-                      <span className="text-sm text-gray-700">
-                        Cannot be contacted in person
-                      </span>
-                      {lead.noInPersonContact && (
-                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">
-                          In-person not viable
-                        </span>
-                      )}
-                    </label>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">
-                      Business Name
-                    </label>
+              {/* Shared field styles for edit inputs */}
+              {/* input: fi-input  select: fi-select */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-14 gap-y-6">
+                {/* Business Name */}
+                <div>
+                  <FieldLabel>Business Name</FieldLabel>
+                  {!editMode ? (
+                    <p className="text-sm font-medium text-gray-800">{lead.business}</p>
+                  ) : (
                     <input
                       type="text"
                       value={editForm.business}
-                      onChange={(e) =>
-                        setEditForm((f: any) => ({
-                          ...f,
-                          business: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none"
+                      onChange={(e) => setEditForm((f: any) => ({ ...f, business: e.target.value }))}
+                      className="w-full text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-primary/20 focus:border-green-primary/40 transition bg-white"
                     />
-                  </div>
-                  <div>
-                    <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">
-                      Industry
-                    </label>
+                  )}
+                </div>
+
+                {/* Industry */}
+                <div>
+                  <FieldLabel>Industry</FieldLabel>
+                  {!editMode ? (
+                    <p className="text-sm font-medium text-gray-800">{lead.industry?.name ?? "—"}</p>
+                  ) : (
                     <select
                       value={editForm.industryId}
-                      onChange={(e) =>
-                        setEditForm((f: any) => ({
-                          ...f,
-                          industryId: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none bg-white"
+                      onChange={(e) => setEditForm((f: any) => ({ ...f, industryId: e.target.value }))}
+                      className="w-full text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-primary/20 focus:border-green-primary/40 transition bg-white"
                     >
                       <option value="">Select...</option>
                       {industries.map((i) => (
-                        <option key={i.id} value={i.id}>
-                          {i.name}
-                        </option>
+                        <option key={i.id} value={i.id}>{i.name}</option>
                       ))}
                     </select>
-                  </div>
-                  <div>
-                    <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">
-                      Business Type
-                    </label>
+                  )}
+                </div>
+
+                {/* Business Type */}
+                <div>
+                  <FieldLabel>Business Type</FieldLabel>
+                  {!editMode ? (
+                    <p className="text-sm font-medium text-gray-800">{lead.businessType?.name ?? "—"}</p>
+                  ) : (
                     <select
                       value={editForm.businessTypeId}
-                      onChange={(e) =>
-                        setEditForm((f: any) => ({
-                          ...f,
-                          businessTypeId: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none bg-white"
+                      onChange={(e) => setEditForm((f: any) => ({ ...f, businessTypeId: e.target.value }))}
+                      className="w-full text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-primary/20 focus:border-green-primary/40 transition bg-white"
                     >
                       <option value="">Select...</option>
                       {businessTypes.map((bt) => (
-                        <option key={bt.id} value={bt.id}>
-                          {bt.name}
-                        </option>
+                        <option key={bt.id} value={bt.id}>{bt.name}</option>
                       ))}
                     </select>
-                  </div>
-                  <div>
-                    <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">
-                      Email
-                    </label>
+                  )}
+                </div>
+
+                {/* Email */}
+                <div>
+                  <FieldLabel>Email</FieldLabel>
+                  {!editMode ? (
+                    <p className="text-sm font-medium text-gray-800">{lead.email ?? "—"}</p>
+                  ) : (
                     <input
                       type="text"
                       value={editForm.email}
-                      onChange={(e) =>
-                        setEditForm((f: any) => ({
-                          ...f,
-                          email: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none"
+                      onChange={(e) => setEditForm((f: any) => ({ ...f, email: e.target.value }))}
+                      className="w-full text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-primary/20 focus:border-green-primary/40 transition bg-white"
                     />
-                  </div>
-                  <div>
-                    <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">
-                      Website
-                    </label>
+                  )}
+                </div>
+
+                {/* Website */}
+                <div className="min-w-0">
+                  <FieldLabel>Website</FieldLabel>
+                  {!editMode ? (
+                    <p className="text-sm font-medium text-gray-800 break-all">{lead.website ?? "—"}</p>
+                  ) : (
                     <input
                       type="text"
                       value={editForm.website}
-                      onChange={(e) =>
-                        setEditForm((f: any) => ({
-                          ...f,
-                          website: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none"
+                      onChange={(e) => setEditForm((f: any) => ({ ...f, website: e.target.value }))}
+                      className="w-full text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-primary/20 focus:border-green-primary/40 transition bg-white"
                     />
-                  </div>
-                  <div>
-                    <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">
-                      Lead Source
-                    </label>
+                  )}
+                </div>
+
+                {/* Lead Source */}
+                <div>
+                  <FieldLabel>Lead Source</FieldLabel>
+                  {!editMode ? (
+                    <p className="text-sm font-medium text-gray-800">
+                      {{ OUTREACH: "Outreach", REFERRAL: "Referral", FORM: "Form", NETWORKING: "Networking Group / Event", IN_PERSON: "In Person / Walk-Up" }[lead.source as string] ?? lead.source ?? "—"}
+                    </p>
+                  ) : (
                     <select
                       value={editForm.source}
-                      onChange={(e) =>
-                        setEditForm((f: any) => ({
-                          ...f,
-                          source: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none bg-white"
+                      onChange={(e) => setEditForm((f: any) => ({ ...f, source: e.target.value }))}
+                      className="w-full text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-primary/20 focus:border-green-primary/40 transition bg-white"
                     >
                       <option value="">Select...</option>
                       <option value="OUTREACH">Outreach</option>
@@ -605,77 +417,91 @@ const LeadDetailPage = () => {
                       <option value="IN_PERSON">In Person / Walk-Up</option>
                       <option value="FORM">Form</option>
                     </select>
-                  </div>
-                  {editForm.source === "FORM" && (
+                  )}
+                </div>
+
+                {/* How They Heard About Us — only shown for FORM source */}
+                {(editMode ? editForm.source === "FORM" : lead.source === "FORM") && (
                   <div>
-                    <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">
-                      How They Heard About Us
-                    </label>
-                    <select
-                      value={editForm.discoveredVia}
-                      onChange={(e) =>
-                        setEditForm((f: any) => ({
-                          ...f,
-                          discoveredVia: e.target.value,
-                          discoveredViaOther: "",
-                        }))
-                      }
-                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none bg-white"
-                    >
-                      <option value="">Select...</option>
-                      <option value="INSTAGRAM">Instagram</option>
-                      <option value="FACEBOOK">Facebook</option>
-                      <option value="TIKTOK">TikTok</option>
-                      <option value="YOUTUBE">YouTube</option>
-                      <option value="GOOGLE">Google</option>
-                      <option value="OTHER">Other</option>
-                    </select>
-                    {editForm.discoveredVia === "OTHER" && (
-                      <input
-                        type="text"
-                        value={editForm.discoveredViaOther}
-                        onChange={(e) =>
-                          setEditForm((f: any) => ({
-                            ...f,
-                            discoveredViaOther: e.target.value,
-                          }))
-                        }
-                        placeholder="Please explain..."
-                        className="w-full mt-2 px-3 py-2 border rounded-lg text-sm focus:outline-none"
-                      />
+                    <FieldLabel>How They Heard About Us</FieldLabel>
+                    {!editMode ? (
+                      <p className="text-sm font-medium text-gray-800">
+                        {lead.discoveredVia === "OTHER"
+                          ? (lead.discoveredViaOther ?? "Other")
+                          : ({ OUTREACH: "Outreach", REFERRAL: "Referral", INSTAGRAM: "Instagram", FACEBOOK: "Facebook", TIKTOK: "TikTok", YOUTUBE: "YouTube", GOOGLE: "Google", NETWORKING: "Networking Event", IN_PERSON: "In Person / Walk-Up" }[lead.discoveredVia as string] ?? lead.discoveredVia ?? "—")}
+                      </p>
+                    ) : (
+                      <>
+                        <select
+                          value={editForm.discoveredVia}
+                          onChange={(e) => setEditForm((f: any) => ({ ...f, discoveredVia: e.target.value, discoveredViaOther: "" }))}
+                          className="w-full text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-primary/20 focus:border-green-primary/40 transition bg-white"
+                        >
+                          <option value="">Select...</option>
+                          <option value="INSTAGRAM">Instagram</option>
+                          <option value="FACEBOOK">Facebook</option>
+                          <option value="TIKTOK">TikTok</option>
+                          <option value="YOUTUBE">YouTube</option>
+                          <option value="GOOGLE">Google</option>
+                          <option value="OTHER">Other</option>
+                        </select>
+                        {editForm.discoveredVia === "OTHER" && (
+                          <input
+                            type="text"
+                            value={editForm.discoveredViaOther}
+                            onChange={(e) => setEditForm((f: any) => ({ ...f, discoveredViaOther: e.target.value }))}
+                            placeholder="Please explain..."
+                            className="w-full mt-2 text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-primary/20 focus:border-green-primary/40 transition bg-white"
+                          />
+                        )}
+                      </>
                     )}
                   </div>
-                  )}
-                  <div className="col-span-2">
-                    <label className="text-xs uppercase tracking-wide text-gray-400 mb-1 block">
-                      Referred By
-                    </label>
+                )}
+
+                {/* Assigned To */}
+                <div>
+                  <FieldLabel>Assigned To</FieldLabel>
+                  <select
+                    value={lead.assignedToId ?? ""}
+                    onChange={(e) => handleAssigneeChange(e.target.value || null)}
+                    className="h-9 w-full max-w-[220px] rounded-full border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-primary/20"
+                  >
+                    <option value="">Unassigned</option>
+                    {users.map((u) => (
+                      <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Referred By */}
+                <div>
+                  <FieldLabel>Referred By</FieldLabel>
+                  {!editMode ? (
+                    lead.referredByLead ? (
+                      <button onClick={() => navigate(`/leads/${lead.referredByLead.id}`)} className="text-sm font-medium text-green-700 hover:underline">
+                        {lead.referredByLead.business}
+                      </button>
+                    ) : lead.referredByName ? (
+                      <p className="text-sm font-medium text-gray-800">{lead.referredByName}</p>
+                    ) : (
+                      <p className="text-sm text-gray-400">—</p>
+                    )
+                  ) : (
                     <div className="relative">
                       <input
                         type="text"
-                        placeholder="Search existing leads or type a name..."
+                        placeholder="Search leads or type a name..."
                         value={referralSearch}
                         onChange={(e) => {
                           const val = e.target.value;
                           setReferralSearch(val);
-                          setEditForm((f: any) => ({
-                            ...f,
-                            referredByLeadId: "",
-                            referredByName: val,
-                          }));
+                          setEditForm((f: any) => ({ ...f, referredByLeadId: "", referredByName: val }));
                           setShowReferralSuggestions(val.trim().length > 0);
                         }}
-                        onFocus={() =>
-                          referralSearch.trim().length > 0 &&
-                          setShowReferralSuggestions(true)
-                        }
-                        onBlur={() =>
-                          setTimeout(
-                            () => setShowReferralSuggestions(false),
-                            150,
-                          )
-                        }
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                        onFocus={() => referralSearch.trim().length > 0 && setShowReferralSuggestions(true)}
+                        onBlur={() => setTimeout(() => setShowReferralSuggestions(false), 150)}
+                        className="w-full text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-primary/20 focus:border-green-primary/40 transition bg-white"
                       />
                       {editForm.referredByLeadId && (
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
@@ -685,24 +511,14 @@ const LeadDetailPage = () => {
                       {showReferralSuggestions && (
                         <div className="absolute z-20 left-0 right-0 top-[42px] bg-white border rounded-xl shadow-lg max-h-48 overflow-y-auto">
                           {allLeads
-                            .filter(
-                              (l) =>
-                                l.id !== id &&
-                                l.business
-                                  .toLowerCase()
-                                  .includes(referralSearch.toLowerCase()),
-                            )
+                            .filter((l) => l.id !== id && l.business.toLowerCase().includes(referralSearch.toLowerCase()))
                             .slice(0, 8)
                             .map((l) => (
                               <button
                                 key={l.id}
                                 type="button"
                                 onMouseDown={() => {
-                                  setEditForm((f: any) => ({
-                                    ...f,
-                                    referredByLeadId: l.id,
-                                    referredByName: "",
-                                  }));
+                                  setEditForm((f: any) => ({ ...f, referredByLeadId: l.id, referredByName: "" }));
                                   setReferralSearch(l.business);
                                   setShowReferralSuggestions(false);
                                 }}
@@ -711,41 +527,41 @@ const LeadDetailPage = () => {
                                 {l.business}
                               </button>
                             ))}
-                          {allLeads.filter(
-                            (l) =>
-                              l.id !== id &&
-                              l.business
-                                .toLowerCase()
-                                .includes(referralSearch.toLowerCase()),
-                          ).length === 0 && (
-                            <p className="px-4 py-2 text-sm text-gray-400 italic">
-                              No matching leads — will save as free text
-                            </p>
+                          {allLeads.filter((l) => l.id !== id && l.business.toLowerCase().includes(referralSearch.toLowerCase())).length === 0 && (
+                            <p className="px-4 py-2 text-sm text-gray-400 italic">No matching leads — will save as free text</p>
                           )}
                         </div>
                       )}
+                      {(editForm.referredByLeadId || referralSearch) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditForm((f: any) => ({ ...f, referredByLeadId: "", referredByName: "" }));
+                            setReferralSearch("");
+                          }}
+                          className="mt-1 text-xs text-gray-400 hover:text-gray-600 underline"
+                        >
+                          Clear
+                        </button>
+                      )}
                     </div>
-                    {(editForm.referredByLeadId || referralSearch) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditForm((f: any) => ({
-                            ...f,
-                            referredByLeadId: "",
-                            referredByName: "",
-                          }));
-                          setReferralSearch("");
-                        }}
-                        className="mt-1 text-xs text-gray-400 hover:text-gray-600 underline"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
-                  <div className="col-span-2">
-                    <label className="text-xs uppercase tracking-wide text-gray-400 mb-2 block">
-                      Owner Identity
-                    </label>
+                  )}
+                </div>
+
+                {/* Owner Identity */}
+                <div className="md:col-span-2">
+                  <FieldLabel>Owner Identity</FieldLabel>
+                  {!editMode ? (
+                    <div className="flex gap-2">
+                      {lead.isBlackOwned && <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">Black-owned</span>}
+                      {lead.isLatinoOwned && <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">Latino-owned</span>}
+                      {lead.isWomanOwned && <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">Woman-owned</span>}
+                      {lead.isImmigrantOwned && <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">Immigrant-owned</span>}
+                      {!lead.isBlackOwned && !lead.isLatinoOwned && !lead.isWomanOwned && !lead.isImmigrantOwned && (
+                        <span className="text-sm text-gray-400">—</span>
+                      )}
+                    </div>
+                  ) : (
                     <div className="flex gap-2">
                       {[
                         { key: "isBlackOwned", label: "Black-owned" },
@@ -756,26 +572,43 @@ const LeadDetailPage = () => {
                         <button
                           key={key}
                           type="button"
-                          onClick={() =>
-                            setEditForm((f: any) => ({ ...f, [key]: !f[key] }))
-                          }
+                          onClick={() => setEditForm((f: any) => ({ ...f, [key]: !f[key] }))}
                           className={`px-3 py-1 rounded-full border text-xs font-medium transition ${
-                            editForm[key]
-                              ? "bg-green-primary text-white border-green-primary"
-                              : "bg-white border-gray-300 text-gray-600"
+                            editForm[key] ? "bg-green-primary text-white border-green-primary" : "bg-white border-gray-200 text-gray-600"
                           }`}
                         >
                           {label}
                         </button>
                       ))}
                     </div>
-                  </div>
+                  )}
                 </div>
-              )}
-            </div>
+
+                {/* In-Person Outreach */}
+                <div className="md:col-span-2 border-t border-gray-100 pt-5 mt-1">
+                  <FieldLabel>In-Person Outreach</FieldLabel>
+                  <label className="flex items-center gap-3 cursor-pointer w-fit">
+                    <input
+                      type="checkbox"
+                      checked={!!lead.noInPersonContact}
+                      onChange={(e) =>
+                        api.patch(`/api/leads/${lead.id}`, { noInPersonContact: e.target.checked }).then(fetchLead)
+                      }
+                      className="w-4 h-4 rounded border-gray-300 text-green-primary focus:ring-green-primary/20"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Cannot be contacted in person</span>
+                    {lead.noInPersonContact && (
+                      <span className="text-xs bg-orange-50 text-orange-700 border border-orange-100 px-2.5 py-1 rounded-full font-semibold">
+                        In-person not viable
+                      </span>
+                    )}
+                  </label>
+                </div>
+              </div>
+            </SectionCard>
 
             {/* Social Media */}
-            <div className="bg-white border rounded-lg p-6 mb-6">
+            <SectionCard className="rounded-xl p-6 mb-6">
               <div className="flex justify-between items-center mb-4">
                 <p className="text-sm font-semibold uppercase tracking-wide text-gray-400">
                   Social Media
@@ -887,25 +720,25 @@ const LeadDetailPage = () => {
                   )}
                 </div>
               ))}
-            </div>
+            </SectionCard>
 
             {/* Contacts */}
-            <div className="bg-white border rounded-lg p-4 mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold">
-                  Contacts ({contacts.length})
-                </p>
-                <button
-                  onClick={() => {
-                    resetContactForm();
-                    setEditingContactId(null);
-                    setShowContactForm((v) => !v);
-                  }}
-                  className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
-                >
-                  {showContactForm ? "Cancel" : "+ Add Contact"}
-                </button>
-              </div>
+            <SectionCard className="rounded-xl p-4 mb-6">
+              <SectionHeader
+                title={`Contacts (${contacts.length})`}
+                action={
+                  <button
+                    onClick={() => {
+                      resetContactForm();
+                      setEditingContactId(null);
+                      setShowContactForm((v) => !v);
+                    }}
+                    className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
+                  >
+                    {showContactForm ? "Cancel" : "+ Add Contact"}
+                  </button>
+                }
+              />
 
               {/* Add contact form */}
               {showContactForm && (
@@ -1282,21 +1115,21 @@ const LeadDetailPage = () => {
                   ),
                 )}
               </div>
-            </div>
+            </SectionCard>
 
             {/* Locations */}
-            <div className="bg-white border rounded-lg p-4 mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold">
-                  Locations ({lead.locations?.length ?? 0})
-                </p>
-                <button
-                  onClick={() => setShowLocationForm((v) => !v)}
-                  className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
-                >
-                  {showLocationForm ? "Cancel" : "+ Add Location"}
-                </button>
-              </div>
+            <SectionCard className="rounded-xl p-4 mb-6">
+              <SectionHeader
+                title={`Locations (${lead.locations?.length ?? 0})`}
+                action={
+                  <button
+                    onClick={() => setShowLocationForm((v) => !v)}
+                    className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
+                  >
+                    {showLocationForm ? "Cancel" : "+ Add Location"}
+                  </button>
+                }
+              />
 
               {showLocationForm && (
                 <form
@@ -1335,7 +1168,7 @@ const LeadDetailPage = () => {
                             addressLine1: e.target.value,
                           }))
                         }
-                        className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                        className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none"
                       />
                     </div>
                     <div>
@@ -1354,7 +1187,7 @@ const LeadDetailPage = () => {
                             addressLine2: e.target.value,
                           }))
                         }
-                        className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                        className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -1370,7 +1203,7 @@ const LeadDetailPage = () => {
                               city: e.target.value,
                             }))
                           }
-                          className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                          className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none"
                         />
                       </div>
                       <div>
@@ -1387,7 +1220,7 @@ const LeadDetailPage = () => {
                               state: e.target.value,
                             }))
                           }
-                          className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                          className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none"
                         />
                       </div>
                     </div>
@@ -1403,7 +1236,7 @@ const LeadDetailPage = () => {
                             zip: e.target.value,
                           }))
                         }
-                        className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                        className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none"
                       />
                     </div>
                   </div>
@@ -1425,7 +1258,7 @@ const LeadDetailPage = () => {
                           }))
                         }
                         placeholder="e.g. 813-555-1234"
-                        className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                        className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none"
                       />
                     </div>
                     <div>
@@ -1440,7 +1273,7 @@ const LeadDetailPage = () => {
                             phoneLabel: e.target.value,
                           }))
                         }
-                        className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                        className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none"
                       >
                         <option value="MOBILE">Mobile</option>
                         <option value="OFFICE">Office</option>
@@ -1508,24 +1341,24 @@ const LeadDetailPage = () => {
                   ))}
                 </div>
               )}
-            </div>
+            </SectionCard>
 
             {/* Attachments */}
-            <div className="bg-white border rounded-lg p-4 mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold">
-                  Attachments ({attachments.length})
-                </p>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingAttachment}
-                  className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg disabled:opacity-50"
-                >
-                  {uploadingAttachment
-                    ? `Uploading... ${uploadProgress}%`
-                    : "+ Add"}
-                </button>
-              </div>
+            <SectionCard className="rounded-xl p-4 mb-6">
+              <SectionHeader
+                title={`Attachments (${attachments.length})`}
+                action={
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingAttachment}
+                    className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg disabled:opacity-50"
+                  >
+                    {uploadingAttachment
+                      ? `Uploading... ${uploadProgress}%`
+                      : "+ Add"}
+                  </button>
+                }
+              />
 
               {/* Hidden file input */}
               <input
@@ -1654,7 +1487,7 @@ const LeadDetailPage = () => {
                   })}
                 </div>
               )}
-            </div>
+            </SectionCard>
           </div>
           {/* /left column */}
 
@@ -1682,20 +1515,18 @@ const LeadDetailPage = () => {
           {/* ── RIGHT COLUMN — activity ── */}
           <div className="min-w-0">
             {/* Tasks */}
-            <div className="bg-white border rounded-lg p-4 mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold">
-                  Tasks (
-                  {lead.tasks?.filter((r: any) => !r.completed).length ?? 0}
-                  )
-                </p>
-                <button
-                  onClick={() => setShowTaskForm((v) => !v)}
-                  className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
-                >
-                  {showTaskForm ? "Cancel" : "+ Schedule"}
-                </button>
-              </div>
+            <SectionCard className="rounded-xl p-4 mb-6">
+              <SectionHeader
+                title={`Tasks (${lead.tasks?.filter((r: any) => !r.completed).length ?? 0})`}
+                action={
+                  <button
+                    onClick={() => setShowTaskForm((v) => !v)}
+                    className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
+                  >
+                    {showTaskForm ? "Cancel" : "+ Schedule"}
+                  </button>
+                }
+              />
 
               {showTaskForm && (
                 <form
@@ -1710,7 +1541,7 @@ const LeadDetailPage = () => {
                         onChange={(e) =>
                           setTaskForm((f) => ({ ...f, type: e.target.value }))
                         }
-                        className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                        className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none"
                       >
                         {TASK_TYPES.map((t) => (
                           <option key={t.value} value={t.value}>
@@ -1722,7 +1553,9 @@ const LeadDetailPage = () => {
                     <div>
                       <label className="block font-semibold mb-1">
                         Due Date{" "}
-                        <span className="text-gray-400 font-normal">(optional)</span>
+                        <span className="text-gray-400 font-normal">
+                          (optional)
+                        </span>
                       </label>
                       <div className="flex items-center gap-2">
                         <DatePicker
@@ -1733,7 +1566,7 @@ const LeadDetailPage = () => {
                           isClearable
                           placeholderText="No due date"
                           dateFormat="MM/dd/yyyy"
-                          className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                          className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none"
                           wrapperClassName="w-full"
                         />
                       </div>
@@ -1753,7 +1586,7 @@ const LeadDetailPage = () => {
                         setTaskForm((f) => ({ ...f, note: e.target.value }))
                       }
                       placeholder="e.g. Send reel link, follow up on proposal..."
-                      className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                      className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none"
                     />
                   </div>
                   <div className="flex justify-end">
@@ -1909,9 +1742,8 @@ const LeadDetailPage = () => {
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-medium text-gray-800">
-                                {TASK_TYPES.find(
-                                  (t) => t.value === r.type,
-                                )?.label ?? r.type}
+                                {TASK_TYPES.find((t) => t.value === r.type)
+                                  ?.label ?? r.type}
                               </span>
                               {due && (
                                 <span
@@ -1991,31 +1823,27 @@ const LeadDetailPage = () => {
                   </div>
                 </details>
               )}
-            </div>
+            </SectionCard>
 
             {/* Touchpoints */}
-            <div
+            <SectionCard
               id="touchpoints-section"
-              className="bg-white border rounded-lg p-4 mb-6"
+              className="rounded-xl p-4 mb-6"
             >
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold">
-                  Touchpoints (
-                  {lead.touchPoint?.filter(
-                    (tp: any) => tp.type !== "VISIT_ATTEMPT",
-                  ).length ?? 0}
-                  )
-                </p>
-                <button
-                  onClick={() => {
-                    if (showTouchpointForm) setCompletingTaskId(null);
-                    setShowTouchpointForm((v) => !v);
-                  }}
-                  className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
-                >
-                  {showTouchpointForm ? "Cancel" : "+ Log Touchpoint"}
-                </button>
-              </div>
+              <SectionHeader
+                title={`Touchpoints (${lead.touchPoint?.filter((tp: any) => tp.type !== "VISIT_ATTEMPT").length ?? 0})`}
+                action={
+                  <button
+                    onClick={() => {
+                      if (showTouchpointForm) setCompletingTaskId(null);
+                      setShowTouchpointForm((v) => !v);
+                    }}
+                    className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
+                  >
+                    {showTouchpointForm ? "Cancel" : "+ Log Touchpoint"}
+                  </button>
+                }
+              />
 
               {showTouchpointForm && (
                 <form
@@ -2051,7 +1879,7 @@ const LeadDetailPage = () => {
                             return prev;
                           });
                         }}
-                        className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                        className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none"
                       >
                         {TOUCHPOINT_TYPES.map((t) => (
                           <option key={t.value} value={t.value}>
@@ -2068,7 +1896,7 @@ const LeadDetailPage = () => {
                           date && setTpDate(date)
                         }
                         dateFormat="MM/dd/yyyy"
-                        className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none text-sm"
+                        className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none text-sm"
                         wrapperClassName="w-full"
                       />
                     </div>
@@ -2084,7 +1912,7 @@ const LeadDetailPage = () => {
                       <select
                         value={tpSequencePosition}
                         onChange={(e) => setTpSequencePosition(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none text-sm"
+                        className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none text-sm"
                       >
                         {getSequencePositions(tpType).map((p) => (
                           <option key={p.value} value={p.value}>
@@ -2101,19 +1929,24 @@ const LeadDetailPage = () => {
                       onChange={(e) => setTpSummary(e.target.value)}
                       placeholder="What happened?"
                       rows={3}
-                      className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none resize-none"
+                      className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none resize-none"
                     />
                   </div>
 
                   {/* Contact section — hidden for visit attempts */}
                   {tpType !== "VISIT_ATTEMPT" && (
                     <div className="mb-4">
-                      <label className="block font-semibold mb-2">Who did you interact with?</label>
+                      <label className="block font-semibold mb-2">
+                        Who did you interact with?
+                      </label>
                       {/* Existing contacts */}
                       {lead.contacts?.length > 0 && (
                         <div className="flex flex-col gap-1 mb-2">
                           {lead.contacts.map((c: any) => (
-                            <label key={c.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                            <label
+                              key={c.id}
+                              className="flex items-center gap-2 cursor-pointer text-sm"
+                            >
                               <input
                                 type="checkbox"
                                 checked={tpContactIds.includes(c.id)}
@@ -2121,13 +1954,17 @@ const LeadDetailPage = () => {
                                   setTpContactIds(
                                     e.target.checked
                                       ? [...tpContactIds, c.id]
-                                      : tpContactIds.filter((x) => x !== c.id)
+                                      : tpContactIds.filter((x) => x !== c.id),
                                   )
                                 }
                               />
                               <span className="text-gray-700">
                                 {c.firstName} {c.lastName}
-                                {c.title && <span className="text-gray-400 ml-1">· {c.title}</span>}
+                                {c.title && (
+                                  <span className="text-gray-400 ml-1">
+                                    · {c.title}
+                                  </span>
+                                )}
                               </span>
                             </label>
                           ))}
@@ -2136,20 +1973,32 @@ const LeadDetailPage = () => {
                       {/* Inline new contact form */}
                       {showNewContactForm ? (
                         <div className="bg-gray-50 border rounded-lg p-3 mt-2">
-                          <p className="text-xs font-semibold text-gray-600 mb-2">New contact</p>
+                          <p className="text-xs font-semibold text-gray-600 mb-2">
+                            New contact
+                          </p>
                           <div className="grid grid-cols-2 gap-2 mb-2">
                             <input
                               type="text"
                               placeholder="First name"
                               value={newContactForm.firstName}
-                              onChange={(e) => setNewContactForm({ ...newContactForm, firstName: e.target.value })}
+                              onChange={(e) =>
+                                setNewContactForm({
+                                  ...newContactForm,
+                                  firstName: e.target.value,
+                                })
+                              }
                               className="px-2 py-1.5 border rounded text-sm focus:outline-none"
                             />
                             <input
                               type="text"
                               placeholder="Last name"
                               value={newContactForm.lastName}
-                              onChange={(e) => setNewContactForm({ ...newContactForm, lastName: e.target.value })}
+                              onChange={(e) =>
+                                setNewContactForm({
+                                  ...newContactForm,
+                                  lastName: e.target.value,
+                                })
+                              }
                               className="px-2 py-1.5 border rounded text-sm focus:outline-none"
                             />
                           </div>
@@ -2158,20 +2007,38 @@ const LeadDetailPage = () => {
                               type="text"
                               placeholder="Title (optional)"
                               value={newContactForm.title}
-                              onChange={(e) => setNewContactForm({ ...newContactForm, title: e.target.value })}
+                              onChange={(e) =>
+                                setNewContactForm({
+                                  ...newContactForm,
+                                  title: e.target.value,
+                                })
+                              }
                               className="px-2 py-1.5 border rounded text-sm focus:outline-none"
                             />
                             <input
                               type="email"
                               placeholder="Email (optional)"
                               value={newContactForm.email}
-                              onChange={(e) => setNewContactForm({ ...newContactForm, email: e.target.value })}
+                              onChange={(e) =>
+                                setNewContactForm({
+                                  ...newContactForm,
+                                  email: e.target.value,
+                                })
+                              }
                               className="px-2 py-1.5 border rounded text-sm focus:outline-none"
                             />
                           </div>
                           <button
                             type="button"
-                            onClick={() => { setShowNewContactForm(false); setNewContactForm({ firstName: "", lastName: "", title: "", email: "" }); }}
+                            onClick={() => {
+                              setShowNewContactForm(false);
+                              setNewContactForm({
+                                firstName: "",
+                                lastName: "",
+                                title: "",
+                                email: "",
+                              });
+                            }}
                             className="text-xs text-gray-400 hover:text-gray-600"
                           >
                             Cancel
@@ -2254,7 +2121,7 @@ const LeadDetailPage = () => {
                                   };
                                 });
                               }}
-                              className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                              className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none"
                             >
                               {TOUCHPOINT_TYPES.map((t) => (
                                 <option key={t.value} value={t.value}>
@@ -2274,7 +2141,7 @@ const LeadDetailPage = () => {
                                 setEditTpForm((f: any) => ({ ...f, date }))
                               }
                               dateFormat="MM/dd/yyyy"
-                              className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none"
+                              className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none"
                               wrapperClassName="w-full"
                             />
                           </div>
@@ -2292,7 +2159,7 @@ const LeadDetailPage = () => {
                                   sequencePosition: e.target.value,
                                 }))
                               }
-                              className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none text-sm"
+                              className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none text-sm"
                             >
                               {getSequencePositions(editTpForm.type ?? "").map(
                                 (p) => (
@@ -2317,33 +2184,46 @@ const LeadDetailPage = () => {
                               }))
                             }
                             rows={3}
-                            className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none resize-none"
+                            className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none resize-none"
                           />
                         </div>
 
                         {/* Contact section — edit form */}
                         {editTpForm.type !== "VISIT_ATTEMPT" && (
                           <div className="mb-3">
-                            <label className="block font-semibold mb-2">Who did you interact with?</label>
+                            <label className="block font-semibold mb-2">
+                              Who did you interact with?
+                            </label>
                             {lead.contacts?.length > 0 && (
                               <div className="flex flex-col gap-1 mb-2">
                                 {lead.contacts.map((c: any) => (
-                                  <label key={c.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                                  <label
+                                    key={c.id}
+                                    className="flex items-center gap-2 cursor-pointer text-sm"
+                                  >
                                     <input
                                       type="checkbox"
-                                      checked={(editTpForm.contactIds ?? []).includes(c.id)}
+                                      checked={(
+                                        editTpForm.contactIds ?? []
+                                      ).includes(c.id)}
                                       onChange={(e) =>
                                         setEditTpForm((f: any) => ({
                                           ...f,
                                           contactIds: e.target.checked
                                             ? [...(f.contactIds ?? []), c.id]
-                                            : (f.contactIds ?? []).filter((x: string) => x !== c.id),
+                                            : (f.contactIds ?? []).filter(
+                                                (x: string) => x !== c.id,
+                                              ),
                                         }))
                                       }
                                     />
                                     <span className="text-gray-700">
                                       {c.firstName} {c.lastName}
-                                      {c.title && <span className="text-gray-400 ml-1">· {c.title}</span>}
+                                      {c.title && (
+                                        <span className="text-gray-400 ml-1">
+                                          · {c.title}
+                                        </span>
+                                      )}
                                     </span>
                                   </label>
                                 ))}
@@ -2351,20 +2231,42 @@ const LeadDetailPage = () => {
                             )}
                             {editTpForm.showNewContact ? (
                               <div className="bg-gray-50 border rounded-lg p-3 mt-2">
-                                <p className="text-xs font-semibold text-gray-600 mb-2">New contact</p>
+                                <p className="text-xs font-semibold text-gray-600 mb-2">
+                                  New contact
+                                </p>
                                 <div className="grid grid-cols-2 gap-2 mb-2">
                                   <input
                                     type="text"
                                     placeholder="First name"
-                                    value={editTpForm.newContact?.firstName ?? ""}
-                                    onChange={(e) => setEditTpForm((f: any) => ({ ...f, newContact: { ...f.newContact, firstName: e.target.value } }))}
+                                    value={
+                                      editTpForm.newContact?.firstName ?? ""
+                                    }
+                                    onChange={(e) =>
+                                      setEditTpForm((f: any) => ({
+                                        ...f,
+                                        newContact: {
+                                          ...f.newContact,
+                                          firstName: e.target.value,
+                                        },
+                                      }))
+                                    }
                                     className="px-2 py-1.5 border rounded text-sm focus:outline-none"
                                   />
                                   <input
                                     type="text"
                                     placeholder="Last name"
-                                    value={editTpForm.newContact?.lastName ?? ""}
-                                    onChange={(e) => setEditTpForm((f: any) => ({ ...f, newContact: { ...f.newContact, lastName: e.target.value } }))}
+                                    value={
+                                      editTpForm.newContact?.lastName ?? ""
+                                    }
+                                    onChange={(e) =>
+                                      setEditTpForm((f: any) => ({
+                                        ...f,
+                                        newContact: {
+                                          ...f.newContact,
+                                          lastName: e.target.value,
+                                        },
+                                      }))
+                                    }
                                     className="px-2 py-1.5 border rounded text-sm focus:outline-none"
                                   />
                                 </div>
@@ -2373,20 +2275,47 @@ const LeadDetailPage = () => {
                                     type="text"
                                     placeholder="Title (optional)"
                                     value={editTpForm.newContact?.title ?? ""}
-                                    onChange={(e) => setEditTpForm((f: any) => ({ ...f, newContact: { ...f.newContact, title: e.target.value } }))}
+                                    onChange={(e) =>
+                                      setEditTpForm((f: any) => ({
+                                        ...f,
+                                        newContact: {
+                                          ...f.newContact,
+                                          title: e.target.value,
+                                        },
+                                      }))
+                                    }
                                     className="px-2 py-1.5 border rounded text-sm focus:outline-none"
                                   />
                                   <input
                                     type="email"
                                     placeholder="Email (optional)"
                                     value={editTpForm.newContact?.email ?? ""}
-                                    onChange={(e) => setEditTpForm((f: any) => ({ ...f, newContact: { ...f.newContact, email: e.target.value } }))}
+                                    onChange={(e) =>
+                                      setEditTpForm((f: any) => ({
+                                        ...f,
+                                        newContact: {
+                                          ...f.newContact,
+                                          email: e.target.value,
+                                        },
+                                      }))
+                                    }
                                     className="px-2 py-1.5 border rounded text-sm focus:outline-none"
                                   />
                                 </div>
                                 <button
                                   type="button"
-                                  onClick={() => setEditTpForm((f: any) => ({ ...f, showNewContact: false, newContact: { firstName: "", lastName: "", title: "", email: "" } }))}
+                                  onClick={() =>
+                                    setEditTpForm((f: any) => ({
+                                      ...f,
+                                      showNewContact: false,
+                                      newContact: {
+                                        firstName: "",
+                                        lastName: "",
+                                        title: "",
+                                        email: "",
+                                      },
+                                    }))
+                                  }
                                   className="text-xs text-gray-400 hover:text-gray-600"
                                 >
                                   Cancel
@@ -2395,7 +2324,12 @@ const LeadDetailPage = () => {
                             ) : (
                               <button
                                 type="button"
-                                onClick={() => setEditTpForm((f: any) => ({ ...f, showNewContact: true }))}
+                                onClick={() =>
+                                  setEditTpForm((f: any) => ({
+                                    ...f,
+                                    showNewContact: true,
+                                  }))
+                                }
                                 className="text-xs text-green-700 hover:text-green-800 font-medium mt-1"
                               >
                                 + Add contact
@@ -2463,7 +2397,10 @@ const LeadDetailPage = () => {
                                 <span className="ml-1">
                                   · with{" "}
                                   {tp.contacts
-                                    .map((c: any) => `${c.firstName} ${c.lastName}`)
+                                    .map(
+                                      (c: any) =>
+                                        `${c.firstName} ${c.lastName}`,
+                                    )
                                     .join(", ")}
                                 </span>
                               )}
@@ -2545,7 +2482,10 @@ const LeadDetailPage = () => {
                                 <span className="ml-1">
                                   · with{" "}
                                   {tp.contacts
-                                    .map((c: any) => `${c.firstName} ${c.lastName}`)
+                                    .map(
+                                      (c: any) =>
+                                        `${c.firstName} ${c.lastName}`,
+                                    )
                                     .join(", ")}
                                 </span>
                               )}
@@ -2608,21 +2548,21 @@ const LeadDetailPage = () => {
                   )}
                 </div>
               )}
-            </div>
+            </SectionCard>
 
             {/* Notes */}
-            <div className="bg-white border rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold">
-                  Notes ({lead.notes?.length ?? 0})
-                </p>
-                <button
-                  onClick={() => setShowNoteForm((v) => !v)}
-                  className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
-                >
-                  {showNoteForm ? "Cancel" : "+ Add Note"}
-                </button>
-              </div>
+            <SectionCard className="rounded-xl p-4">
+              <SectionHeader
+                title={`Notes (${lead.notes?.length ?? 0})`}
+                action={
+                  <button
+                    onClick={() => setShowNoteForm((v) => !v)}
+                    className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
+                  >
+                    {showNoteForm ? "Cancel" : "+ Add Note"}
+                  </button>
+                }
+              />
 
               {showNoteForm && (
                 <form
@@ -2634,7 +2574,7 @@ const LeadDetailPage = () => {
                     onChange={(e) => setNoteText(e.target.value)}
                     placeholder="Add a note..."
                     rows={3}
-                    className="w-full px-3 py-2 bg-white border rounded-lg focus:outline-none resize-none mb-3"
+                    className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none resize-none mb-3"
                   />
                   <div className="flex justify-end">
                     <button
@@ -2666,7 +2606,7 @@ const LeadDetailPage = () => {
                   ))}
                 </div>
               )}
-            </div>
+            </SectionCard>
           </div>
           {/* /right column */}
         </div>
@@ -2677,9 +2617,12 @@ const LeadDetailPage = () => {
       {showDormantModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-            <h2 className="text-lg font-bold text-gray-800 mb-1">Mark as Dormant</h2>
+            <h2 className="text-lg font-bold text-gray-800 mb-1">
+              Mark as Dormant
+            </h2>
             <p className="text-sm text-gray-500 mb-5">
-              Tell us why and when to circle back — we'll create a reminder automatically.
+              Tell us why and when to circle back — we'll create a reminder
+              automatically.
             </p>
 
             {/* Reason */}
@@ -2729,7 +2672,9 @@ const LeadDetailPage = () => {
               </button>
               <button
                 onClick={handleDormantSubmit}
-                disabled={!dormantReason || !dormantRevisitAt || submittingDormant}
+                disabled={
+                  !dormantReason || !dormantRevisitAt || submittingDormant
+                }
                 className="flex-1 bg-gray-700 text-white rounded-lg py-2 text-sm font-medium hover:bg-gray-800 transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {submittingDormant ? "Saving…" : "Mark Dormant & Set Reminder"}

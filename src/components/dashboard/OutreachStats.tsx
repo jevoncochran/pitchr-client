@@ -1,3 +1,6 @@
+import { SectionCard } from "../ui/SectionCard";
+import { SectionHeader } from "../ui/SectionHeader";
+
 export const OutreachStats = ({
   stats,
 }: {
@@ -6,10 +9,8 @@ export const OutreachStats = ({
     email: { sent: number; responded: number; rate: number };
   };
 }) => (
-  <div className="bg-white border border-gray-100 rounded-2xl p-4 md:p-5 shadow-[0_4px_16px_rgba(15,23,42,0.10)] mb-6">
-    <p className="text-sm font-semibold text-gray-700 mb-3">
-      Outreach Response Rates
-    </p>
+  <SectionCard className="rounded-2xl p-4 md:p-5 mb-6">
+    <SectionHeader title="Outreach Response Rates" />
     <div className="grid grid-cols-2 gap-4">
       {/* Instagram DMs */}
       <div>
@@ -48,5 +49,5 @@ export const OutreachStats = ({
         </p>
       </div>
     </div>
-  </div>
+  </SectionCard>
 );

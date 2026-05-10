@@ -19,6 +19,8 @@ import {
   TrendIcon,
 } from "../components/dashboard/DashboardIcons";
 import { TP_LABELS } from "../components/dashboard/dashboardConstants";
+import { SectionCard } from "../components/ui/SectionCard";
+import { SectionHeader } from "../components/ui/SectionHeader";
 import {
   getActiveLeads,
   countLeadsThisWeek,
@@ -261,17 +263,18 @@ export const DashboardPage = () => {
                 )}
 
                 {/* Today's Follow-ups */}
-                <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-[0_4px_16px_rgba(15,23,42,0.10)]">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="font-semibold text-gray-700">
-                      Today's Follow-ups
-                    </h2>
-                    {todayTasks.length > 0 && (
-                      <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">
-                        {todayTasks.length} due today
-                      </span>
-                    )}
-                  </div>
+                <SectionCard className="rounded-xl p-5">
+                  <SectionHeader
+                    title="Today's Follow-ups"
+                    className="mb-4"
+                    action={
+                      todayTasks.length > 0 ? (
+                        <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">
+                          {todayTasks.length} due today
+                        </span>
+                      ) : undefined
+                    }
+                  />
                   {todayTasks.length === 0 ? (
                     <p className="text-sm text-gray-400">
                       Nothing due today.{" "}
@@ -320,7 +323,7 @@ export const DashboardPage = () => {
                       </div>
                     </div>
                   )}
-                </div>
+                </SectionCard>
 
                 <NoRecentContact
                   leads={goneSilent}
