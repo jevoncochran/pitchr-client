@@ -33,7 +33,10 @@ export const RecentActivity = ({
               >
                 <div>
                   <p className="font-medium text-gray-800">
-                    {tp.lead?.business ?? "Unknown"}
+                    {tp.lead?.business ??
+                      (tp.contact
+                        ? `${tp.contact.firstName}${tp.contact.lastName ? ` ${tp.contact.lastName}` : ""}`
+                        : "Unknown")}
                   </p>
                   <p className="text-gray-400 text-xs">
                     {TP_LABELS[tp.type] ?? tp.type} ·{" "}

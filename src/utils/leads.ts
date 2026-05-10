@@ -1,8 +1,5 @@
-import {
-  IN_PERSON_TYPES,
-  SEQUENCE_POSITIONS_VISIT,
-  SEQUENCE_POSITIONS_OUTREACH,
-} from "../constants/leads";
+import { SEQUENCE_POSITIONS_VISIT, SEQUENCE_POSITIONS_OUTREACH } from "../constants/leads";
+import { IN_PERSON_TYPES } from "../constants/touchpoints";
 
 /**
  * Returns the appropriate sequence position options based on the touchpoint type.

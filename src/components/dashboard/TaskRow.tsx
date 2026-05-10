@@ -1,5 +1,25 @@
 import { TP_LABELS } from "./dashboardConstants";
 
+// Resolve where to navigate and what label to show for a task,
+// which may belong to a lead OR a standalone contact.
+const resolveTask = (r: any) => {
+  if (r.lead) {
+    return {
+      name: r.lead.business,
+      path: `/leads/${r.lead.id}`,
+      actionLabel: "Log Follow-Up",
+    };
+  }
+  if (r.contact) {
+    return {
+      name: `${r.contact.firstName} ${r.contact.lastName}`,
+      path: `/contacts/${r.contact.id}`,
+      actionLabel: "View Contact",
+    };
+  }
+  return { name: "Unknown", path: "#", actionLabel: "View" };
+};
+
 export const TaskRow = ({
   r,
   urgent,
@@ -11,15 +31,15 @@ export const TaskRow = ({
   onNavigate: (path: string) => void;
   onComplete: (id: string) => void;
 }) => {
+  const { name, path, actionLabel } = resolveTask(r);
+
   if (r.isEmailSentCheck) {
     return (
       <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm bg-red-50 border border-red-300">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <span className="text-red-500 flex-shrink-0">⚠️</span>
           <div className="min-w-0">
-            <span className="font-semibold text-red-700 truncate">
-              {r.lead.business}
-            </span>
+            <span className="font-semibold text-red-700 truncate">{name}</span>
             <span className="text-red-400 ml-1.5 text-xs">
               — follow-up email sent?
             </span>
@@ -27,10 +47,10 @@ export const TaskRow = ({
         </div>
         <div className="flex gap-1.5 flex-shrink-0">
           <button
-            onClick={() => onNavigate(`/leads/${r.lead.id}`)}
+            onClick={() => onNavigate(path)}
             className="text-xs bg-green-primary text-white rounded px-2.5 py-1 font-medium whitespace-nowrap"
           >
-            Log Follow-Up
+            {actionLabel}
           </button>
           <button
             onClick={() => onComplete(r.id)}
@@ -50,11 +70,9 @@ export const TaskRow = ({
     >
       <div
         className="flex-1 min-w-0 cursor-pointer"
-        onClick={() => onNavigate(`/leads/${r.lead.id}`)}
+        onClick={() => onNavigate(path)}
       >
-        <p className="font-medium text-gray-800 truncate">
-          {r.lead.business}
-        </p>
+        <p className="font-medium text-gray-800 truncate">{name}</p>
         <p
           className={`text-xs mt-0.5 truncate ${urgent ? "text-red-500" : "text-yellow-600"}`}
         >
@@ -66,10 +84,10 @@ export const TaskRow = ({
       </div>
       <div className="flex gap-1.5 flex-shrink-0">
         <button
-          onClick={() => onNavigate(`/leads/${r.lead.id}`)}
+          onClick={() => onNavigate(path)}
           className="text-xs bg-green-primary text-white rounded px-2.5 py-1 font-medium whitespace-nowrap"
         >
-          Log Follow-Up
+          {actionLabel}
         </button>
         <button
           onClick={() => onComplete(r.id)}

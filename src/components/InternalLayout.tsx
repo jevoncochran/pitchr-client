@@ -7,6 +7,7 @@ import {
   MdTimeline,
   MdSettings,
   MdKeyboardArrowDown,
+  MdPermContactCalendar,
 } from "react-icons/md";
 import { AuthContext } from "../context/auth/AuthContext";
 
@@ -17,6 +18,7 @@ interface Props {
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: <MdDashboard size={22} /> },
   { to: "/leads", label: "Leads", icon: <MdPeople size={22} /> },
+  { to: "/contacts", label: "Contacts", icon: <MdPermContactCalendar size={22} /> },
   { to: "/pipeline", label: "Pipeline", icon: <MdViewKanban size={22} /> },
   { to: "/sequence", label: "Tasks", icon: <MdTimeline size={22} /> },
   { to: "/settings", label: "Settings", icon: <MdSettings size={22} /> },

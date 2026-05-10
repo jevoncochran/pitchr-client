@@ -7,6 +7,8 @@ import PublicRoute from "./components/PublicRoute";
 import LeadsPage from "./pages/LeadsPage";
 import AddLeadPage from "./pages/AddLeadPage";
 import LeadDetailPage from "./pages/LeadDetailPage";
+import ContactsPage from "./pages/ContactsPage";
+import ContactDetailPage from "./pages/ContactDetailPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import PipelinePage from "./pages/PipelinePage";
 import SequencePage from "./pages/SequencePage";
@@ -24,6 +26,8 @@ function App() {
         <Route path="/leads" element={<LeadsPage />} />
         <Route path="/leads/:id" element={<LeadDetailPage />} />
         <Route path="/add-lead" element={<AddLeadPage />} />
+        <Route path="/contacts" element={<ContactsPage />} />
+        <Route path="/contacts/:id" element={<ContactDetailPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/pipeline" element={<PipelinePage />} />
         <Route path="/sequence" element={<SequencePage />} />

@@ -88,6 +88,15 @@ export enum LeadSource {
   InPerson = "IN_PERSON",
 }
 
+export enum ContactSource {
+  Outreach = "OUTREACH",
+  Referral = "REFERRAL",
+  Form = "FORM",
+  Networking = "NETWORKING",
+  InPerson = "IN_PERSON",
+  Other = "OTHER",
+}
+
 export enum DiscoveredVia {
   Instagram = "INSTAGRAM",
   Facebook = "FACEBOOK",
