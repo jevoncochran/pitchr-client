@@ -1,12 +1,15 @@
 import {
   ACTIVITY_CHANNELS,
-  NO_CONTACT_TYPES,
   REVENUE_GOAL,
   AVG_DEAL_SIZE,
   type GoalPeriod,
 } from "./dashboardConstants";
 import { SectionCard } from "../ui/SectionCard";
 import { SectionHeader } from "../ui/SectionHeader";
+import {
+  getActivityPeriodBounds,
+  countActivityForChannel,
+} from "../../utils/dashboardCalcs";
 
 export const ActivityGoals = ({
   allTouchpoints,
@@ -19,56 +22,7 @@ export const ActivityGoals = ({
 }) => {
   const closesNeeded = Math.ceil(REVENUE_GOAL / AVG_DEAL_SIZE); // 8
 
-  const now = new Date();
-  const startOfToday = new Date(now);
-  startOfToday.setHours(0, 0, 0, 0);
-
-  // Monday of the current calendar week
-  const startOfCalendarWeek = new Date(now);
-  const dayOfWeek = now.getDay(); // 0=Sun … 6=Sat
-  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  startOfCalendarWeek.setDate(now.getDate() - daysFromMonday);
-  startOfCalendarWeek.setHours(0, 0, 0, 0);
-
-  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-  // Period end boundaries (exclusive upper bound)
-  const startOfTomorrow = new Date(startOfToday);
-  startOfTomorrow.setDate(startOfToday.getDate() + 1);
-
-  const startOfNextCalendarWeek = new Date(startOfCalendarWeek);
-  startOfNextCalendarWeek.setDate(startOfCalendarWeek.getDate() + 7);
-
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-
-  const PERIOD_START: Record<GoalPeriod, Date> = {
-    today: startOfToday,
-    week: startOfCalendarWeek,
-    month: startOfMonth,
-  };
-
-  const PERIOD_END: Record<GoalPeriod, Date> = {
-    today: startOfTomorrow,
-    week: startOfNextCalendarWeek,
-    month: startOfNextMonth,
-  };
-
-  // Count unique (leadId × calendar-day) pairs for a given type within [since, until).
-  // Multiple touchpoints to the same lead on the same day = 1 toward the goal.
-  // Same lead on a different day = 1 more.
-  // The upper bound prevents future-dated touchpoints from inflating the current period.
-  const activityCount = (type: string, since: Date, until: Date): number => {
-    const relevant = allTouchpoints.filter((tp) => {
-      const d = new Date(tp.date);
-      return !NO_CONTACT_TYPES.has(tp.type) && tp.type === type && d >= since && d < until;
-    });
-    const seen = new Set<string>();
-    relevant.forEach((tp) => {
-      seen.add(`${tp.leadId}_${new Date(tp.date).toDateString()}`);
-    });
-    return seen.size;
-  };
+  const { periodStart, periodEnd, isWeekend } = getActivityPeriodBounds(new Date());
 
   return (
     <SectionCard className="rounded-2xl p-4 md:p-5 mb-6">
@@ -137,10 +91,11 @@ export const ActivityGoals = ({
                   // (e.g. Networking has no daily target)
                   if (target === undefined) return null;
                   const isExtraCredit = goalPeriod === "today" && isWeekend;
-                  const count = activityCount(
+                  const count = countActivityForChannel(
+                    allTouchpoints,
                     type,
-                    PERIOD_START[goalPeriod],
-                    PERIOD_END[goalPeriod],
+                    periodStart[goalPeriod],
+                    periodEnd[goalPeriod],
                   );
                   const pct = Math.min(
                     Math.round((count / target) * 100),

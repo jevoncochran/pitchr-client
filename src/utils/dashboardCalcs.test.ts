@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { countTouchedThisWeek, countTouchedLastWeek } from "./dashboardCalcs";
+import {
+  countTouchedThisWeek,
+  countTouchedLastWeek,
+  getActivityPeriodBounds,
+  countActivityForChannel,
+} from "./dashboardCalcs";
 
 // "now" is pinned to Saturday 2026-05-09 for all tests in this file
 const NOW = new Date("2026-05-09T12:00:00Z");
@@ -78,6 +83,60 @@ describe("real-world scenarios", () => {
     ];
 
     expect(countTouchedThisWeek(touchpoints, NOW)).toBe(2);
+  });
+});
+
+// ─── Contact touchpoints ──────────────────────────────────────────────────────
+// Touchpoints are unified — a touchpoint logged against a contact (contactId
+// set, leadId absent) must be counted the same as one logged against a lead.
+
+describe("contact touchpoints count toward the stat card", () => {
+  /**
+   * Scenario: a contact is created, then the user calls them today.
+   * The Touchpoints stat card should increment by 1.
+   */
+  it("counts a call logged against a contact today", () => {
+    const touchpoints = [
+      { date: "2026-05-09T11:00:00Z", type: "CALL", contactId: "contact-abc" },
+      // no leadId — this is a standalone contact touchpoint
+    ];
+    expect(countTouchedThisWeek(touchpoints, NOW)).toBe(1);
+  });
+
+  it("counts contact touchpoints alongside lead touchpoints", () => {
+    const touchpoints = [
+      { date: "2026-05-09T11:00:00Z", type: "CALL",     contactId: "contact-abc" },
+      { date: "2026-05-08T09:00:00Z", type: "IN_PERSON", leadId: "lead-xyz" },
+    ];
+    expect(countTouchedThisWeek(touchpoints, NOW)).toBe(2);
+  });
+
+  it("does not count a VISIT_ATTEMPT logged against a contact", () => {
+    const touchpoints = [
+      { date: "2026-05-09T11:00:00Z", type: "VISIT_ATTEMPT", contactId: "contact-abc" },
+    ];
+    expect(countTouchedThisWeek(touchpoints, NOW)).toBe(0);
+  });
+});
+
+// ─── Activity Goals ───────────────────────────────────────────────────────────
+
+describe("countActivityForChannel — contact call today", () => {
+  /**
+   * Scenario: a contact is created, then the user logs a CALL touchpoint
+   * against that contact today. The activity goal count for Calls should
+   * increment by 1 for today, this week, and this month.
+   */
+  it("increments the today, week, and month call counts by 1", () => {
+    const { periodStart, periodEnd } = getActivityPeriodBounds(NOW);
+
+    const touchpoints = [
+      { type: "CALL", contactId: "contact-abc", date: "2026-05-09T11:00:00Z" },
+    ];
+
+    expect(countActivityForChannel(touchpoints, "CALL", periodStart.today, periodEnd.today)).toBe(1);
+    expect(countActivityForChannel(touchpoints, "CALL", periodStart.week,  periodEnd.week )).toBe(1);
+    expect(countActivityForChannel(touchpoints, "CALL", periodStart.month, periodEnd.month)).toBe(1);
   });
 });
 
