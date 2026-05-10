@@ -5,6 +5,8 @@ import {
   AVG_DEAL_SIZE,
   type GoalPeriod,
 } from "./dashboardConstants";
+import { SectionCard } from "../ui/SectionCard";
+import { SectionHeader } from "../ui/SectionHeader";
 
 export const ActivityGoals = ({
   allTouchpoints,
@@ -69,12 +71,13 @@ export const ActivityGoals = ({
   };
 
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl p-4 md:p-5 shadow-[0_4px_16px_rgba(15,23,42,0.10)] mb-6">
+    <SectionCard className="rounded-2xl p-4 md:p-5 mb-6">
       {/* Header row */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-1">
-        {" "}
-        <p className="text-sm font-semibold text-gray-800">Activity Goals</p>
-        {/* Period toggle */}
+      <SectionHeader
+        title="Activity Goals"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-1"
+        action={
+        /* Period toggle */
         <div className="inline-flex items-center rounded-2xl bg-gray-100 p-1 shadow-inner">
           {(["today", "week", "month"] as const).map((p) => {
             const isActive = goalPeriod === p;
@@ -98,7 +101,8 @@ export const ActivityGoals = ({
             );
           })}
         </div>
-      </div>
+        }
+      />
       <p className="text-xs text-gray-400 mb-4">
         Goal:{" "}
         <span className="font-medium text-gray-600">
@@ -180,6 +184,6 @@ export const ActivityGoals = ({
           </div>
         ))}
       </div>
-    </div>
+    </SectionCard>
   );
 };

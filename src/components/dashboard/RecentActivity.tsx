@@ -1,4 +1,6 @@
 import { TP_LABELS } from "./dashboardConstants";
+import { SectionCard } from "../ui/SectionCard";
+import { SectionHeader } from "../ui/SectionHeader";
 
 export const RecentActivity = ({
   touchpoints,
@@ -9,8 +11,8 @@ export const RecentActivity = ({
   visibleCount: number;
   onShowMore: () => void;
 }) => (
-  <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-[0_4px_16px_rgba(15,23,42,0.10)] self-start">
-    <h2 className="font-semibold text-gray-700 mb-4">Recent Activity</h2>
+  <SectionCard className="rounded-xl p-5 self-start">
+    <SectionHeader title="Recent Activity" className="mb-4" />
     {touchpoints.length === 0 ? (
       <p className="text-sm text-gray-400">No activity logged yet.</p>
     ) : (
@@ -58,5 +60,5 @@ export const RecentActivity = ({
         )}
       </>
     )}
-  </div>
+  </SectionCard>
 );
