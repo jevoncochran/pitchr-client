@@ -9,6 +9,7 @@ import { SectionCard } from "../components/ui/SectionCard";
 import { SectionHeader } from "../components/ui/SectionHeader";
 import { FieldLabel } from "../components/ui/FieldLabel";
 import { Industry, BusinessType } from "../types.d";
+import { TASK_TYPES } from "../constants/leads";
 import { HOW_WE_MET_OPTIONS, HOW_WE_MET_LABELS } from "./ContactsPage";
 import {
   TOUCHPOINT_TYPES,
@@ -38,6 +39,13 @@ const ContactDetailPage = () => {
   const [logNotes, setLogNotes] = useState("");
   const [logDate, setLogDate] = useState<Date>(new Date());
   const [loggingTouchpoint, setLoggingTouchpoint] = useState(false);
+
+  // Schedule task
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [taskType, setTaskType] = useState(TASK_TYPES[0].value);
+  const [taskDueDate, setTaskDueDate] = useState<Date | null>(null);
+  const [taskNote, setTaskNote] = useState("");
+  const [submittingTask, setSubmittingTask] = useState(false);
 
   // Convert to Lead modal
   const [showConvertModal, setShowConvertModal] = useState(false);
@@ -111,6 +119,28 @@ const ContactDetailPage = () => {
       alert("Failed to log touchpoint");
     } finally {
       setLoggingTouchpoint(false);
+    }
+  };
+
+  const handleTaskSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittingTask(true);
+    try {
+      await api.post("/api/tasks", {
+        type: taskType,
+        dueDate: taskDueDate ? taskDueDate.toISOString() : null,
+        note: taskNote || null,
+        contact: { connect: { id } },
+      });
+      setShowTaskForm(false);
+      setTaskType(TASK_TYPES[0].value);
+      setTaskDueDate(null);
+      setTaskNote("");
+      fetchContact();
+    } catch {
+      alert("Failed to save task");
+    } finally {
+      setSubmittingTask(false);
     }
   };
 
@@ -568,23 +598,97 @@ const ContactDetailPage = () => {
         {/* Tasks */}
         <SectionCard className="rounded-xl p-5 mb-5">
           <SectionHeader
-            title={`Tasks (${contact.tasks?.length ?? 0})`}
+            title={`Tasks (${contact.tasks?.filter((t: any) => !t.completed).length ?? 0})`}
+            action={
+              <button
+                onClick={() => setShowTaskForm((v) => !v)}
+                className="text-xs border border-gray-300 text-gray-600 rounded-lg px-3 h-[30px] hover:bg-gray-50 transition"
+              >
+                {showTaskForm ? "Cancel" : "+ Schedule"}
+              </button>
+            }
             className="mb-4"
           />
-          {contact.tasks && contact.tasks.length > 0 ? (
+
+          {/* Schedule task form */}
+          {showTaskForm && (
+            <form
+              onSubmit={handleTaskSubmit}
+              className="bg-gray-50 rounded-lg p-4 mb-4 text-sm border border-gray-100"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className={labelCls}>Type</label>
+                  <select
+                    value={taskType}
+                    onChange={(e) => setTaskType(e.target.value)}
+                    className={inputCls}
+                  >
+                    {TASK_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>
+                    Due Date{" "}
+                    <span className="text-gray-300 font-normal normal-case tracking-normal">
+                      (optional)
+                    </span>
+                  </label>
+                  <DatePicker
+                    selected={taskDueDate}
+                    onChange={(date: Date | null) => setTaskDueDate(date)}
+                    isClearable
+                    placeholderText="No due date"
+                    dateFormat="MM/dd/yyyy"
+                    className={inputCls}
+                    wrapperClassName="w-full"
+                  />
+                </div>
+              </div>
+              <div className="mb-3">
+                <label className={labelCls}>
+                  Note{" "}
+                  <span className="text-gray-300 font-normal normal-case tracking-normal">
+                    (optional)
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={taskNote}
+                  onChange={(e) => setTaskNote(e.target.value)}
+                  placeholder="e.g. Follow up on intro call..."
+                  className={inputCls}
+                />
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={submittingTask}
+                  className="bg-green-primary text-white text-sm font-semibold rounded-lg px-4 py-1.5 hover:opacity-90 transition disabled:opacity-60"
+                >
+                  {submittingTask ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Task list */}
+          {contact.tasks?.filter((t: any) => !t.completed).length > 0 ? (
             <div className="flex flex-col gap-2">
-              {contact.tasks.map((task: any) => (
+              {contact.tasks
+                .filter((task: any) => !task.completed)
+                .map((task: any) => (
                 <div
                   key={task.id}
-                  className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm border ${
-                    task.completed
-                      ? "bg-gray-50 border-gray-100 opacity-60"
-                      : "bg-yellow-50 border-yellow-200"
-                  }`}
+                  className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm border bg-yellow-50 border-yellow-200"
                 >
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-800 truncate">
-                      {task.type}
+                      {TASK_TYPES.find((t) => t.value === task.type)?.label ?? task.type}
                     </p>
                     {task.note && (
                       <p className="text-xs text-gray-500 mt-0.5 truncate">
@@ -597,25 +701,20 @@ const ContactDetailPage = () => {
                       </p>
                     )}
                   </div>
-                  {!task.completed && (
-                    <button
-                      onClick={async () => {
-                        await api.patch(`/api/tasks/${task.id}`, {
-                          completed: true,
-                          completedAt: new Date().toISOString(),
-                        });
-                        fetchContact();
-                      }}
-                      className="text-xs bg-white border border-gray-300 text-gray-500 rounded px-2.5 py-1 font-medium whitespace-nowrap hover:bg-gray-50 transition"
-                    >
-                      Done
-                    </button>
-                  )}
+                  <button
+                    onClick={async () => {
+                      await api.patch(`/api/tasks/${task.id}/complete`, {});
+                      fetchContact();
+                    }}
+                    className="text-xs bg-white border border-gray-300 text-gray-500 rounded px-2.5 py-1 font-medium whitespace-nowrap hover:bg-gray-50 transition"
+                  >
+                    Done
+                  </button>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-400">No tasks.</p>
+            <p className="text-sm text-gray-400">No open tasks.</p>
           )}
         </SectionCard>
       </div>

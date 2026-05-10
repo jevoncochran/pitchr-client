@@ -305,21 +305,26 @@ export const DashboardPage = () => {
                         Upcoming (next 7 days)
                       </p>
                       <div className="space-y-1">
-                        {upcomingTasks.slice(0, 4).map((r: any) => (
+                        {upcomingTasks.slice(0, 4).map((r: any) => {
+                          const name = r.lead?.business
+                            ?? (r.contact ? `${r.contact.firstName}${r.contact.lastName ? ` ${r.contact.lastName}` : ""}` : "Unknown");
+                          const path = r.lead ? `/leads/${r.lead.id}` : `/contacts/${r.contact?.id}`;
+                          return (
                           <div
                             key={r.id}
                             className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 rounded px-2 py-1 -mx-2"
-                            onClick={() => navigate(`/leads/${r.lead.id}`)}
+                            onClick={() => navigate(path)}
                           >
                             <span className="text-gray-700">
-                              {r.lead.business}
+                              {name}
                             </span>
                             <span className="text-xs text-gray-400">
                               {TP_LABELS[r.type] ?? r.type} ·{" "}
                               {new Date(r.dueDate).toLocaleDateString()}
                             </span>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
