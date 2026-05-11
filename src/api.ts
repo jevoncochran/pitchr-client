@@ -7,9 +7,16 @@ const api = axios.create({
 // Attach JWT token to every request automatically
 api.interceptors.request.use((config) => {
   try {
-    const token = JSON.parse(localStorage.getItem("token") ?? "");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const raw = localStorage.getItem("token");
+    if (raw) {
+      // Token may be stored as a JSON-encoded string ("\"ey...\"") or a plain JWT.
+      let token: string;
+      try {
+        token = JSON.parse(raw);
+      } catch {
+        token = raw;
+      }
+      if (token) config.headers.Authorization = `Bearer ${token}`;
     }
   } catch {
     // No token stored — login page calls will proceed without auth header

@@ -1,9 +1,9 @@
 import { createContext } from "react";
 
 type AuthContextType = {
-  user: unknown;
+  user: object | null;
   token: string | null;
-  login: (userData: unknown, token: string) => void;
+  login: (userData: object, token: string) => void;
   logout: () => void;
 };
 
