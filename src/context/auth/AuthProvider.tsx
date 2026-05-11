@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState(parseStored<object>(storedUser));
   const [token, setToken] = useState<string | null>(parseStored<string>(storedToken));
 
-  const login = (userData: unknown, token: string) => {
+  const login = (userData: object, token: string) => {
     console.log("THE LOGIN FN FROM AUTH CONTEXT IS RUNNING");
     setUser(userData);
     setToken(token);
