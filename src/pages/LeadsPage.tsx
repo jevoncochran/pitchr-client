@@ -59,7 +59,7 @@ const MultiSelectDropdown = ({
       <span className="text-gray-400 text-xs">▾</span>
     </button>
     {open && (
-      <div className="absolute left-0 top-[42px] z-20 bg-white border rounded-xl shadow-lg p-3 w-52">
+      <div className="absolute left-0 top-[42px] z-50 bg-white border rounded-xl shadow-lg p-3 w-52">
         <p className="text-xs text-gray-400 uppercase tracking-wide mb-2 px-1">{label}</p>
         {options.length === 0 ? (
           <p className="text-xs text-gray-300 px-1 py-1">No options yet</p>
@@ -255,7 +255,7 @@ const LeadsPage = () => {
         </div>
 
         {/* Row 2: search + filters — scrolls horizontally on mobile */}
-        <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0">
+        <div className="flex flex-wrap items-center gap-2 mb-6">
           <input
             type="text"
             placeholder="Search by business name..."
@@ -324,7 +324,7 @@ const LeadsPage = () => {
               <span className="text-gray-400 text-xs">▾</span>
             </button>
             {stageDropdownOpen && (
-              <div className="absolute left-0 top-[42px] z-20 bg-white border rounded-xl shadow-lg p-3 w-52">
+              <div className="absolute left-0 top-[42px] z-50 bg-white border rounded-xl shadow-lg p-3 w-52">
                 <p className="text-xs text-gray-400 uppercase tracking-wide mb-2 px-1">Show / Hide</p>
                 {ALL_STAGES.map((stage) => (
                   <label
