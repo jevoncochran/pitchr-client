@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { formatPhone, toTelHref } from "../utils/phone";
 import { useNavigate, useParams } from "react-router-dom";
 import { MdArrowBack, MdEdit, MdCheck, MdClose } from "react-icons/md";
 import DatePicker from "react-datepicker";
@@ -423,7 +424,14 @@ const ContactDetailPage = () => {
                 />
               ) : (
                 <p className="text-sm font-medium text-gray-800">
-                  {contact.phone ?? (
+                  {contact.phone ? (
+                    <a
+                      href={toTelHref(contact.phone)}
+                      className="hover:text-green-primary transition-colors"
+                    >
+                      {formatPhone(contact.phone)}
+                    </a>
+                  ) : (
                     <span className="text-gray-400">—</span>
                   )}
                 </p>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 export interface ParsedAddress {
   addressLine1: string;
@@ -8,30 +8,31 @@ export interface ParsedAddress {
 }
 
 interface Props {
+  value: string;
+  onChange: (value: string) => void;
   onSelect: (address: ParsedAddress) => void;
   placeholder?: string;
   className?: string;
+  required?: boolean;
 }
 
 const GOOGLE_MAPS_SCRIPT_ID = "google-maps-script";
 
 function loadGoogleMapsScript(): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (window.google?.maps?.places?.PlaceAutocompleteElement) {
+    if (window.google?.maps?.places?.Autocomplete) {
       resolve();
       return;
     }
-
     if (document.getElementById(GOOGLE_MAPS_SCRIPT_ID)) {
       const interval = setInterval(() => {
-        if (window.google?.maps?.places?.PlaceAutocompleteElement) {
+        if (window.google?.maps?.places?.Autocomplete) {
           clearInterval(interval);
           resolve();
         }
       }, 100);
       return;
     }
-
     const script = document.createElement("script");
     script.id = GOOGLE_MAPS_SCRIPT_ID;
     script.src = `https://maps.googleapis.com/maps/api/js?key=${
@@ -39,9 +40,8 @@ function loadGoogleMapsScript(): Promise<void> {
     }&libraries=places&loading=async&v=weekly`;
     script.async = true;
     script.onload = () => {
-      // Give the API a moment to initialize
       const interval = setInterval(() => {
-        if (window.google?.maps?.places?.PlaceAutocompleteElement) {
+        if (window.google?.maps?.places?.Autocomplete) {
           clearInterval(interval);
           resolve();
         }
@@ -53,18 +53,15 @@ function loadGoogleMapsScript(): Promise<void> {
 }
 
 function parseAddressComponents(
-  components: google.maps.places.AddressComponent[]
+  components: google.maps.GeocoderAddressComponent[],
 ): ParsedAddress {
   const get = (type: string) =>
-    components.find((c) => c.types.includes(type))?.longText ?? "";
+    components.find((c) => c.types.includes(type))?.long_name ?? "";
   const getShort = (type: string) =>
-    components.find((c) => c.types.includes(type))?.shortText ?? "";
-
-  const streetNumber = get("street_number");
-  const route = get("route");
+    components.find((c) => c.types.includes(type))?.short_name ?? "";
 
   return {
-    addressLine1: [streetNumber, route].filter(Boolean).join(" "),
+    addressLine1: [get("street_number"), get("route")].filter(Boolean).join(" "),
     city:
       get("locality") ||
       get("sublocality") ||
@@ -76,93 +73,53 @@ function parseAddressComponents(
 }
 
 const AddressAutocomplete = ({
+  value,
+  onChange,
   onSelect,
-  placeholder = "Search address...",
+  placeholder = "Start typing an address...",
   className = "",
+  required = false,
 }: Props) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const elementRef = useRef<HTMLElement | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
-    loadGoogleMapsScript()
-      .then(() => setLoaded(true))
-      .catch(() => setError(true));
-  }, []);
+    loadGoogleMapsScript().then(() => {
+      if (!inputRef.current || autocompleteRef.current) return;
 
-  useEffect(() => {
-    if (!loaded || !containerRef.current) return;
+      const autocomplete = new window.google.maps.places.Autocomplete(
+        inputRef.current,
+        {
+          componentRestrictions: { country: "us" },
+          fields: ["address_components"],
+        },
+      );
 
-    // Remove any previously mounted element
-    if (elementRef.current) {
-      elementRef.current.remove();
-    }
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        if (!place.address_components) return;
+        const parsed = parseAddressComponents(place.address_components);
+        onSelect(parsed);
+        // Sync the input value to addressLine1
+        if (inputRef.current) {
+          onChange(parsed.addressLine1);
+          inputRef.current.value = parsed.addressLine1;
+        }
+      });
 
-    // Create the new PlaceAutocompleteElement
-    const autocomplete = new window.google.maps.places.PlaceAutocompleteElement(
-      {
-        types: ["address"],
-        componentRestrictions: { country: "us" },
-      }
-    );
-
-    // Style it to match the app
-    autocomplete.style.width = "100%";
-    autocomplete.style.fontSize = "0.875rem";
-
-    elementRef.current = autocomplete;
-    containerRef.current.appendChild(autocomplete);
-
-    const handleSelect = async (event: Event) => {
-      const e = event as CustomEvent & {
-        placePrediction: google.maps.places.PlacePrediction;
-      };
-      try {
-        const place = e.placePrediction.toPlace();
-        await place.fetchFields({ fields: ["addressComponents"] });
-        const components = place.addressComponents;
-        if (!components) return;
-        onSelect(parseAddressComponents(components));
-      } catch (err) {
-        console.error("Error fetching place details:", err);
-      }
-    };
-
-    autocomplete.addEventListener("gmp-select", handleSelect);
-
-    return () => {
-      autocomplete.removeEventListener("gmp-select", handleSelect);
-      autocomplete.remove();
-    };
-  }, [loaded, onSelect]);
-
-  if (error) {
-    return (
-      <input
-        type="text"
-        placeholder="Address search unavailable"
-        disabled
-        className={`w-full px-3 py-2 bg-gray-100 border rounded-lg text-gray-400 ${className}`}
-      />
-    );
-  }
-
-  if (!loaded) {
-    return (
-      <input
-        type="text"
-        placeholder="Loading..."
-        disabled
-        className={`w-full px-3 py-2 bg-gray-50 border rounded-lg text-gray-400 ${className}`}
-      />
-    );
-  }
+      autocompleteRef.current = autocomplete;
+    });
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div
-      ref={containerRef}
-      className={`w-full ${className}`}
+    <input
+      ref={inputRef}
+      type="text"
+      required={required}
+      defaultValue={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={`w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none ${className}`}
     />
   );
 };
