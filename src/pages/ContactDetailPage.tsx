@@ -43,6 +43,16 @@ const ContactDetailPage = () => {
   const [logDate, setLogDate] = useState<Date>(new Date());
   const [loggingTouchpoint, setLoggingTouchpoint] = useState(false);
 
+  // Edit / delete touchpoint
+  const [editingTpId, setEditingTpId] = useState<string | null>(null);
+  const [editTpForm, setEditTpForm] = useState<{ type: string; summary: string; date: Date }>({
+    type: "EMAIL",
+    summary: "",
+    date: new Date(),
+  });
+  const [savingTp, setSavingTp] = useState(false);
+  const [deletingTpId, setDeletingTpId] = useState<string | null>(null);
+
   // Schedule task
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [taskType, setTaskType] = useState(TASK_TYPES[0].value);
@@ -120,6 +130,43 @@ const ContactDetailPage = () => {
     await api.delete(`/api/attachments/${attachmentId}`);
     setDeletingAttachmentId(null);
     fetchAttachments();
+  };
+
+  const startEditTp = (tp: any) => {
+    setEditingTpId(tp.id);
+    setEditTpForm({
+      type: tp.type,
+      summary: tp.summary ?? tp.notes ?? "",
+      date: new Date(tp.date),
+    });
+  };
+
+  const handleTouchpointEditSave = async () => {
+    if (!editingTpId) return;
+    setSavingTp(true);
+    try {
+      await api.patch(`/api/touchpoints/${editingTpId}`, {
+        type: editTpForm.type,
+        summary: editTpForm.summary || undefined,
+        date: editTpForm.date.toISOString(),
+      });
+      setEditingTpId(null);
+      fetchContact();
+    } catch {
+      alert("Failed to save touchpoint");
+    } finally {
+      setSavingTp(false);
+    }
+  };
+
+  const handleTouchpointDelete = async (tpId: string) => {
+    try {
+      await api.delete(`/api/touchpoints/${tpId}`);
+      setDeletingTpId(null);
+      fetchContact();
+    } catch {
+      alert("Failed to delete touchpoint");
+    }
   };
 
   const fetchContact = () => {
@@ -799,19 +846,115 @@ const ContactDetailPage = () => {
 
               {contact.touchpoints && contact.touchpoints.length > 0 ? (
                 <div className="space-y-3">
-                  {contact.touchpoints.map((tp: any) => (
-                    <div key={tp.id} className="border-l-2 border-green-primary pl-3 text-sm">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium">
-                          {TOUCHPOINT_LABEL[tp.type] ?? tp.type}
-                        </span>
-                        <span className="text-gray-400">{new Date(tp.date).toLocaleDateString()}</span>
+                  {contact.touchpoints.map((tp: any) =>
+                    editingTpId === tp.id ? (
+                      // ── Inline edit form ──
+                      <div key={tp.id} className="bg-gray-50 rounded-lg p-4 text-sm border">
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          <div>
+                            <label className={labelCls}>Type</label>
+                            <select
+                              value={editTpForm.type}
+                              onChange={(e) => setEditTpForm((f) => ({ ...f, type: e.target.value }))}
+                              className={inputCls}
+                            >
+                              {TOUCHPOINT_TYPES.map((t) => (
+                                <option key={t.value} value={t.value}>{t.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className={labelCls}>Date</label>
+                            <DatePicker
+                              selected={editTpForm.date}
+                              onChange={(date: Date | null) => date && setEditTpForm((f) => ({ ...f, date }))}
+                              dateFormat="MM/dd/yyyy"
+                              className={inputCls}
+                              wrapperClassName="w-full"
+                            />
+                          </div>
+                        </div>
+                        <div className="mb-3">
+                          <label className={labelCls}>Notes (optional)</label>
+                          <textarea
+                            rows={2}
+                            value={editTpForm.summary}
+                            onChange={(e) => setEditTpForm((f) => ({ ...f, summary: e.target.value }))}
+                            placeholder="What happened?"
+                            className="w-full text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-primary/20 bg-white resize-none"
+                          />
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            type="button"
+                            onClick={() => setEditingTpId(null)}
+                            className="border border-gray-200 text-gray-600 text-sm font-medium rounded-lg px-3 py-1.5 hover:bg-gray-50 transition"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleTouchpointEditSave}
+                            disabled={savingTp}
+                            className="bg-green-primary text-white text-sm font-semibold rounded-lg px-4 py-1.5 hover:opacity-90 transition disabled:opacity-60"
+                          >
+                            {savingTp ? "Saving..." : "Save"}
+                          </button>
+                        </div>
                       </div>
-                      {(tp.summary || tp.notes) && (
-                        <p className="text-gray-600 mt-0.5">{tp.summary ?? tp.notes}</p>
-                      )}
-                    </div>
-                  ))}
+                    ) : (
+                      // ── Normal row ──
+                      <div key={tp.id} className="border-l-2 border-green-primary pl-3 text-sm">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium">
+                                {TOUCHPOINT_LABEL[tp.type] ?? tp.type}
+                              </span>
+                              <span className="text-gray-400">{new Date(tp.date).toLocaleDateString()}</span>
+                            </div>
+                            {(tp.summary || tp.notes) && (
+                              <p className="text-gray-600 mt-0.5">{tp.summary ?? tp.notes}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                            {deletingTpId === tp.id ? (
+                              <>
+                                <span className="text-xs text-gray-500">Delete?</span>
+                                <button
+                                  onClick={() => handleTouchpointDelete(tp.id)}
+                                  className="text-xs text-red-500 hover:text-red-700 font-medium"
+                                >
+                                  Yes
+                                </button>
+                                <button
+                                  onClick={() => setDeletingTpId(null)}
+                                  className="text-xs text-gray-400 hover:text-gray-600"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => startEditTp(tp)}
+                                  className="text-xs text-gray-400 hover:text-gray-700"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => setDeletingTpId(tp.id)}
+                                  className="text-xs text-gray-300 hover:text-red-400"
+                                >
+                                  Delete
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  )}
                 </div>
               ) : (
                 <p className="text-sm text-gray-400">No touchpoints logged yet.</p>
