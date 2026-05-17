@@ -832,11 +832,11 @@ const LeadDetailPage = () => {
                       <input
                         type="text"
                         placeholder="Optional"
-                        value={contactForm.notes}
+                        value={contactForm.bio}
                         onChange={(e) =>
                           setContactForm((f) => ({
                             ...f,
-                            notes: e.target.value,
+                            bio: e.target.value,
                           }))
                         }
                         className="w-full border rounded-lg px-3 py-2 focus:outline-none text-sm"
@@ -971,11 +971,11 @@ const LeadDetailPage = () => {
                           </label>
                           <input
                             type="text"
-                            value={contactForm.notes}
+                            value={contactForm.bio}
                             onChange={(e) =>
                               setContactForm((f) => ({
                                 ...f,
-                                notes: e.target.value,
+                                bio: e.target.value,
                               }))
                             }
                             className="w-full border rounded-lg px-3 py-2 focus:outline-none text-sm"
@@ -1098,7 +1098,7 @@ const LeadDetailPage = () => {
                                   email: c.email ?? "",
                                   phone: c.phone ?? "",
                                   isDecisionMaker: c.isDecisionMaker,
-                                  notes: c.notes ?? "",
+                                  bio: c.bio ?? "",
                                 });
                               }}
                               className="text-xs text-gray-400 hover:text-gray-700 border rounded px-2 py-1"
