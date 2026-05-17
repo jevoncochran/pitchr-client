@@ -82,7 +82,7 @@ export const useLeadDetail = () => {
   const [deletingContactId, setDeletingContactId] = useState<string | null>(null);
   const [contactForm, setContactForm] = useState({
     firstName: "", lastName: "", title: "",
-    email: "", phone: "", isDecisionMaker: false, notes: "",
+    email: "", phone: "", isDecisionMaker: false, bio: "",
   });
   const [savingContact, setSavingContact] = useState(false);
 
@@ -117,7 +117,7 @@ export const useLeadDetail = () => {
   };
 
   const resetContactForm = () =>
-    setContactForm({ firstName: "", lastName: "", title: "", email: "", phone: "", isDecisionMaker: false, notes: "" });
+    setContactForm({ firstName: "", lastName: "", title: "", email: "", phone: "", isDecisionMaker: false, bio: "" });
 
   const handleContactSave = async () => {
     if (!contactForm.firstName.trim()) return;
