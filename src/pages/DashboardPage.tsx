@@ -282,7 +282,12 @@ export const DashboardPage = () => {
                       Nothing due today.{" "}
                       {upcomingTasks.length > 0 && (
                         <span className="text-gray-500">
-                          Next up: {upcomingTasks[0].lead.business} on{" "}
+                          Next up:{" "}
+                          {upcomingTasks[0].lead?.business ??
+                            (upcomingTasks[0].contact
+                              ? `${upcomingTasks[0].contact.firstName}${upcomingTasks[0].contact.lastName ? ` ${upcomingTasks[0].contact.lastName}` : ""}`
+                              : "Unknown")}{" "}
+                          on{" "}
                           {new Date(
                             upcomingTasks[0].dueDate,
                           ).toLocaleDateString()}

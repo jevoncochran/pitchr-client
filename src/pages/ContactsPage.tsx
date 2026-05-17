@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { formatPhone, toTelHref } from "../utils/phone";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
 import InternalLayout from "../components/InternalLayout";
@@ -218,7 +219,14 @@ const ContactsPage = () => {
                         )}
                       </td>
                       <td className="p-4 text-sm text-gray-600">
-                        {contact.phone ?? (
+                        {contact.phone ? (
+                          <a
+                            href={toTelHref(contact.phone)}
+                            className="hover:text-green-primary transition-colors"
+                          >
+                            {formatPhone(contact.phone)}
+                          </a>
+                        ) : (
                           <span className="text-gray-400">—</span>
                         )}
                       </td>

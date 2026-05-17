@@ -1,4 +1,5 @@
 import api from "../api";
+import { formatPhone, toTelHref } from "../utils/phone";
 import AddressAutocomplete from "../components/AddressAutocomplete";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -1045,9 +1046,12 @@ const LeadDetailPage = () => {
                           </div>
                           <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
                             {c.phone && (
-                              <span className="text-xs text-gray-500">
-                                {c.phone}
-                              </span>
+                              <a
+                                href={toTelHref(c.phone)}
+                                className="text-xs text-gray-500 hover:text-green-primary transition-colors"
+                              >
+                                {formatPhone(c.phone)}
+                              </a>
                             )}
                             {c.email && (
                               <span className="text-xs text-gray-500">
@@ -1138,10 +1142,17 @@ const LeadDetailPage = () => {
                   <div className="grid grid-cols-1 gap-3 mb-3">
                     <div>
                       <label className="block font-semibold mb-1">
-                        Search Address
+                        Address Line 1
                       </label>
                       <AddressAutocomplete
-                        placeholder="Type to search address..."
+                        required
+                        value={locationForm.addressLine1}
+                        onChange={(val) =>
+                          setLocationForm((f) => ({
+                            ...f,
+                            addressLine1: val,
+                          }))
+                        }
                         onSelect={(parsed) =>
                           setLocationForm((f) => ({
                             ...f,
@@ -1151,23 +1162,6 @@ const LeadDetailPage = () => {
                             zip: parsed.zip,
                           }))
                         }
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold mb-1">
-                        Address Line 1
-                      </label>
-                      <input
-                        required
-                        type="text"
-                        value={locationForm.addressLine1}
-                        onChange={(e) =>
-                          setLocationForm((f) => ({
-                            ...f,
-                            addressLine1: e.target.value,
-                          }))
-                        }
-                        className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-[0_4px_16px_rgba(15,23,42,0.10)] focus:outline-none"
                       />
                     </div>
                     <div>
@@ -1309,7 +1303,12 @@ const LeadDetailPage = () => {
                           </p>
                           {loc.phoneNumbers?.map((ph: any) => (
                             <p key={ph.id} className="text-gray-500 mt-1">
-                              {ph.number}{" "}
+                              <a
+                                href={toTelHref(ph.number)}
+                                className="hover:text-green-primary transition-colors"
+                              >
+                                {formatPhone(ph.number)}
+                              </a>{" "}
                               <span className="text-xs text-gray-400 capitalize">
                                 ({ph.label?.toLowerCase()})
                               </span>
