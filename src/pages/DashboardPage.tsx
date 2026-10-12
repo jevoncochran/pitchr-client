@@ -21,6 +21,7 @@ import {
 } from "../components/dashboard/DashboardIcons";
 import { TP_LABELS } from "../components/dashboard/dashboardConstants";
 import { SectionCard } from "../components/ui/SectionCard";
+import { ConfirmModal } from "../components/ui/ConfirmModal";
 import { SectionHeader } from "../components/ui/SectionHeader";
 import {
   getActiveLeads,
@@ -53,6 +54,8 @@ export const DashboardPage = () => {
     email: { sent: number; responded: number; rate: number };
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const fetchAll = () => {
     Promise.all([
@@ -78,6 +81,17 @@ export const DashboardPage = () => {
   useEffect(() => {
     fetchAll();
   }, []);
+
+  const handleClearAllTasks = async () => {
+    setClearing(true);
+    try {
+      await api.delete("/api/tasks/clear-all");
+      setConfirmClearOpen(false);
+      fetchAll();
+    } finally {
+      setClearing(false);
+    }
+  };
 
   const handleCompleteTask = (taskId: string) => {
     api.patch(`/api/tasks/${taskId}/complete`, {}).then(fetchAll);
@@ -234,10 +248,18 @@ export const DashboardPage = () => {
                         </h2>
                       </div>
 
-                      <span className="text-xs bg-red-100/80 text-red-600 border border-red-200/70 px-3 py-1.5 rounded-full font-semibold">
-                        {urgentTasks.length} item
-                        {urgentTasks.length !== 1 ? "s" : ""}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setConfirmClearOpen(true)}
+                          className="text-xs text-red-500 font-semibold hover:text-red-600 transition"
+                        >
+                          Clear all
+                        </button>
+                        <span className="text-xs bg-red-100/80 text-red-600 border border-red-200/70 px-3 py-1.5 rounded-full font-semibold">
+                          {urgentTasks.length} item
+                          {urgentTasks.length !== 1 ? "s" : ""}
+                        </span>
+                      </div>
                     </div>
                     {/* Task cards — show top 3 */}
                     <div className="space-y-3.5">
@@ -362,6 +384,16 @@ export const DashboardPage = () => {
         allLeads={allLeads}
         userId={user?.id}
         onSubmitSuccess={fetchAll}
+      />
+      <ConfirmModal
+        open={confirmClearOpen}
+        title="Clear all tasks?"
+        message={<>This permanently deletes all {tasks.length} open task{tasks.length !== 1 ? "s" : ""}. Completed tasks stay in each lead's history. This can't be undone.</>}
+        confirmLabel="Clear all"
+        variant="danger"
+        loading={clearing}
+        onConfirm={handleClearAllTasks}
+        onCancel={() => setConfirmClearOpen(false)}
       />
     </InternalLayout>
   );
