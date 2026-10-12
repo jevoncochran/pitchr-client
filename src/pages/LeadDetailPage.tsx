@@ -30,6 +30,7 @@ import { getSequencePositions } from "../utils/leads";
 import { SectionCard } from "../components/ui/SectionCard";
 import { SectionHeader } from "../components/ui/SectionHeader";
 import { FieldLabel } from "../components/ui/FieldLabel";
+import { LeadSignals } from "../components/leads/LeadSignals";
 
 const LeadDetailPage = () => {
   const {
@@ -1512,6 +1513,13 @@ const LeadDetailPage = () => {
 
           {/* ── RIGHT COLUMN — activity ── */}
           <div className="min-w-0">
+            {/* Signals */}
+            <LeadSignals
+              leadId={lead.id}
+              signals={lead.signals ?? []}
+              onChange={fetchLead}
+            />
+
             {/* Tasks */}
             <SectionCard className="rounded-xl p-4 mb-6">
               <SectionHeader
