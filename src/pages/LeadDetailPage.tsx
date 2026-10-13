@@ -31,6 +31,7 @@ import { SectionCard } from "../components/ui/SectionCard";
 import { SectionHeader } from "../components/ui/SectionHeader";
 import { FieldLabel } from "../components/ui/FieldLabel";
 import { LeadSignals } from "../components/leads/LeadSignals";
+import { LeadSnapshot } from "../components/leads/LeadSnapshot";
 
 const LeadDetailPage = () => {
   const {
@@ -224,6 +225,9 @@ const LeadDetailPage = () => {
             </span>
           )}
         </div>
+
+        {/* AI snapshot */}
+        <LeadSnapshot key={lead.id} leadId={lead.id} />
 
         {/* Pipeline Stage Selector */}
         <SectionCard className="rounded-xl p-4 mb-6">
