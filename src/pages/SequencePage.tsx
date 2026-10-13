@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
 import InternalLayout from "../components/InternalLayout";
+import { ConfirmModal } from "../components/ui/ConfirmModal";
 
 // ─── Tasks view ───────────────────────────────────────────────────────────────
 
@@ -47,6 +48,8 @@ const TasksView = () => {
   const navigate = useNavigate();
   const [tasks, setTasks]     = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clearing, setClearing] = useState(false);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
 
   useEffect(() => {
     api
@@ -55,10 +58,40 @@ const TasksView = () => {
       .finally(() => setLoading(false));
   }, []);
 
+  const handleClearAll = async () => {
+    setClearing(true);
+    try {
+      await api.delete("/api/tasks/clear-all");
+      setTasks([]);
+      setConfirmClearOpen(false);
+    } finally {
+      setClearing(false);
+    }
+  };
+
   if (loading) return <div className="p-8 text-gray-400">Loading...</div>;
 
   return (
     <div>
+      <ConfirmModal
+        open={confirmClearOpen}
+        title="Clear all tasks?"
+        message={<>This permanently deletes all {tasks.length} open task{tasks.length !== 1 ? "s" : ""}. Completed tasks stay in each lead's history. This can't be undone.</>}
+        confirmLabel="Clear all"
+        variant="danger"
+        loading={clearing}
+        onConfirm={handleClearAll}
+        onCancel={() => setConfirmClearOpen(false)}
+      />
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => setConfirmClearOpen(true)}
+          disabled={clearing || tasks.length === 0}
+          className="px-3 py-1.5 rounded-md text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {clearing ? "Clearing..." : "Clear all tasks"}
+        </button>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {TASK_SECTIONS.map((section) => {
           const sectionTasks = tasks.filter((t) => t.type === section.type);

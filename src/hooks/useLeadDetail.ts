@@ -138,6 +138,7 @@ export const useLeadDetail = () => {
       }
       resetContactForm();
       fetchContacts();
+      fetchLead();
     } catch {
       alert("Failed to save contact");
     } finally {
@@ -150,6 +151,7 @@ export const useLeadDetail = () => {
       await api.delete(`/api/contacts/${contactId}`);
       setDeletingContactId(null);
       fetchContacts();
+      fetchLead();
     } catch {
       alert("Failed to delete contact");
     }
