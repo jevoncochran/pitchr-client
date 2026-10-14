@@ -454,16 +454,16 @@ const LeadDetailPage = () => {
                   )}
                 </div>
 
-                {/* How this lead started */}
+                {/* Lead origin: the group on the left, how on the right */}
                 <div>
-                  <FieldLabel>How This Lead Started</FieldLabel>
+                  <FieldLabel>Lead Origin</FieldLabel>
                   {!editMode ? (
                     lead.origin ? (
                       <p className="text-sm font-medium text-gray-800">
-                        {originLabel(lead)}
                         <span className="text-gray-400 font-normal">
-                          {" "}· {ORIGIN_GROUP_OF[lead.origin] === "WE_REACHED_OUT" ? "we reached out" : "they came to us"}
+                          {ORIGIN_GROUP_OF[lead.origin] === "WE_REACHED_OUT" ? "We reached out" : "They came to us"} ·{" "}
                         </span>
+                        {originLabel(lead)}
                       </p>
                     ) : (
                       <p className="text-sm text-gray-400">Not known yet</p>

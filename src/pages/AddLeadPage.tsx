@@ -265,17 +265,16 @@ const AddLeadPage = () => {
               </div>
             </div>
 
-            {/* How this lead started */}
+            {/* Lead origin */}
             <div className="mb-4 sm:max-w-sm">
               <label htmlFor="origin" className="block text-sm font-semibold mb-1">
-                How This Lead Started
+                Lead Origin
               </label>
               <OriginSelect
                 id="origin"
                 origin={origin.origin}
                 originOther={origin.originOther}
                 onChange={setOrigin}
-                emptyLabel="Not known yet (filled in on first contact)"
                 className="w-full px-4 py-2 bg-white border rounded-lg focus:outline-none focus:ring-1 focus:ring-blackPrimary"
               />
             </div>

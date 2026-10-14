@@ -1,4 +1,4 @@
-/** How a lead started (pitchr-server's docs/lead-origin.md). Empty until known. */
+/** How a lead started (pitchr-server's docs/lead-origin.md). Only set by hand; empty until known. */
 export const ORIGIN_GROUPS = [
   {
     value: "WE_REACHED_OUT",
@@ -46,3 +46,13 @@ export const originLabel = (lead: { origin?: string | null; originOther?: string
     : lead.origin === "OTHER"
       ? lead.originOther || "Other"
       : (ORIGIN_LABEL[lead.origin] ?? lead.origin);
+
+/** What a business added on the spot in a session most likely started as (preselected, changeable). */
+export const SESSION_CHANNEL_ORIGIN: Record<string, string> = {
+  IN_PERSON: "IN_PERSON_VISIT",
+  CALL: "CALL",
+  INSTAGRAM_DM: "DM",
+  EMAIL: "EMAIL",
+  TEXT: "TEXT",
+  MIXED: "IN_PERSON_VISIT",
+};

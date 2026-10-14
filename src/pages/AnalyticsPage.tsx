@@ -302,12 +302,12 @@ const AnalyticsPage = () => {
 
         {/* Source breakdown table */}
         <div className="bg-white border rounded-xl p-5">
-          <SectionHeader title="Conversion by How Leads Started" />
+          <SectionHeader title="Conversion by Lead Origin" />
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b">
                 <th className="text-left text-xs uppercase tracking-wide text-gray-400 font-medium pb-3">
-                  How it started
+                  Lead origin
                 </th>
                 <th className="text-right text-xs uppercase tracking-wide text-gray-400 font-medium pb-3">
                   Total Leads

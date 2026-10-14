@@ -13,6 +13,7 @@ import {
   AddToSessionDialog,
   UnplannedTarget,
 } from "../components/sessions/AddToSessionDialog";
+import { SESSION_CHANNEL_ORIGIN } from "../constants/origins";
 import { PIPELINE_STAGES } from "../constants/leads";
 import { MIXED_TYPES, OUTCOME_LABEL } from "../constants/results";
 import { channelInfo, directionsUrl } from "../constants/sessions";
@@ -460,6 +461,7 @@ const RunSessionPage = () => {
       <AddToSessionDialog
         open={showAdd}
         excludeLeadIds={items.filter((i) => i.status === "PLANNED").map((i) => i.lead.id)}
+        defaultOrigin={SESSION_CHANNEL_ORIGIN[session.channel] ?? ""}
         onChoose={(choice) => {
           setUnplanned(choice);
           setChosenItemId(null);

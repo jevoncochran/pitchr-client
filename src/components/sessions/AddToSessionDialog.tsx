@@ -28,11 +28,14 @@ const inputClass =
 export const AddToSessionDialog = ({
   open,
   excludeLeadIds,
+  defaultOrigin,
   onChoose,
   onCancel,
 }: {
   open: boolean;
   excludeLeadIds: string[];
+  /** Preselected lead origin for a new business, from the session's channel */
+  defaultOrigin: string;
   onChoose: (target: UnplannedTarget) => void;
   onCancel: () => void;
 }) => {
@@ -44,7 +47,7 @@ export const AddToSessionDialog = ({
   const [business, setBusiness] = useState("");
   const [industryId, setIndustryId] = useState("");
   const [businessTypeId, setBusinessTypeId] = useState("");
-  const [origin, setOrigin] = useState({ origin: "", originOther: "" });
+  const [origin, setOrigin] = useState({ origin: defaultOrigin, originOther: "" });
 
   useEffect(() => {
     if (!open) return;
@@ -53,7 +56,7 @@ export const AddToSessionDialog = ({
     setBusiness("");
     setIndustryId("");
     setBusinessTypeId("");
-    setOrigin({ origin: "", originOther: "" });
+    setOrigin({ origin: defaultOrigin, originOther: "" });
     if (leads === null) {
       Promise.all([
         api.get<LeadOption[]>("/api/leads"),
@@ -65,7 +68,7 @@ export const AddToSessionDialog = ({
         setBusinessTypes(b.data);
       });
     }
-  }, [open, leads]);
+  }, [open, leads, defaultOrigin]);
 
   const matches = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -140,12 +143,11 @@ export const AddToSessionDialog = ({
               ))}
             </select>
             <label className="block">
-              <span className="block text-xs font-medium text-gray-500 mb-1">How this lead started</span>
+              <span className="block text-xs font-medium text-gray-500 mb-1">Lead origin</span>
               <OriginSelect
                 origin={origin.origin}
                 originOther={origin.originOther}
                 onChange={setOrigin}
-                emptyLabel="Fill in from what I log"
                 className={inputClass}
               />
             </label>

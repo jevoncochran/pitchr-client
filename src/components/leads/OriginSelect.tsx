@@ -1,7 +1,7 @@
 import { ORIGIN_GROUPS } from "../../constants/origins";
 
 /**
- * "How this lead started": the origins grouped into We reached out / They came to us,
+ * Lead origin: the origins grouped into We reached out / They came to us,
  * plus a description box for Other. Empty means not known yet.
  */
 export const OriginSelect = ({
@@ -9,15 +9,12 @@ export const OriginSelect = ({
   origin,
   originOther,
   onChange,
-  emptyLabel = "Not known yet",
   className = "",
 }: {
   id?: string;
   origin: string;
   originOther: string;
   onChange: (value: { origin: string; originOther: string }) => void;
-  /** What the empty option says, e.g. "Fill in from what I log" */
-  emptyLabel?: string;
   className?: string;
 }) => (
   <>
@@ -29,7 +26,7 @@ export const OriginSelect = ({
       }
       className={className}
     >
-      <option value="">{emptyLabel}</option>
+      <option value="">Not known yet</option>
       {ORIGIN_GROUPS.map((group) => (
         <optgroup key={group.value} label={group.label}>
           {group.origins.map((o) => (
