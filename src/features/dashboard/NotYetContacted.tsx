@@ -1,0 +1,54 @@
+import { SectionCard } from "../../components/ui/SectionCard";
+import { SectionHeader } from "../../components/ui/SectionHeader";
+
+export const NotYetContacted = ({
+  leads,
+  onNavigate,
+}: {
+  leads: any[];
+  onNavigate: (path: string) => void;
+}) => (
+  <SectionCard className="rounded-xl p-5">
+    <SectionHeader
+      title="Not Yet Contacted"
+      className="mb-4"
+      action={
+        <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-medium">
+          {leads.length} lead{leads.length !== 1 ? "s" : ""}
+        </span>
+      }
+    />
+    {leads.length === 0 ? (
+      <p className="text-sm text-gray-400">No uncontacted leads.</p>
+    ) : (
+      <div className="space-y-3">
+        {leads.slice(0, 5).map((lead) => (
+          <div
+            key={lead.id}
+            onClick={() => onNavigate(`/leads/${lead.id}`)}
+            className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded-lg p-2 -mx-2"
+          >
+            <div>
+              <p className="text-sm font-medium text-gray-800">
+                {lead.business}
+              </p>
+              <p className="text-xs text-gray-400">
+                {lead.industry?.name ?? "—"} · {lead.businessType?.name ?? "—"}
+              </p>
+              {lead.assignedTo ? (
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {lead.assignedTo.firstName} {lead.assignedTo.lastName}
+                </p>
+              ) : (
+                <p className="text-xs text-gray-300 mt-0.5">Unassigned</p>
+              )}
+            </div>
+            <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+              New
+            </span>
+          </div>
+        ))}
+      </div>
+    )}
+  </SectionCard>
+);
