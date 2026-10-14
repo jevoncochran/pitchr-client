@@ -9,7 +9,7 @@ export const PROVIDER_OPTIONS = [
 export const MESSAGE_TYPES = ["EMAIL", "INSTAGRAM_DM", "TEXT"];
 
 /** What happened on a visit or call. The first few only apply to one of them. */
-const OUTCOMES = [
+export const OUTCOMES = [
   { value: "BUSINESS_CLOSED", label: "Business closed", types: ["IN_PERSON"] },
   { value: "NO_ANSWER", label: "No answer", types: ["CALL"] },
   { value: "LEFT_VOICEMAIL", label: "Left voicemail", types: ["CALL"] },

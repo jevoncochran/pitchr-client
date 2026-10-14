@@ -8,6 +8,7 @@ import InternalLayout from "../components/InternalLayout";
 import { SectionCard } from "../components/ui/SectionCard";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 import { LeadPicker } from "../components/sessions/LeadPicker";
+import { SessionSummaryCard } from "../components/sessions/SessionSummaryCard";
 import {
   SessionDetails,
   SessionDetailsDialog,
@@ -189,6 +190,10 @@ const SessionPage = () => {
           <p className="text-sm text-red-500 mb-4" role="alert">
             {error}
           </p>
+        )}
+
+        {session.summary && (
+          <SessionSummaryCard summary={session.summary} channel={session.channel} goal={session.goal} />
         )}
 
         {/* The list */}
