@@ -61,19 +61,6 @@ export const SEQUENCE_POSITION_COLOR: Record<string, string> = {
   C3: "bg-purple-50 text-purple-600",
 };
 
-// Follow-up sequence: what the check-in asks at step N (after outreach N)
-export const CHECK_IN_LABELS: Record<number, string> = {
-  1: "Did they respond to outreach A1?",
-  2: "Did they respond to outreach A2?",
-  3: "Did they respond to outreach A3?",
-  4: "Did they respond to outreach B1?",
-  5: "Did they respond to outreach B2?",
-  6: "Did they respond to outreach B3?",
-  7: "Did they respond to outreach C1?",
-  8: "Did they respond to outreach C2?",
-  9: "Did they respond to outreach C3?",
-};
-
 // What happens at each step if no response
 export const NEXT_ACTION_LABELS: Record<number, string> = {
   1: "Outreach A2",

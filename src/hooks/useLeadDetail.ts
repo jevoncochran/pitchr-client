@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
 import { AuthContext } from "../context/auth/AuthContext";
 import { PipelineStage } from "../types.d";
-import { CHECK_IN_LABELS } from "../constants/leads";
 
 export const useLeadDetail = () => {
   const { id } = useParams();
@@ -437,34 +436,21 @@ export const useLeadDetail = () => {
         allContactIds = [...allContactIds, contactRes.data.id];
       }
 
-      const tpRes = await api.post(
-        "/api/touchpoints",
-        {
-          date: tpDate.toISOString(),
-          type: tpType,
-          receivedResponse: tpReceivedResponse,
-          summary: tpSummary,
-          sequencePosition: tpSequencePosition || null,
-          lead: { connect: { id } },
-          contactedBy: { connect: { id: user?.id } },
-          ...(allContactIds.length > 0 && {
-            contacts: { connect: allContactIds.map((cid) => ({ id: cid })) },
-          }),
-        },
-      );
-      const newTpId: string = tpRes.data.id;
+      // One request: the server saves the touchpoint and applies the follow-up
+      // sequence rules (start/advance the sequence, create check-in tasks,
+      // complete the task it was logged from) all together, or not at all.
+      await api.post("/api/touchpoints/log", {
+        leadId: id,
+        date: tpDate.toISOString(),
+        type: tpType,
+        receivedResponse: tpReceivedResponse,
+        summary: tpSummary,
+        sequencePosition: tpSequencePosition || null,
+        contactIds: allContactIds,
+        completingTaskId,
+      });
 
-      const wasInPerson = tpType === "IN_PERSON";
-      const wasEmail = tpType === "EMAIL";
-      const wasAttempt = tpType === "VISIT_ATTEMPT";
-
-      // If this touchpoint was logged via "Log Completion" on a specific task,
-      // mark that task complete now.
-      if (completingTaskId) {
-        await api.patch(`/api/tasks/${completingTaskId}/complete`, {});
-        setCompletingTaskId(null);
-      }
-
+      setCompletingTaskId(null);
       setShowTouchpointForm(false);
       setTpType("IN_PERSON");
       setTpDate(new Date());
@@ -474,61 +460,6 @@ export const useLeadDetail = () => {
       setTpContactIds([]);
       setShowNewContactForm(false);
       setNewContactForm({ firstName: "", lastName: "", title: "", email: "" });
-
-      if (wasAttempt) {
-        // No contact made — just log the attempt, no automatic reminder
-      } else if (wasInPerson) {
-        // Start sequence if not already running
-        if (!lead.sequenceActive) {
-          await api.patch(
-            `/api/leads/${id}`,
-            { sequenceActive: true },
-          );
-        }
-        // Immediately create "Did you send the follow-up email?" check
-        await api.post(
-          "/api/tasks",
-          {
-            type: "EMAIL",
-            dueDate: new Date().toISOString(),
-            note: "Did you send the follow-up email?",
-            isEmailSentCheck: true,
-            lead: { connect: { id } },
-            touchPoint: { connect: { id: newTpId } },
-          },
-        );
-      } else if (wasEmail && lead.sequenceActive) {
-        // Auto-complete any pending "did you send email?" checks — email was just logged
-        const pendingEmailCheck = lead.tasks?.find(
-          (r: any) => r.isEmailSentCheck && !r.completed
-        );
-        if (pendingEmailCheck) {
-          await api.patch(
-            `/api/tasks/${pendingEmailCheck.id}/complete`,
-            {},
-          );
-        }
-
-        // Advance sequence step and auto-create check-in reminder for 4 days
-        const newStep = (lead.sequenceStep ?? 0) + 1;
-        await api.patch(
-          `/api/leads/${id}`,
-          { sequenceStep: newStep },
-        );
-        const checkInDate = new Date(tpDate);
-        checkInDate.setDate(checkInDate.getDate() + 4);
-        await api.post(
-          "/api/tasks",
-          {
-            type: "EMAIL",
-            dueDate: checkInDate.toISOString(),
-            note: CHECK_IN_LABELS[newStep] ?? "Did they respond?",
-            isCheckIn: true,
-            lead: { connect: { id } },
-            touchPoint: { connect: { id: newTpId } },
-          },
-        );
-      }
 
       fetchLead();
       fetchContacts();
