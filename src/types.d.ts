@@ -12,9 +12,9 @@ interface Lead {
   email: string;
   website: string;
   pipelineStage: PipelineStage;
-  source: LeadSource;
-  discoveredVia: DiscoveredVia;
-  discoveredViaOther?: string;
+  /** How this lead started; see constants/origins.ts */
+  origin?: string | null;
+  originOther?: string | null;
   isBlackOwned: boolean;
   isLatinoOwned: boolean;
   isWomanOwned: boolean;
@@ -80,29 +80,12 @@ export enum PipelineStage {
   Lost = "LOST",
 }
 
-export enum LeadSource {
-  Outreach = "OUTREACH",
-  Referral = "REFERRAL",
-  Form = "FORM",
-  Networking = "NETWORKING",
-  InPerson = "IN_PERSON",
-}
-
 export enum ContactSource {
   Outreach = "OUTREACH",
   Referral = "REFERRAL",
   Form = "FORM",
   Networking = "NETWORKING",
   InPerson = "IN_PERSON",
-  Other = "OTHER",
-}
-
-export enum DiscoveredVia {
-  Instagram = "INSTAGRAM",
-  Facebook = "FACEBOOK",
-  TikTok = "TIKTOK",
-  YouTube = "YOUTUBE",
-  Google = "GOOGLE",
   Other = "OTHER",
 }
 

@@ -2,7 +2,8 @@ import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import InternalLayout from "../components/InternalLayout";
 import api from "../api";
-import { BusinessType, DiscoveredVia, Industry, LeadSource } from "../types.d";
+import { BusinessType, Industry } from "../types.d";
+import { OriginSelect } from "../components/leads/OriginSelect";
 import { FaInstagram, FaTiktok, FaYoutube, FaFacebook } from "react-icons/fa";
 
 const AddLeadPage = () => {
@@ -16,9 +17,7 @@ const AddLeadPage = () => {
   const [selectedBusinessTypeId, setSelectedBusinessTypeId] = useState("");
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
-  const [source, setSource] = useState<LeadSource | "">("");
-  const [discoveredVia, setDiscoveredVia] = useState<DiscoveredVia | "">("");
-  const [discoveredViaOther, setDiscoveredViaOther] = useState("");
+  const [origin, setOrigin] = useState({ origin: "", originOther: "" });
   const [selectedIdentities, setSelectedIdentities] = useState<string[]>([]);
   const [instagramHandle, setInstagramHandle] = useState("");
   const [instagramFollowers, setInstagramFollowers] = useState("");
@@ -90,10 +89,7 @@ const AddLeadPage = () => {
       business: businessName,
       email,
       website,
-      ...(source && { source }),
-      ...(discoveredVia && { discoveredVia }),
-      ...(discoveredVia === DiscoveredVia.Other &&
-        discoveredViaOther && { discoveredViaOther }),
+      ...(origin.origin && origin),
       isBlackOwned: selectedIdentities.includes("black"),
       isLatinoOwned: selectedIdentities.includes("latino"),
       isWomanOwned: selectedIdentities.includes("woman"),
@@ -269,88 +265,19 @@ const AddLeadPage = () => {
               </div>
             </div>
 
-            {/* Source & Discovered Via */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-4">
-              {/* Source */}
-              <div className="flex-1">
-                <label className="block text-sm font-semibold mb-1">
-                  Lead Source
-                </label>
-                <div className="flex items-center gap-4">
-                  {[
-                    { label: "Outreach", value: LeadSource.Outreach },
-                    { label: "Referral", value: LeadSource.Referral },
-                    { label: "Networking Group / Event", value: LeadSource.Networking },
-                    { label: "In Person / Walk-Up", value: LeadSource.InPerson },
-                    { label: "Form", value: LeadSource.Form },
-                  ].map((opt) => (
-                    <label
-                      key={opt.value}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <input
-                        type="radio"
-                        name="source"
-                        value={opt.value}
-                        checked={source === opt.value}
-                        onChange={() => {
-                          setSource(opt.value);
-                          // Clear discoveredVia unless switching to Form
-                          if (opt.value !== LeadSource.Form) {
-                            setDiscoveredVia("");
-                            setDiscoveredViaOther("");
-                          }
-                        }}
-                        className="text-blackPrimary focus:ring-blackPrimary"
-                      />
-                      <span>{opt.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Discovered Via */}
-              <div className="flex-1">
-                <label
-                  htmlFor="discoveredVia"
-                  className={`block text-sm font-semibold mb-1 ${source !== LeadSource.Form ? "text-gray-400" : ""}`}
-                >
-                  How Did They Hear About Us?
-                </label>
-                <select
-                  id="discoveredVia"
-                  value={discoveredVia}
-                  disabled={source !== LeadSource.Form}
-                  onChange={(e) => {
-                    setDiscoveredVia(e.target.value as DiscoveredVia);
-                    if (e.target.value !== DiscoveredVia.Other) {
-                      setDiscoveredViaOther("");
-                    }
-                  }}
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blackPrimary ${
-                    source !== LeadSource.Form
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white"
-                  }`}
-                >
-                  <option value="">Select...</option>
-                  <option value={DiscoveredVia.Instagram}>Instagram</option>
-                  <option value={DiscoveredVia.Facebook}>Facebook</option>
-                  <option value={DiscoveredVia.TikTok}>TikTok</option>
-                  <option value={DiscoveredVia.YouTube}>YouTube</option>
-                  <option value={DiscoveredVia.Google}>Google</option>
-                  <option value={DiscoveredVia.Other}>Other</option>
-                </select>
-                {discoveredVia === DiscoveredVia.Other && source === LeadSource.Form && (
-                  <input
-                    type="text"
-                    placeholder="Please explain..."
-                    value={discoveredViaOther}
-                    onChange={(e) => setDiscoveredViaOther(e.target.value)}
-                    className="w-full mt-2 px-4 py-2 bg-white border rounded-lg focus:outline-none focus:ring-1 focus:ring-blackPrimary"
-                  />
-                )}
-              </div>
+            {/* How this lead started */}
+            <div className="mb-4 sm:max-w-sm">
+              <label htmlFor="origin" className="block text-sm font-semibold mb-1">
+                How This Lead Started
+              </label>
+              <OriginSelect
+                id="origin"
+                origin={origin.origin}
+                originOther={origin.originOther}
+                onChange={setOrigin}
+                emptyLabel="Not known yet (filled in on first contact)"
+                className="w-full px-4 py-2 bg-white border rounded-lg focus:outline-none focus:ring-1 focus:ring-blackPrimary"
+              />
             </div>
 
             {/* Owner Identity */}

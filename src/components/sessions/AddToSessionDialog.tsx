@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FaTimes } from "react-icons/fa";
 import api from "../../api";
+import { OriginSelect } from "../leads/OriginSelect";
 
 interface Option {
   id: string;
@@ -16,16 +17,9 @@ interface LeadOption {
 export type UnplannedTarget =
   | { leadId: string; business: string }
   | {
-      newLead: { business: string; industryId: string; businessTypeId: string; source: string };
+      newLead: { business: string; industryId: string; businessTypeId: string; origin: string; originOther: string };
       business: string;
     };
-
-const SOURCES = [
-  { value: "OUTREACH", label: "Outreach" },
-  { value: "IN_PERSON", label: "In person / walk-up" },
-  { value: "REFERRAL", label: "Referral" },
-  { value: "NETWORKING", label: "Networking" },
-];
 
 const inputClass =
   "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:border-gray-400";
@@ -50,7 +44,7 @@ export const AddToSessionDialog = ({
   const [business, setBusiness] = useState("");
   const [industryId, setIndustryId] = useState("");
   const [businessTypeId, setBusinessTypeId] = useState("");
-  const [source, setSource] = useState("OUTREACH");
+  const [origin, setOrigin] = useState({ origin: "", originOther: "" });
 
   useEffect(() => {
     if (!open) return;
@@ -59,7 +53,7 @@ export const AddToSessionDialog = ({
     setBusiness("");
     setIndustryId("");
     setBusinessTypeId("");
-    setSource("OUTREACH");
+    setOrigin({ origin: "", originOther: "" });
     if (leads === null) {
       Promise.all([
         api.get<LeadOption[]>("/api/leads"),
@@ -146,17 +140,19 @@ export const AddToSessionDialog = ({
               ))}
             </select>
             <label className="block">
-              <span className="block text-xs font-medium text-gray-500 mb-1">How we got this lead</span>
-              <select value={source} onChange={(e) => setSource(e.target.value)} className={inputClass}>
-                {SOURCES.map((s) => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
-                ))}
-              </select>
+              <span className="block text-xs font-medium text-gray-500 mb-1">How this lead started</span>
+              <OriginSelect
+                origin={origin.origin}
+                originOther={origin.originOther}
+                onChange={setOrigin}
+                emptyLabel="Fill in from what I log"
+                className={inputClass}
+              />
             </label>
             <button
               onClick={() =>
                 onChoose({
-                  newLead: { business: business.trim(), industryId, businessTypeId, source },
+                  newLead: { business: business.trim(), industryId, businessTypeId, ...origin },
                   business: business.trim(),
                 })
               }

@@ -108,6 +108,7 @@ Feature specs live with the service that owns most of the feature:
 | --- | --- |
 | [Lead snapshot](https://github.com/jevoncochran/pitchr-ai/blob/HEAD/docs/lead-snapshot.md) (in pitchr-ai) | The AI lead snapshot on each lead's page |
 | [Outreach sessions](https://github.com/jevoncochran/pitchr-server/blob/HEAD/docs/outreach-sessions.md) (in pitchr-server) | Spec draft: logging outreach sessions, planned routes, analytics |
+| [Lead origin](https://github.com/jevoncochran/pitchr-server/blob/HEAD/docs/lead-origin.md) (in pitchr-server) | "How this lead started" (we reached out / they came to us), used by analytics and the snapshot |
 
 ---
 

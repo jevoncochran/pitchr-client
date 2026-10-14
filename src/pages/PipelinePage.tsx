@@ -9,6 +9,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import InternalLayout from "../components/InternalLayout";
 import { ConvertLeadDialog } from "../components/leads/ConvertLeadDialog";
+import { originLabel } from "../constants/origins";
 
 const STAGES = [
   { value: "NEW",              label: "New",              color: "bg-gray-100 text-gray-600",    header: "bg-gray-200"   },
@@ -242,9 +243,9 @@ const PipelinePage = () => {
                                   <p className="text-xs text-gray-400 mb-2">{lead.industry.name}</p>
                                 )}
                                 <div className="flex items-center justify-between">
-                                  {lead.source && (
-                                    <span className="text-xs text-gray-400 capitalize">
-                                      {lead.source.toLowerCase()}
+                                  {lead.origin && (
+                                    <span className="text-xs text-gray-400">
+                                      {originLabel(lead)}
                                     </span>
                                   )}
                                   {lead.touchPoint?.length > 0 && (
