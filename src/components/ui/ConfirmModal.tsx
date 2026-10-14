@@ -10,6 +10,8 @@ interface ConfirmModalProps {
   cancelLabel?: string;
   variant?: "danger" | "default";
   loading?: boolean;
+  /** Keeps the confirm button disabled, e.g. until a choice is made */
+  confirmDisabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -23,6 +25,7 @@ export const ConfirmModal = ({
   cancelLabel = "Cancel",
   variant = "default",
   loading = false,
+  confirmDisabled = false,
   onConfirm,
   onCancel,
 }: ConfirmModalProps) => {
@@ -82,7 +85,7 @@ export const ConfirmModal = ({
           </button>
           <button
             onClick={onConfirm}
-            disabled={loading}
+            disabled={loading || confirmDisabled}
             className={`px-4 py-2 rounded-lg text-sm font-semibold text-white transition disabled:opacity-60 ${
               isDanger
                 ? "bg-red-500 hover:bg-red-600"

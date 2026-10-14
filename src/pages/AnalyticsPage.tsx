@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api";
 import InternalLayout from "../components/InternalLayout";
+import { ORIGIN_GROUPS, ORIGIN_GROUP_OF, ORIGIN_LABEL } from "../constants/origins";
 
 type Period = "week" | "month" | "allTime";
 
@@ -120,11 +121,10 @@ const AnalyticsPage = () => {
           ) / convertedWithTouchpoints.length
         ).toFixed(1);
 
-  // --- Inbound vs Outbound ---
-  const outbound = leads.filter((l) => l.source === "OUTREACH");
-  const inbound = leads.filter(
-    (l) => l.source === "REFERRAL" || l.source === "FORM"
-  );
+  // --- Inbound vs Outbound (how each lead started) ---
+  const outbound = leads.filter((l) => ORIGIN_GROUP_OF[l.origin] === "WE_REACHED_OUT");
+  const inbound = leads.filter((l) => ORIGIN_GROUP_OF[l.origin] === "THEY_CAME_TO_US");
+  const originNotRecorded = leads.filter((l) => !l.origin).length;
   const outboundConverted = outbound.filter(
     (l) => l.pipelineStage === "CONVERTED"
   ).length;
@@ -132,14 +132,21 @@ const AnalyticsPage = () => {
     (l) => l.pipelineStage === "CONVERTED"
   ).length;
 
-  // --- Source breakdown ---
-  const bySource = ["OUTREACH", "REFERRAL", "FORM"].map((source) => {
-    const group = leads.filter((l) => l.source === source);
-    const converted = group.filter(
-      (l) => l.pipelineStage === "CONVERTED"
-    ).length;
-    return { source, total: group.length, converted };
-  });
+  // --- Conversion by origin (only origins that have leads; unknown last) ---
+  const byOrigin = [...ORIGIN_GROUPS.flatMap((g) => g.origins.map((o) => o.value)), null]
+    .map((origin) => {
+      const group = leads.filter((l) => (l.origin ?? null) === origin);
+      const converted = group.filter(
+        (l) => l.pipelineStage === "CONVERTED"
+      ).length;
+      return {
+        key: origin ?? "NONE",
+        label: origin ? ORIGIN_LABEL[origin] : "Not recorded",
+        total: group.length,
+        converted,
+      };
+    })
+    .filter((row) => row.total > 0);
 
   return (
     <InternalLayout>
@@ -265,7 +272,7 @@ const AnalyticsPage = () => {
             <SectionHeader title="Inbound vs Outbound" />
             <div className="space-y-3">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">Outbound (Cold Outreach)</span>
+                <span className="text-gray-600">Outbound (we reached out)</span>
                 <span className="font-semibold text-gray-800">
                   {outbound.length} leads ·{" "}
                   <span className="text-green-600">
@@ -275,7 +282,7 @@ const AnalyticsPage = () => {
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-600">
-                  Inbound (Referral / Form)
+                  Inbound (they came to us)
                 </span>
                 <span className="font-semibold text-gray-800">
                   {inbound.length} leads ·{" "}
@@ -284,18 +291,23 @@ const AnalyticsPage = () => {
                   </span>
                 </span>
               </div>
+              {originNotRecorded > 0 && (
+                <p className="text-xs text-gray-400">
+                  {originNotRecorded} lead{originNotRecorded !== 1 ? "s" : ""} with no record of how they started
+                </p>
+              )}
             </div>
           </div>
         </div>
 
         {/* Source breakdown table */}
         <div className="bg-white border rounded-xl p-5">
-          <SectionHeader title="Conversion by Source" />
+          <SectionHeader title="Conversion by Lead Origin" />
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b">
                 <th className="text-left text-xs uppercase tracking-wide text-gray-400 font-medium pb-3">
-                  Source
+                  Lead origin
                 </th>
                 <th className="text-right text-xs uppercase tracking-wide text-gray-400 font-medium pb-3">
                   Total Leads
@@ -309,11 +321,9 @@ const AnalyticsPage = () => {
               </tr>
             </thead>
             <tbody>
-              {bySource.map((row) => (
-                <tr key={row.source} className="border-t border-gray-50">
-                  <td className="py-3 text-gray-700 capitalize">
-                    {row.source.toLowerCase()}
-                  </td>
+              {byOrigin.map((row) => (
+                <tr key={row.key} className="border-t border-gray-50">
+                  <td className="py-3 text-gray-700">{row.label}</td>
                   <td className="py-3 text-right text-gray-600">
                     {row.total}
                   </td>

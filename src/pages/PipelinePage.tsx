@@ -8,6 +8,8 @@ import {
 } from "@hello-pangea/dnd";
 import { useNavigate } from "react-router-dom";
 import InternalLayout from "../components/InternalLayout";
+import { ConvertLeadDialog } from "../components/leads/ConvertLeadDialog";
+import { originLabel } from "../constants/origins";
 
 const STAGES = [
   { value: "NEW",              label: "New",              color: "bg-gray-100 text-gray-600",    header: "bg-gray-200"   },
@@ -70,13 +72,28 @@ const PipelinePage = () => {
     });
   };
 
+  // A drag into Converted waits here until the conversion is confirmed
+  const [pendingConversion, setPendingConversion] = useState<DropResult | null>(null);
+
   const onDragEnd = (result: DropResult) => {
-    const { source, destination, draggableId } = result;
+    const { source, destination } = result;
     if (!destination) return;
     if (
       source.droppableId === destination.droppableId &&
       source.index === destination.index
     ) return;
+
+    // Converting needs a confirmation and a date; the card stays put until then
+    if (destination.droppableId === "CONVERTED" && source.droppableId !== "CONVERTED") {
+      setPendingConversion(result);
+      return;
+    }
+    moveLead(result);
+  };
+
+  const moveLead = (result: DropResult, convertedAt?: Date) => {
+    const { source, destination, draggableId } = result;
+    if (!destination) return Promise.resolve();
 
     const sourceStage = source.droppableId;
     const destStage = destination.droppableId;
@@ -91,13 +108,13 @@ const PipelinePage = () => {
     updated[destStage] = destCopy;
     setLeadsByStage(updated);
 
-    const patch: any = { pipelineStage: destStage };
-    if (destStage === "CONVERTED" && !moved.convertedAt) {
-      patch.convertedAt = new Date().toISOString();
-    }
-
-    api
-      .patch(`/api/leads/${draggableId}`, patch)
+    // The server records the stage history and sets or clears the conversion date
+    return api
+      .patch(`/api/leads/${draggableId}`, {
+        pipelineStage: destStage,
+        ...(convertedAt && { convertedAt: convertedAt.toISOString() }),
+      })
+      .then(() => undefined)
       .catch(() => {
         const revert: Record<string, any[]> = { ...updated };
         const [item] = destCopy.splice(destination.index, 1);
@@ -226,9 +243,9 @@ const PipelinePage = () => {
                                   <p className="text-xs text-gray-400 mb-2">{lead.industry.name}</p>
                                 )}
                                 <div className="flex items-center justify-between">
-                                  {lead.source && (
-                                    <span className="text-xs text-gray-400 capitalize">
-                                      {lead.source.toLowerCase()}
+                                  {lead.origin && (
+                                    <span className="text-xs text-gray-400">
+                                      {originLabel(lead)}
                                     </span>
                                   )}
                                   {lead.touchPoint?.length > 0 && (
@@ -256,6 +273,16 @@ const PipelinePage = () => {
             })}
           </div>
         </DragDropContext>
+
+        <ConvertLeadDialog
+          open={pendingConversion !== null}
+          mode="convert"
+          onConfirm={async (convertedAt) => {
+            if (pendingConversion) await moveLead(pendingConversion, convertedAt);
+            setPendingConversion(null);
+          }}
+          onCancel={() => setPendingConversion(null)}
+        />
       </div>
     </InternalLayout>
   );

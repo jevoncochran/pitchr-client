@@ -13,6 +13,9 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import PipelinePage from "./pages/PipelinePage";
 import SequencePage from "./pages/SequencePage";
 import SettingsPage from "./pages/SettingsPage";
+import SessionsPage from "./pages/SessionsPage";
+import SessionPage from "./pages/SessionPage";
+import RunSessionPage from "./pages/RunSessionPage";
 
 function App() {
   return (
@@ -32,6 +35,9 @@ function App() {
         <Route path="/pipeline" element={<PipelinePage />} />
         <Route path="/sequence" element={<SequencePage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/sessions" element={<SessionsPage />} />
+        <Route path="/sessions/:id" element={<SessionPage />} />
+        <Route path="/sessions/:id/run" element={<RunSessionPage />} />
       </Route>
 
       {/* Catch-all: redirect everything else to login */}

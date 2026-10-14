@@ -32,6 +32,15 @@ import { SectionHeader } from "../components/ui/SectionHeader";
 import { FieldLabel } from "../components/ui/FieldLabel";
 import { LeadSignals } from "../components/leads/LeadSignals";
 import { LeadSnapshot } from "../components/leads/LeadSnapshot";
+import { ConvertLeadDialog } from "../components/leads/ConvertLeadDialog";
+import { RecordReplyDialog } from "../components/leads/RecordReplyDialog";
+import { OriginSelect } from "../components/leads/OriginSelect";
+import { ORIGIN_GROUP_OF, originLabel } from "../constants/origins";
+import {
+  TouchpointResultBadges,
+  TouchpointResultDetails,
+} from "../components/leads/TouchpointResult";
+import { canRecordReply } from "../constants/results";
 
 const LeadDetailPage = () => {
   const {
@@ -138,7 +147,6 @@ const LeadDetailPage = () => {
     startEditTp,
     handleTouchpointEditSave,
     handleTouchpointDelete,
-    handleToggleResponse,
     handleNoteSubmit,
     handleToggleHot,
     resetContactForm,
@@ -147,6 +155,15 @@ const LeadDetailPage = () => {
     handleAttachmentUpload,
     handleAttachmentDelete,
     fetchLead,
+    convertDialog,
+    setConvertDialog,
+    handleConvertConfirm,
+    replyTaskId,
+    setReplyTaskId,
+    handleReplySave,
+    replyTouchpointId,
+    setReplyTouchpointId,
+    handleTouchpointReplySave,
   } = useLeadDetail();
 
   if (loading) {
@@ -247,7 +264,42 @@ const LeadDetailPage = () => {
               </button>
             ))}
           </div>
+          {lead.pipelineStage === "CONVERTED" && (
+            <p className="text-xs text-gray-500 mt-3">
+              {lead.convertedAt ? (
+                <>Converted {new Date(lead.convertedAt).toLocaleDateString()}</>
+              ) : (
+                <span className="text-amber-600">No conversion date recorded</span>
+              )}
+              {" · "}
+              <button
+                onClick={() => setConvertDialog("edit")}
+                className="underline hover:text-gray-800"
+              >
+                {lead.convertedAt ? "Edit date" : "Add date"}
+              </button>
+            </p>
+          )}
         </SectionCard>
+
+        <RecordReplyDialog
+          open={replyTaskId !== null}
+          onSave={handleReplySave}
+          onCancel={() => setReplyTaskId(null)}
+        />
+        <RecordReplyDialog
+          open={replyTouchpointId !== null}
+          onSave={handleTouchpointReplySave}
+          onCancel={() => setReplyTouchpointId(null)}
+        />
+
+        <ConvertLeadDialog
+          open={convertDialog !== null}
+          mode={convertDialog ?? "convert"}
+          currentConvertedAt={lead.convertedAt}
+          onConfirm={handleConvertConfirm}
+          onCancel={() => setConvertDialog(null)}
+        />
 
         {/* Gone silent warning */}
         {(() => {
@@ -402,67 +454,29 @@ const LeadDetailPage = () => {
                   )}
                 </div>
 
-                {/* Lead Source */}
+                {/* Lead origin: the group on the left, how on the right */}
                 <div>
-                  <FieldLabel>Lead Source</FieldLabel>
+                  <FieldLabel>Lead Origin</FieldLabel>
                   {!editMode ? (
-                    <p className="text-sm font-medium text-gray-800">
-                      {{ OUTREACH: "Outreach", REFERRAL: "Referral", FORM: "Form", NETWORKING: "Networking Group / Event", IN_PERSON: "In Person / Walk-Up" }[lead.source as string] ?? lead.source ?? "—"}
-                    </p>
-                  ) : (
-                    <select
-                      value={editForm.source}
-                      onChange={(e) => setEditForm((f: any) => ({ ...f, source: e.target.value }))}
-                      className="w-full text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-primary/20 focus:border-green-primary/40 transition bg-white"
-                    >
-                      <option value="">Select...</option>
-                      <option value="OUTREACH">Outreach</option>
-                      <option value="REFERRAL">Referral</option>
-                      <option value="NETWORKING">Networking Event</option>
-                      <option value="IN_PERSON">In Person / Walk-Up</option>
-                      <option value="FORM">Form</option>
-                    </select>
-                  )}
-                </div>
-
-                {/* How They Heard About Us — only shown for FORM source */}
-                {(editMode ? editForm.source === "FORM" : lead.source === "FORM") && (
-                  <div>
-                    <FieldLabel>How They Heard About Us</FieldLabel>
-                    {!editMode ? (
+                    lead.origin ? (
                       <p className="text-sm font-medium text-gray-800">
-                        {lead.discoveredVia === "OTHER"
-                          ? (lead.discoveredViaOther ?? "Other")
-                          : ({ OUTREACH: "Outreach", REFERRAL: "Referral", INSTAGRAM: "Instagram", FACEBOOK: "Facebook", TIKTOK: "TikTok", YOUTUBE: "YouTube", GOOGLE: "Google", NETWORKING: "Networking Event", IN_PERSON: "In Person / Walk-Up" }[lead.discoveredVia as string] ?? lead.discoveredVia ?? "—")}
+                        <span className="text-gray-400 font-normal">
+                          {ORIGIN_GROUP_OF[lead.origin] === "WE_REACHED_OUT" ? "We reached out" : "They came to us"} ·{" "}
+                        </span>
+                        {originLabel(lead)}
                       </p>
                     ) : (
-                      <>
-                        <select
-                          value={editForm.discoveredVia}
-                          onChange={(e) => setEditForm((f: any) => ({ ...f, discoveredVia: e.target.value, discoveredViaOther: "" }))}
-                          className="w-full text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-primary/20 focus:border-green-primary/40 transition bg-white"
-                        >
-                          <option value="">Select...</option>
-                          <option value="INSTAGRAM">Instagram</option>
-                          <option value="FACEBOOK">Facebook</option>
-                          <option value="TIKTOK">TikTok</option>
-                          <option value="YOUTUBE">YouTube</option>
-                          <option value="GOOGLE">Google</option>
-                          <option value="OTHER">Other</option>
-                        </select>
-                        {editForm.discoveredVia === "OTHER" && (
-                          <input
-                            type="text"
-                            value={editForm.discoveredViaOther}
-                            onChange={(e) => setEditForm((f: any) => ({ ...f, discoveredViaOther: e.target.value }))}
-                            placeholder="Please explain..."
-                            className="w-full mt-2 text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-primary/20 focus:border-green-primary/40 transition bg-white"
-                          />
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
+                      <p className="text-sm text-gray-400">Not known yet</p>
+                    )
+                  ) : (
+                    <OriginSelect
+                      origin={editForm.origin}
+                      originOther={editForm.originOther}
+                      onChange={(value) => setEditForm((f: any) => ({ ...f, ...value }))}
+                      className="w-full text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-primary/20 focus:border-green-primary/40 transition bg-white"
+                    />
+                  )}
+                </div>
 
                 {/* Assigned To */}
                 <div>
@@ -2349,19 +2363,24 @@ const LeadDetailPage = () => {
                         )}
 
                         <div className="flex items-center justify-between">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={editTpForm.receivedResponse}
-                              onChange={(e) =>
-                                setEditTpForm((f: any) => ({
-                                  ...f,
-                                  receivedResponse: e.target.checked,
-                                }))
-                              }
-                            />
-                            <span>Received a response</span>
-                          </label>
+                          {/* Tracked results (outcome, or a message's response) set this themselves */}
+                          {tp.outcome || tp.response ? (
+                            <span />
+                          ) : (
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={editTpForm.receivedResponse}
+                                onChange={(e) =>
+                                  setEditTpForm((f: any) => ({
+                                    ...f,
+                                    receivedResponse: e.target.checked,
+                                  }))
+                                }
+                              />
+                              <span>Received a response</span>
+                            </label>
+                          )}
                           <div className="flex gap-2">
                             <button
                               onClick={() => setEditingTpId(null)}
@@ -2476,6 +2495,7 @@ const LeadDetailPage = () => {
                                   ] ?? tp.sequencePosition}
                                 </span>
                               )}
+                              <TouchpointResultBadges tp={tp} />
                               <span className="text-gray-400">
                                 {new Date(tp.date).toLocaleDateString()}
                               </span>
@@ -2485,6 +2505,7 @@ const LeadDetailPage = () => {
                                 {tp.summary}
                               </p>
                             )}
+                            <TouchpointResultDetails tp={tp} />
                             <p className="text-gray-400 text-xs mt-0.5">
                               By {tp.contactedBy?.firstName}{" "}
                               {tp.contactedBy?.lastName}
@@ -2522,19 +2543,12 @@ const LeadDetailPage = () => {
                               </>
                             ) : (
                               <>
-                                {(tp.type === "EMAIL" ||
-                                  tp.type === "INSTAGRAM_DM") && (
+                                {canRecordReply(tp) && (
                                   <button
-                                    onClick={() => handleToggleResponse(tp)}
-                                    className={`text-xs font-medium px-2 py-0.5 rounded-full border transition ${
-                                      tp.receivedResponse
-                                        ? "bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
-                                        : "bg-white text-gray-400 border-gray-200 hover:text-gray-600"
-                                    }`}
+                                    onClick={() => setReplyTouchpointId(tp.id)}
+                                    className="text-xs font-medium px-2 py-0.5 rounded-full border bg-white text-gray-500 border-gray-200 hover:text-gray-700 transition"
                                   >
-                                    {tp.receivedResponse
-                                      ? "✓ Responded"
-                                      : "Mark responded"}
+                                    Record a reply
                                   </button>
                                 )}
                                 <button

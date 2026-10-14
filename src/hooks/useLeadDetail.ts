@@ -3,7 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
 import { AuthContext } from "../context/auth/AuthContext";
 import { PipelineStage } from "../types.d";
-import { CHECK_IN_LABELS } from "../constants/leads";
+import { MESSAGE_TYPES } from "../constants/results";
+import type { Reply } from "../components/leads/RecordReplyDialog";
 
 export const useLeadDetail = () => {
   const { id } = useParams();
@@ -105,6 +106,11 @@ export const useLeadDetail = () => {
 
   // Dormant modal state
   const [showDormantModal, setShowDormantModal] = useState(false);
+  // "convert" when moving to Converted, "edit" when changing the conversion date
+  // The check-in whose "yes" is being answered with what they said
+  const [replyTaskId, setReplyTaskId] = useState<string | null>(null);
+  const [replyTouchpointId, setReplyTouchpointId] = useState<string | null>(null);
+  const [convertDialog, setConvertDialog] = useState<"convert" | "edit" | null>(null);
   const [dormantReason, setDormantReason] = useState("");
   const [dormantRevisitAt, setDormantRevisitAt] = useState<Date | null>(null);
   const [submittingDormant, setSubmittingDormant] = useState(false);
@@ -246,9 +252,8 @@ export const useLeadDetail = () => {
       business: lead.business ?? "",
       email: lead.email ?? "",
       website: lead.website ?? "",
-      source: lead.source ?? "",
-      discoveredVia: lead.discoveredVia ?? "",
-      discoveredViaOther: lead.discoveredViaOther ?? "",
+      origin: lead.origin ?? "",
+      originOther: lead.originOther ?? "",
       industryId: lead.industryId ?? "",
       businessTypeId: lead.businessTypeId ?? "",
       referredByLeadId: lead.referredByLeadId ?? "",
@@ -267,9 +272,8 @@ export const useLeadDetail = () => {
       business: editForm.business,
       email: editForm.email || null,
       website: editForm.website || null,
-      source: editForm.source || null,
-      discoveredVia: editForm.discoveredVia || null,
-      discoveredViaOther: editForm.discoveredViaOther || null,
+      origin: editForm.origin || null,
+      originOther: editForm.originOther || null,
       isBlackOwned: editForm.isBlackOwned,
       isLatinoOwned: editForm.isLatinoOwned,
       isWomanOwned: editForm.isWomanOwned,
@@ -337,14 +341,27 @@ export const useLeadDetail = () => {
       setShowDormantModal(true);
       return;
     }
-    const update: any = { pipelineStage: stage };
-    if (stage === PipelineStage.Converted && !lead.convertedAt) {
-      update.convertedAt = new Date().toISOString();
+    // Converted asks for confirmation and the date the money came in
+    if (stage === PipelineStage.Converted) {
+      setConvertDialog("convert");
+      return;
     }
+    // The server records the stage history and clears the conversion date
+    // when leaving Converted, so use the lead it sends back
     api
-      .patch(`/api/leads/${id}`, update)
-      .then(() => setLead((prev: any) => ({ ...prev, ...update })))
+      .patch(`/api/leads/${id}`, { pipelineStage: stage })
+      .then((res) => setLead((prev: any) => ({ ...prev, ...res.data })))
       .catch(() => alert("Failed to update stage"));
+  };
+
+  // Confirming the ConvertLeadDialog: mark converted, or edit the date
+  const handleConvertConfirm = async (convertedAt: Date) => {
+    const res = await api.patch(`/api/leads/${id}`, {
+      ...(convertDialog === "convert" && { pipelineStage: PipelineStage.Converted }),
+      convertedAt: convertedAt.toISOString(),
+    });
+    setLead((prev: any) => ({ ...prev, ...res.data }));
+    setConvertDialog(null);
   };
 
   const handleDormantSubmit = async () => {
@@ -356,7 +373,7 @@ export const useLeadDetail = () => {
         dormantReason,
         dormantRevisitAt: dormantRevisitAt.toISOString(),
       };
-      await api.patch(`/api/leads/${id}`, update);
+      const res = await api.patch(`/api/leads/${id}`, update);
       // Create a revisit task due on the selected date
       await api.post("/api/tasks", {
         leadId: id,
@@ -364,7 +381,7 @@ export const useLeadDetail = () => {
         dueDate: dormantRevisitAt.toISOString(),
         note: `Revisit dormant lead — ${dormantReason}`,
       });
-      setLead((prev: any) => ({ ...prev, ...update }));
+      setLead((prev: any) => ({ ...prev, ...res.data }));
       setShowDormantModal(false);
     } catch {
       alert("Failed to mark as dormant");
@@ -437,34 +454,21 @@ export const useLeadDetail = () => {
         allContactIds = [...allContactIds, contactRes.data.id];
       }
 
-      const tpRes = await api.post(
-        "/api/touchpoints",
-        {
-          date: tpDate.toISOString(),
-          type: tpType,
-          receivedResponse: tpReceivedResponse,
-          summary: tpSummary,
-          sequencePosition: tpSequencePosition || null,
-          lead: { connect: { id } },
-          contactedBy: { connect: { id: user?.id } },
-          ...(allContactIds.length > 0 && {
-            contacts: { connect: allContactIds.map((cid) => ({ id: cid })) },
-          }),
-        },
-      );
-      const newTpId: string = tpRes.data.id;
+      // One request: the server saves the touchpoint and applies the follow-up
+      // sequence rules (start/advance the sequence, create check-in tasks,
+      // complete the task it was logged from) all together, or not at all.
+      await api.post("/api/touchpoints/log", {
+        leadId: id,
+        date: tpDate.toISOString(),
+        type: tpType,
+        receivedResponse: tpReceivedResponse,
+        summary: tpSummary,
+        sequencePosition: tpSequencePosition || null,
+        contactIds: allContactIds,
+        completingTaskId,
+      });
 
-      const wasInPerson = tpType === "IN_PERSON";
-      const wasEmail = tpType === "EMAIL";
-      const wasAttempt = tpType === "VISIT_ATTEMPT";
-
-      // If this touchpoint was logged via "Log Completion" on a specific task,
-      // mark that task complete now.
-      if (completingTaskId) {
-        await api.patch(`/api/tasks/${completingTaskId}/complete`, {});
-        setCompletingTaskId(null);
-      }
-
+      setCompletingTaskId(null);
       setShowTouchpointForm(false);
       setTpType("IN_PERSON");
       setTpDate(new Date());
@@ -474,61 +478,6 @@ export const useLeadDetail = () => {
       setTpContactIds([]);
       setShowNewContactForm(false);
       setNewContactForm({ firstName: "", lastName: "", title: "", email: "" });
-
-      if (wasAttempt) {
-        // No contact made — just log the attempt, no automatic reminder
-      } else if (wasInPerson) {
-        // Start sequence if not already running
-        if (!lead.sequenceActive) {
-          await api.patch(
-            `/api/leads/${id}`,
-            { sequenceActive: true },
-          );
-        }
-        // Immediately create "Did you send the follow-up email?" check
-        await api.post(
-          "/api/tasks",
-          {
-            type: "EMAIL",
-            dueDate: new Date().toISOString(),
-            note: "Did you send the follow-up email?",
-            isEmailSentCheck: true,
-            lead: { connect: { id } },
-            touchPoint: { connect: { id: newTpId } },
-          },
-        );
-      } else if (wasEmail && lead.sequenceActive) {
-        // Auto-complete any pending "did you send email?" checks — email was just logged
-        const pendingEmailCheck = lead.tasks?.find(
-          (r: any) => r.isEmailSentCheck && !r.completed
-        );
-        if (pendingEmailCheck) {
-          await api.patch(
-            `/api/tasks/${pendingEmailCheck.id}/complete`,
-            {},
-          );
-        }
-
-        // Advance sequence step and auto-create check-in reminder for 4 days
-        const newStep = (lead.sequenceStep ?? 0) + 1;
-        await api.patch(
-          `/api/leads/${id}`,
-          { sequenceStep: newStep },
-        );
-        const checkInDate = new Date(tpDate);
-        checkInDate.setDate(checkInDate.getDate() + 4);
-        await api.post(
-          "/api/tasks",
-          {
-            type: "EMAIL",
-            dueDate: checkInDate.toISOString(),
-            note: CHECK_IN_LABELS[newStep] ?? "Did they respond?",
-            isCheckIn: true,
-            lead: { connect: { id } },
-            touchPoint: { connect: { id: newTpId } },
-          },
-        );
-      }
 
       fetchLead();
       fetchContacts();
@@ -572,13 +521,29 @@ export const useLeadDetail = () => {
   };
 
   const handleCheckInRespond = (reminderId: string, responded: boolean) => {
+    // A "yes" to a check-in about a delivered DM/email/text asks what they said first
+    const task = lead.tasks?.find((t: { id: string }) => t.id === reminderId);
+    const message = lead.touchPoint?.find((tp: { id: string }) => tp.id === task?.touchPointId);
+    const aboutMessage =
+      message && MESSAGE_TYPES.includes(message.type) && message.delivery !== "FAILED";
+    if (responded && aboutMessage) {
+      setReplyTaskId(reminderId);
+      return;
+    }
     api
-      .patch(
-        `/api/tasks/${reminderId}/respond`,
-        { responded },
-      )
+      .patch(`/api/tasks/${reminderId}/respond`, { responded })
       .then(fetchLead)
       .catch(() => alert("Failed to update check-in"));
+  };
+
+  // Saving the RecordReplyDialog: answers the check-in with their reply
+  const handleReplySave = async (reply: Reply) => {
+    await api.patch(`/api/tasks/${replyTaskId}/respond`, {
+      responded: true,
+      reply,
+    });
+    setReplyTaskId(null);
+    fetchLead();
   };
 
   const startEditTp = (tp: any) => {
@@ -645,15 +610,11 @@ export const useLeadDetail = () => {
     }
   };
 
-  const handleToggleResponse = async (tp: any) => {
-    try {
-      await api.patch(`/api/touchpoints/${tp.id}`, {
-        receivedResponse: !tp.receivedResponse,
-      });
-      fetchLead();
-    } catch {
-      alert("Failed to update response status");
-    }
+  // "Record a reply" on a message: saves their reply (and answers its check-in if still open)
+  const handleTouchpointReplySave = async (reply: Reply) => {
+    await api.patch(`/api/touchpoints/${replyTouchpointId}/response`, reply);
+    setReplyTouchpointId(null);
+    fetchLead();
   };
 
   const handleNoteSubmit = (e: FormEvent) => {
@@ -801,6 +762,15 @@ export const useLeadDetail = () => {
     // dormant modal
     showDormantModal,
     setShowDormantModal,
+    convertDialog,
+    setConvertDialog,
+    handleConvertConfirm,
+    replyTaskId,
+    setReplyTaskId,
+    handleReplySave,
+    replyTouchpointId,
+    setReplyTouchpointId,
+    handleTouchpointReplySave,
     dormantReason,
     setDormantReason,
     dormantRevisitAt,
@@ -825,7 +795,6 @@ export const useLeadDetail = () => {
     startEditTp,
     handleTouchpointEditSave,
     handleTouchpointDelete,
-    handleToggleResponse,
     handleNoteSubmit,
     handleToggleHot,
     resetContactForm,
