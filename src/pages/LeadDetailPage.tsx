@@ -33,6 +33,7 @@ import { FieldLabel } from "../components/ui/FieldLabel";
 import { LeadSignals } from "../components/leads/LeadSignals";
 import { LeadSnapshot } from "../components/leads/LeadSnapshot";
 import { ConvertLeadDialog } from "../components/leads/ConvertLeadDialog";
+import { RecordReplyDialog } from "../components/leads/RecordReplyDialog";
 
 const LeadDetailPage = () => {
   const {
@@ -151,6 +152,9 @@ const LeadDetailPage = () => {
     convertDialog,
     setConvertDialog,
     handleConvertConfirm,
+    replyTaskId,
+    setReplyTaskId,
+    handleReplySave,
   } = useLeadDetail();
 
   if (loading) {
@@ -268,6 +272,12 @@ const LeadDetailPage = () => {
             </p>
           )}
         </SectionCard>
+
+        <RecordReplyDialog
+          open={replyTaskId !== null}
+          onSave={handleReplySave}
+          onCancel={() => setReplyTaskId(null)}
+        />
 
         <ConvertLeadDialog
           open={convertDialog !== null}

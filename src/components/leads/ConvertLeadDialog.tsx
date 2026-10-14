@@ -1,19 +1,6 @@
 import { useEffect, useState } from "react";
 import { ConfirmModal } from "../ui/ConfirmModal";
-
-// Today as YYYY-MM-DD in local time, for the date input.
-const todayInputValue = () => {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().slice(0, 10);
-};
-
-// A saved conversion date as YYYY-MM-DD in local time.
-const toInputValue = (iso: string) => {
-  const d = new Date(iso);
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().slice(0, 10);
-};
+import { localDateKey } from "../../utils/dates";
 
 /**
  * Confirms marking a lead as converted, with the date the conversion happened.
@@ -33,7 +20,7 @@ export const ConvertLeadDialog = ({
   onConfirm: (convertedAt: Date) => Promise<void>;
   onCancel: () => void;
 }) => {
-  const [date, setDate] = useState(todayInputValue);
+  const [date, setDate] = useState(() => localDateKey());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -42,8 +29,8 @@ export const ConvertLeadDialog = ({
     if (!open) return;
     setDate(
       mode === "edit" && currentConvertedAt
-        ? toInputValue(currentConvertedAt)
-        : todayInputValue(),
+        ? localDateKey(new Date(currentConvertedAt))
+        : localDateKey(),
     );
     setError("");
   }, [open, mode, currentConvertedAt]);
@@ -79,7 +66,7 @@ export const ConvertLeadDialog = ({
             <input
               type="date"
               value={date}
-              max={todayInputValue()}
+              max={localDateKey()}
               onChange={(e) => setDate(e.target.value)}
               className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-800 focus:outline-none focus:border-gray-400"
             />

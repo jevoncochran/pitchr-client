@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
 import { AuthContext } from "../context/auth/AuthContext";
 import { PipelineStage } from "../types.d";
+import { MESSAGE_TYPES } from "../constants/results";
+import type { Reply } from "../components/leads/RecordReplyDialog";
 
 export const useLeadDetail = () => {
   const { id } = useParams();
@@ -105,6 +107,8 @@ export const useLeadDetail = () => {
   // Dormant modal state
   const [showDormantModal, setShowDormantModal] = useState(false);
   // "convert" when moving to Converted, "edit" when changing the conversion date
+  // The check-in whose "yes" is being answered with what they said
+  const [replyTaskId, setReplyTaskId] = useState<string | null>(null);
   const [convertDialog, setConvertDialog] = useState<"convert" | "edit" | null>(null);
   const [dormantReason, setDormantReason] = useState("");
   const [dormantRevisitAt, setDormantRevisitAt] = useState<Date | null>(null);
@@ -518,13 +522,29 @@ export const useLeadDetail = () => {
   };
 
   const handleCheckInRespond = (reminderId: string, responded: boolean) => {
+    // A "yes" to a check-in about a delivered DM/email/text asks what they said first
+    const task = lead.tasks?.find((t: { id: string }) => t.id === reminderId);
+    const message = lead.touchPoint?.find((tp: { id: string }) => tp.id === task?.touchPointId);
+    const aboutMessage =
+      message && MESSAGE_TYPES.includes(message.type) && message.delivery !== "FAILED";
+    if (responded && aboutMessage) {
+      setReplyTaskId(reminderId);
+      return;
+    }
     api
-      .patch(
-        `/api/tasks/${reminderId}/respond`,
-        { responded },
-      )
+      .patch(`/api/tasks/${reminderId}/respond`, { responded })
       .then(fetchLead)
       .catch(() => alert("Failed to update check-in"));
+  };
+
+  // Saving the RecordReplyDialog: answers the check-in with their reply
+  const handleReplySave = async (reply: Reply) => {
+    await api.patch(`/api/tasks/${replyTaskId}/respond`, {
+      responded: true,
+      reply,
+    });
+    setReplyTaskId(null);
+    fetchLead();
   };
 
   const startEditTp = (tp: any) => {
@@ -750,6 +770,9 @@ export const useLeadDetail = () => {
     convertDialog,
     setConvertDialog,
     handleConvertConfirm,
+    replyTaskId,
+    setReplyTaskId,
+    handleReplySave,
     dormantReason,
     setDormantReason,
     dormantRevisitAt,
