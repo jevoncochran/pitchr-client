@@ -104,6 +104,8 @@ export const useLeadDetail = () => {
 
   // Dormant modal state
   const [showDormantModal, setShowDormantModal] = useState(false);
+  // "convert" when moving to Converted, "edit" when changing the conversion date
+  const [convertDialog, setConvertDialog] = useState<"convert" | "edit" | null>(null);
   const [dormantReason, setDormantReason] = useState("");
   const [dormantRevisitAt, setDormantRevisitAt] = useState<Date | null>(null);
   const [submittingDormant, setSubmittingDormant] = useState(false);
@@ -336,14 +338,27 @@ export const useLeadDetail = () => {
       setShowDormantModal(true);
       return;
     }
-    const update: any = { pipelineStage: stage };
-    if (stage === PipelineStage.Converted && !lead.convertedAt) {
-      update.convertedAt = new Date().toISOString();
+    // Converted asks for confirmation and the date the money came in
+    if (stage === PipelineStage.Converted) {
+      setConvertDialog("convert");
+      return;
     }
+    // The server records the stage history and clears the conversion date
+    // when leaving Converted, so use the lead it sends back
     api
-      .patch(`/api/leads/${id}`, update)
-      .then(() => setLead((prev: any) => ({ ...prev, ...update })))
+      .patch(`/api/leads/${id}`, { pipelineStage: stage })
+      .then((res) => setLead((prev: any) => ({ ...prev, ...res.data })))
       .catch(() => alert("Failed to update stage"));
+  };
+
+  // Confirming the ConvertLeadDialog: mark converted, or edit the date
+  const handleConvertConfirm = async (convertedAt: Date) => {
+    const res = await api.patch(`/api/leads/${id}`, {
+      ...(convertDialog === "convert" && { pipelineStage: PipelineStage.Converted }),
+      convertedAt: convertedAt.toISOString(),
+    });
+    setLead((prev: any) => ({ ...prev, ...res.data }));
+    setConvertDialog(null);
   };
 
   const handleDormantSubmit = async () => {
@@ -355,7 +370,7 @@ export const useLeadDetail = () => {
         dormantReason,
         dormantRevisitAt: dormantRevisitAt.toISOString(),
       };
-      await api.patch(`/api/leads/${id}`, update);
+      const res = await api.patch(`/api/leads/${id}`, update);
       // Create a revisit task due on the selected date
       await api.post("/api/tasks", {
         leadId: id,
@@ -363,7 +378,7 @@ export const useLeadDetail = () => {
         dueDate: dormantRevisitAt.toISOString(),
         note: `Revisit dormant lead — ${dormantReason}`,
       });
-      setLead((prev: any) => ({ ...prev, ...update }));
+      setLead((prev: any) => ({ ...prev, ...res.data }));
       setShowDormantModal(false);
     } catch {
       alert("Failed to mark as dormant");
@@ -732,6 +747,9 @@ export const useLeadDetail = () => {
     // dormant modal
     showDormantModal,
     setShowDormantModal,
+    convertDialog,
+    setConvertDialog,
+    handleConvertConfirm,
     dormantReason,
     setDormantReason,
     dormantRevisitAt,

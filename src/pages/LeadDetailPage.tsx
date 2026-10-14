@@ -32,6 +32,7 @@ import { SectionHeader } from "../components/ui/SectionHeader";
 import { FieldLabel } from "../components/ui/FieldLabel";
 import { LeadSignals } from "../components/leads/LeadSignals";
 import { LeadSnapshot } from "../components/leads/LeadSnapshot";
+import { ConvertLeadDialog } from "../components/leads/ConvertLeadDialog";
 
 const LeadDetailPage = () => {
   const {
@@ -147,6 +148,9 @@ const LeadDetailPage = () => {
     handleAttachmentUpload,
     handleAttachmentDelete,
     fetchLead,
+    convertDialog,
+    setConvertDialog,
+    handleConvertConfirm,
   } = useLeadDetail();
 
   if (loading) {
@@ -247,7 +251,31 @@ const LeadDetailPage = () => {
               </button>
             ))}
           </div>
+          {lead.pipelineStage === "CONVERTED" && (
+            <p className="text-xs text-gray-500 mt-3">
+              {lead.convertedAt ? (
+                <>Converted {new Date(lead.convertedAt).toLocaleDateString()}</>
+              ) : (
+                <span className="text-amber-600">No conversion date recorded</span>
+              )}
+              {" · "}
+              <button
+                onClick={() => setConvertDialog("edit")}
+                className="underline hover:text-gray-800"
+              >
+                {lead.convertedAt ? "Edit date" : "Add date"}
+              </button>
+            </p>
+          )}
         </SectionCard>
+
+        <ConvertLeadDialog
+          open={convertDialog !== null}
+          mode={convertDialog ?? "convert"}
+          currentConvertedAt={lead.convertedAt}
+          onConfirm={handleConvertConfirm}
+          onCancel={() => setConvertDialog(null)}
+        />
 
         {/* Gone silent warning */}
         {(() => {
