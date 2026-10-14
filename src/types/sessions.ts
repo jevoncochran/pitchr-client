@@ -37,6 +37,14 @@ export interface SessionSummary {
   itemCounts: ItemCounts;
 }
 
+export interface SessionContact {
+  id: string;
+  firstName: string;
+  lastName: string | null;
+  title: string | null;
+  isDecisionMaker: boolean;
+}
+
 export interface SessionItem {
   id: string;
   position: number;
@@ -53,6 +61,7 @@ export interface SessionItem {
       state: string;
       zip: string;
     } | null;
+    contacts: SessionContact[];
   };
   touchPoint: {
     id: string;

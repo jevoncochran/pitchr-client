@@ -167,6 +167,15 @@ const SessionPage = () => {
 
         {session.notes && <p className="text-sm text-gray-600 mb-4 whitespace-pre-line">{session.notes}</p>}
 
+        {status !== "ended" && (
+          <button
+            onClick={() => navigate(`/sessions/${id}/run`)}
+            className="w-full md:w-auto mb-4 px-5 py-3 rounded-lg text-sm font-semibold text-white bg-green-primary"
+          >
+            {status === "planned" ? "Start session →" : "Continue session →"}
+          </button>
+        )}
+
         <div className="flex gap-4 text-sm mb-6">
           <button onClick={() => setEditing(true)} className="text-gray-600 underline hover:text-gray-900">
             Edit details
