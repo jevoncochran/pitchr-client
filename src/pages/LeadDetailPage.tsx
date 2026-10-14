@@ -34,6 +34,11 @@ import { LeadSignals } from "../components/leads/LeadSignals";
 import { LeadSnapshot } from "../components/leads/LeadSnapshot";
 import { ConvertLeadDialog } from "../components/leads/ConvertLeadDialog";
 import { RecordReplyDialog } from "../components/leads/RecordReplyDialog";
+import {
+  TouchpointResultBadges,
+  TouchpointResultDetails,
+} from "../components/leads/TouchpointResult";
+import { canRecordReply } from "../constants/results";
 
 const LeadDetailPage = () => {
   const {
@@ -140,7 +145,6 @@ const LeadDetailPage = () => {
     startEditTp,
     handleTouchpointEditSave,
     handleTouchpointDelete,
-    handleToggleResponse,
     handleNoteSubmit,
     handleToggleHot,
     resetContactForm,
@@ -155,6 +159,9 @@ const LeadDetailPage = () => {
     replyTaskId,
     setReplyTaskId,
     handleReplySave,
+    replyTouchpointId,
+    setReplyTouchpointId,
+    handleTouchpointReplySave,
   } = useLeadDetail();
 
   if (loading) {
@@ -277,6 +284,11 @@ const LeadDetailPage = () => {
           open={replyTaskId !== null}
           onSave={handleReplySave}
           onCancel={() => setReplyTaskId(null)}
+        />
+        <RecordReplyDialog
+          open={replyTouchpointId !== null}
+          onSave={handleTouchpointReplySave}
+          onCancel={() => setReplyTouchpointId(null)}
         />
 
         <ConvertLeadDialog
@@ -2387,19 +2399,24 @@ const LeadDetailPage = () => {
                         )}
 
                         <div className="flex items-center justify-between">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={editTpForm.receivedResponse}
-                              onChange={(e) =>
-                                setEditTpForm((f: any) => ({
-                                  ...f,
-                                  receivedResponse: e.target.checked,
-                                }))
-                              }
-                            />
-                            <span>Received a response</span>
-                          </label>
+                          {/* Tracked results (outcome, or a message's response) set this themselves */}
+                          {tp.outcome || tp.response ? (
+                            <span />
+                          ) : (
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={editTpForm.receivedResponse}
+                                onChange={(e) =>
+                                  setEditTpForm((f: any) => ({
+                                    ...f,
+                                    receivedResponse: e.target.checked,
+                                  }))
+                                }
+                              />
+                              <span>Received a response</span>
+                            </label>
+                          )}
                           <div className="flex gap-2">
                             <button
                               onClick={() => setEditingTpId(null)}
@@ -2514,6 +2531,7 @@ const LeadDetailPage = () => {
                                   ] ?? tp.sequencePosition}
                                 </span>
                               )}
+                              <TouchpointResultBadges tp={tp} />
                               <span className="text-gray-400">
                                 {new Date(tp.date).toLocaleDateString()}
                               </span>
@@ -2523,6 +2541,7 @@ const LeadDetailPage = () => {
                                 {tp.summary}
                               </p>
                             )}
+                            <TouchpointResultDetails tp={tp} />
                             <p className="text-gray-400 text-xs mt-0.5">
                               By {tp.contactedBy?.firstName}{" "}
                               {tp.contactedBy?.lastName}
@@ -2560,19 +2579,12 @@ const LeadDetailPage = () => {
                               </>
                             ) : (
                               <>
-                                {(tp.type === "EMAIL" ||
-                                  tp.type === "INSTAGRAM_DM") && (
+                                {canRecordReply(tp) && (
                                   <button
-                                    onClick={() => handleToggleResponse(tp)}
-                                    className={`text-xs font-medium px-2 py-0.5 rounded-full border transition ${
-                                      tp.receivedResponse
-                                        ? "bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
-                                        : "bg-white text-gray-400 border-gray-200 hover:text-gray-600"
-                                    }`}
+                                    onClick={() => setReplyTouchpointId(tp.id)}
+                                    className="text-xs font-medium px-2 py-0.5 rounded-full border bg-white text-gray-500 border-gray-200 hover:text-gray-700 transition"
                                   >
-                                    {tp.receivedResponse
-                                      ? "✓ Responded"
-                                      : "Mark responded"}
+                                    Record a reply
                                   </button>
                                 )}
                                 <button

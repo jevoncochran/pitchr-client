@@ -8,6 +8,10 @@ export const PROVIDER_OPTIONS = [
 /** Messages: delivery at the time, response later. */
 export const MESSAGE_TYPES = ["EMAIL", "INSTAGRAM_DM", "TEXT"];
 
+/** A delivered message with no reply recorded yet, so "Record a reply" applies. */
+export const canRecordReply = (tp: { type: string; delivery?: string | null; response?: string | null }) =>
+  MESSAGE_TYPES.includes(tp.type) && tp.delivery !== "FAILED" && tp.response !== "REPLIED";
+
 /** What happened on a visit or call. The first few only apply to one of them. */
 export const OUTCOMES = [
   { value: "BUSINESS_CLOSED", label: "Business closed", types: ["IN_PERSON"] },

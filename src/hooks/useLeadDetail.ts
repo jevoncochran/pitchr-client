@@ -109,6 +109,7 @@ export const useLeadDetail = () => {
   // "convert" when moving to Converted, "edit" when changing the conversion date
   // The check-in whose "yes" is being answered with what they said
   const [replyTaskId, setReplyTaskId] = useState<string | null>(null);
+  const [replyTouchpointId, setReplyTouchpointId] = useState<string | null>(null);
   const [convertDialog, setConvertDialog] = useState<"convert" | "edit" | null>(null);
   const [dormantReason, setDormantReason] = useState("");
   const [dormantRevisitAt, setDormantRevisitAt] = useState<Date | null>(null);
@@ -611,15 +612,11 @@ export const useLeadDetail = () => {
     }
   };
 
-  const handleToggleResponse = async (tp: any) => {
-    try {
-      await api.patch(`/api/touchpoints/${tp.id}`, {
-        receivedResponse: !tp.receivedResponse,
-      });
-      fetchLead();
-    } catch {
-      alert("Failed to update response status");
-    }
+  // "Record a reply" on a message: saves their reply (and answers its check-in if still open)
+  const handleTouchpointReplySave = async (reply: Reply) => {
+    await api.patch(`/api/touchpoints/${replyTouchpointId}/response`, reply);
+    setReplyTouchpointId(null);
+    fetchLead();
   };
 
   const handleNoteSubmit = (e: FormEvent) => {
@@ -773,6 +770,9 @@ export const useLeadDetail = () => {
     replyTaskId,
     setReplyTaskId,
     handleReplySave,
+    replyTouchpointId,
+    setReplyTouchpointId,
+    handleTouchpointReplySave,
     dormantReason,
     setDormantReason,
     dormantRevisitAt,
@@ -797,7 +797,6 @@ export const useLeadDetail = () => {
     startEditTp,
     handleTouchpointEditSave,
     handleTouchpointDelete,
-    handleToggleResponse,
     handleNoteSubmit,
     handleToggleHot,
     resetContactForm,
