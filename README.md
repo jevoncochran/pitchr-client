@@ -82,21 +82,27 @@ Output goes to `dist/`. Deploy to Vercel, Netlify, or any static host.
 
 ## Project Structure
 
+Organized by feature, like pitchr-server (`src/<feature>/`) and pitchr-ai (`app/features/<feature>/`): everything for one feature (pages, components, hooks, types, constants, tests) lives in one folder.
+
 ```
 src/
-├── components/       # Shared UI (InternalLayout, nav, modals)
-├── pages/
-│   ├── DashboardPage.tsx
-│   ├── LeadsPage.tsx
-│   ├── LeadDetailPage.tsx
-│   ├── AddLeadPage.tsx
-│   ├── PipelinePage.tsx
-│   ├── SequencePage.tsx
-│   └── LoginPage.tsx
-├── types.d.ts        # Shared TypeScript types and enums
-├── App.tsx           # Route definitions
-└── main.tsx          # Entry point
+├── app/                  # App setup: routes (App.tsx), the signed-in layout (InternalLayout)
+├── features/
+│   ├── analytics/        # Analytics page
+│   ├── auth/             # Login, auth context, private/public routes
+│   ├── contacts/         # Contacts list and contact page
+│   ├── dashboard/        # Dashboard page, its cards, task and goal calculations
+│   ├── leads/            # Leads list, lead page, add lead, pipeline, lead origin, results, snapshot, signals
+│   ├── sequence/         # Follow-up sequence page
+│   ├── sessions/         # Outreach sessions: list, planning, the active session screen, summary
+│   └── settings/         # Settings page
+├── components/ui/        # Shared UI: ConfirmModal, FieldLabel, SectionCard, SectionHeader, AddressAutocomplete
+├── lib/                  # Helpers: the API client (api.ts), dates, phone numbers
+├── test/setup.ts         # Vitest setup
+└── main.tsx              # Entry point
 ```
+
+A feature can import from another (sessions uses leads' constants, for example); anything used across most features belongs in `components/ui/` or `lib/`.
 
 ---
 
