@@ -804,3 +804,6 @@ export const useLeadDetail = () => {
     handleAttachmentDelete,
   };
 };
+
+/** Everything the lead page and its sections share: one instance per page. */
+export type LeadDetail = ReturnType<typeof useLeadDetail>;
