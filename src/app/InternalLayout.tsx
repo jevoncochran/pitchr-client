@@ -126,9 +126,13 @@ const InternalLayout = ({ children }: Props) => {
       {/* Main content */}
       <main className="flex-1 overflow-y-auto pb-20 md:pb-0 h-screen">{children}</main>
 
+      {/* Phone layers, bottom to top: page content, a page's own sheet (z-10, e.g. a
+          session's stops), the More sheet (z-20), the tab bar (z-30), then every
+          popup and dialog (z-40 and up), so a popup's buttons are never hidden */}
+
       {/* Mobile "More" sheet: the pages without a tab, plus who's signed in */}
       {moreOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
+        <div className="fixed inset-0 z-20 md:hidden">
           <div
             className="absolute inset-0 bg-black/40"
             onClick={() => setMoreOpen(false)}
@@ -174,7 +178,7 @@ const InternalLayout = ({ children }: Props) => {
       {/* Mobile bottom nav */}
       <nav
         aria-label="Tabs"
-        className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden bg-[#080D12] border-t border-white/10 px-2 py-2"
+        className="fixed bottom-0 left-0 right-0 z-30 flex md:hidden bg-[#080D12] border-t border-white/10 px-2 py-2"
       >
         {mobileTabs.map((item) => (
           <NavLink

@@ -451,7 +451,7 @@ const RunSessionPage = () => {
 
       {/* The stops on a map (visits): tap a pin to go to that stop */}
       {showMap && (
-        <div role="dialog" aria-modal="true" aria-label="Map of stops" className="fixed inset-0 z-[60] flex flex-col bg-white">
+        <div role="dialog" aria-modal="true" aria-label="Map of stops" className="fixed inset-0 z-50 flex flex-col bg-white">
           <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <h2 className="text-base font-bold text-gray-800">
@@ -503,7 +503,7 @@ const RunSessionPage = () => {
 
       {/* The whole list (visits and calls) */}
       {showList && (
-        <div className="fixed inset-0 z-[60] flex items-stretch md:items-center justify-center bg-black/40 md:p-4">
+        <div className="fixed inset-0 z-50 flex items-stretch md:items-center justify-center bg-black/40 md:p-4">
           <div role="dialog" aria-modal="true" aria-label="Session list" className="bg-white w-full md:max-w-md md:rounded-2xl shadow-xl flex flex-col md:max-h-[85vh]">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-800">

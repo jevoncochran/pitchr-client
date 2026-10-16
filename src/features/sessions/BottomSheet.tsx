@@ -76,7 +76,7 @@ export const BottomSheet = ({
       role="region"
       aria-label="Stops"
       data-snap={snap}
-      className={`fixed left-0 right-0 z-40 flex flex-col rounded-t-2xl bg-white shadow-[0_-8px_24px_rgba(15,23,42,0.15)] md:hidden ${
+      className={`fixed left-0 right-0 z-10 flex flex-col rounded-t-2xl bg-white shadow-[0_-8px_24px_rgba(15,23,42,0.15)] md:hidden ${
         dragHeight === null ? "transition-[height] duration-200" : ""
       }`}
       style={{ bottom: TAB_BAR_PX, height: dragHeight ?? heightFor(snap) }}
