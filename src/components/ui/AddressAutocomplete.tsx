@@ -1,10 +1,15 @@
 import { useEffect, useRef } from "react";
+import { loadGoogleMaps } from "../../lib/googleMaps";
 
 export interface ParsedAddress {
   addressLine1: string;
   city: string;
   state: string;
   zip: string;
+  /** From Google, for the map and route planning */
+  latitude: number | null;
+  longitude: number | null;
+  googlePlaceId: string | null;
 }
 
 interface Props {
@@ -16,45 +21,9 @@ interface Props {
   required?: boolean;
 }
 
-const GOOGLE_MAPS_SCRIPT_ID = "google-maps-script";
-
-function loadGoogleMapsScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (window.google?.maps?.places?.Autocomplete) {
-      resolve();
-      return;
-    }
-    if (document.getElementById(GOOGLE_MAPS_SCRIPT_ID)) {
-      const interval = setInterval(() => {
-        if (window.google?.maps?.places?.Autocomplete) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 100);
-      return;
-    }
-    const script = document.createElement("script");
-    script.id = GOOGLE_MAPS_SCRIPT_ID;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${
-      import.meta.env.VITE_GOOGLE_PLACES_API_KEY
-    }&libraries=places&loading=async&v=weekly`;
-    script.async = true;
-    script.onload = () => {
-      const interval = setInterval(() => {
-        if (window.google?.maps?.places?.Autocomplete) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 100);
-    };
-    script.onerror = () => reject(new Error("Failed to load Google Maps"));
-    document.head.appendChild(script);
-  });
-}
-
 function parseAddressComponents(
   components: google.maps.GeocoderAddressComponent[],
-): ParsedAddress {
+): Omit<ParsedAddress, "latitude" | "longitude" | "googlePlaceId"> {
   const get = (type: string) =>
     components.find((c) => c.types.includes(type))?.long_name ?? "";
   const getShort = (type: string) =>
@@ -84,21 +53,26 @@ const AddressAutocomplete = ({
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
-    loadGoogleMapsScript().then(() => {
+    loadGoogleMaps().then(() => {
       if (!inputRef.current || autocompleteRef.current) return;
 
       const autocomplete = new window.google.maps.places.Autocomplete(
         inputRef.current,
         {
           componentRestrictions: { country: "us" },
-          fields: ["address_components"],
+          fields: ["address_components", "geometry", "place_id"],
         },
       );
 
       autocomplete.addListener("place_changed", () => {
         const place = autocomplete.getPlace();
         if (!place.address_components) return;
-        const parsed = parseAddressComponents(place.address_components);
+        const parsed: ParsedAddress = {
+          ...parseAddressComponents(place.address_components),
+          latitude: place.geometry?.location?.lat() ?? null,
+          longitude: place.geometry?.location?.lng() ?? null,
+          googlePlaceId: place.place_id ?? null,
+        };
         onSelect(parsed);
         // Sync the input value to addressLine1
         if (inputRef.current) {

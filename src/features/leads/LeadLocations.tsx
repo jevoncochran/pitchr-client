@@ -3,7 +3,7 @@ import { formatPhone, toTelHref } from "../../lib/phone";
 import AddressAutocomplete from "../../components/ui/AddressAutocomplete";
 import { SectionCard } from "../../components/ui/SectionCard";
 import { SectionHeader } from "../../components/ui/SectionHeader";
-import type { LeadDetail } from "./useLeadDetail";
+import { addressKey, type LeadDetail } from "./useLeadDetail";
 
 /** The lead's locations (addresses and phone numbers). */
 export const LeadLocations = ({ detail }: { detail: LeadDetail }) => {
@@ -58,6 +58,12 @@ export const LeadLocations = ({ detail }: { detail: LeadDetail }) => {
                     city: parsed.city,
                     state: parsed.state,
                     zip: parsed.zip,
+                    coordinates: {
+                      latitude: parsed.latitude,
+                      longitude: parsed.longitude,
+                      googlePlaceId: parsed.googlePlaceId,
+                      forAddress: addressKey(parsed),
+                    },
                   }))
                 }
               />

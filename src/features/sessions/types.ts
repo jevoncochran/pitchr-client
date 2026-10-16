@@ -50,6 +50,9 @@ export interface SessionItem {
   position: number;
   plannedTime: string | null;
   status: SessionItemStatus;
+  /** Drive from the previous point of the optimized route (cleared when the order changes by hand) */
+  legSeconds: number | null;
+  legMeters: number | null;
   lead: {
     id: string;
     business: string;
@@ -60,6 +63,9 @@ export interface SessionItem {
       city: string;
       state: string;
       zip: string;
+      /** Null until the address has been found on the map */
+      latitude: number | null;
+      longitude: number | null;
     } | null;
     contacts: SessionContact[];
   };
@@ -103,6 +109,16 @@ export interface EndOfSessionSummary {
 export interface SessionDetail extends Omit<SessionSummary, "itemCounts"> {
   userId: string;
   items: SessionItem[];
+  /** The last optimized route (pitchr-server docs/route-planning.md). The line,
+   * totals and time are cleared when the order changes by hand; the start stays. */
+  routePolyline: string | null;
+  routeStartLabel: string | null;
+  routeStartLat: number | null;
+  routeStartLng: number | null;
+  routeReturns: boolean | null;
+  routeSeconds: number | null;
+  routeMeters: number | null;
+  routeOptimizedAt: string | null;
   /** Only once the session has ended */
   summary?: EndOfSessionSummary;
 }

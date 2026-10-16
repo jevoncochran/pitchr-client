@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { DragDropContext, Draggable, Droppable, DropResult } from "@hello-pangea/dnd";
-import { FaTimes, FaGripVertical } from "react-icons/fa";
 import axios from "axios";
 import api from "../../lib/api";
 import InternalLayout from "../../app/InternalLayout";
@@ -13,8 +11,11 @@ import {
   SessionDetails,
   SessionDetailsDialog,
 } from "./SessionDetailsDialog";
-import { PIPELINE_STAGES } from "../leads/constants";
-import { channelInfo, directionsUrl, sessionStatus } from "./constants";
+import { StopList } from "./StopList";
+import { SessionMap } from "./SessionMap";
+import { BottomSheet, type SheetSnap } from "./BottomSheet";
+import { OptimizeRouteDialog } from "./OptimizeRouteDialog";
+import { channelInfo, isVisitChannel, routeSummary, sessionStatus } from "./constants";
 import { formatDateKey } from "../../lib/dates";
 import type { SessionDetail, SessionItem } from "./types";
 
@@ -23,15 +24,6 @@ const STATUS_BADGE = {
   inProgress: { label: "In progress", className: "bg-amber-50 text-amber-700 border-amber-100" },
   ended: { label: "Ended", className: "bg-gray-100 text-gray-600 border-gray-200" },
 };
-
-const ITEM_STATUS = {
-  PLANNED: null,
-  COMPLETED: { label: "Done", className: "text-green-700 bg-green-50" },
-  SKIPPED: { label: "Skipped", className: "text-gray-500 bg-gray-100" },
-};
-
-const stageLabel = (value: string) =>
-  PIPELINE_STAGES.find((s) => s.value === value)?.label ?? value;
 
 // The server's error message, if it sent one
 const errorMessage = (err: unknown, fallback: string) =>
@@ -48,6 +40,9 @@ const SessionPage = () => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<SessionItem | null>(null);
+  const [optimizing, setOptimizing] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sheetSnap, setSheetSnap] = useState<SheetSnap>("peek");
 
   const load = useCallback(() => {
     api
@@ -70,8 +65,9 @@ const SessionPage = () => {
   const status = sessionStatus(session);
   const canChangeList = status !== "ended";
   const completed = session.items.filter((i) => i.status === "COMPLETED").length;
-  // Visits get directions; calls and messages don't need an address
-  const showDirections = session.channel === "IN_PERSON" || session.channel === "MIXED";
+  // Visits get directions, the map and route planning; calls and messages don't need an address
+  const showDirections = isVisitChannel(session.channel);
+  const canOptimize = showDirections && canChangeList && session.items.some((i) => i.status === "PLANNED");
   const plannedLeadIds = session.items.filter((i) => i.status === "PLANNED").map((i) => i.lead.id);
 
   // ── Actions ─────────────────────────────────────────────────────────────
@@ -118,12 +114,11 @@ const SessionPage = () => {
   };
 
   // Drag to reorder: update the screen right away, then save; undo if saving fails
-  const onDragEnd = (result: DropResult) => {
-    if (!result.destination || result.destination.index === result.source.index) return;
+  const handleReorder = (from: number, to: number) => {
     const previous = session.items;
     const items = [...previous];
-    const [moved] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, moved);
+    const [moved] = items.splice(from, 1);
+    items.splice(to, 0, moved);
     setSession({ ...session, items });
 
     api
@@ -135,11 +130,54 @@ const SessionPage = () => {
       });
   };
 
+  // Tapping a pin: highlight its stop and show the list
+  const handleSelectPin = (itemId: string) => {
+    setSelectedId(itemId);
+    if (sheetSnap === "peek") setSheetSnap("half");
+  };
+
+  const listHeading =
+    status === "planned"
+      ? `${session.items.length} ${session.items.length === 1 ? channel.item : channel.items} planned`
+      : `${completed} of ${session.items.length} ${channel.items} ${channel.done}`;
+
+  const stopList =
+    session.items.length === 0 ? (
+      <p className="text-sm text-gray-400 py-4 text-center">
+        No leads yet. Add the businesses you plan to {session.channel === "IN_PERSON" ? "visit" : "contact"}.
+      </p>
+    ) : (
+      <StopList
+        items={session.items}
+        canChangeList={canChangeList}
+        showDirections={showDirections}
+        highlightedId={selectedId}
+        onReorder={handleReorder}
+        onRemove={setRemoveTarget}
+        onOpenLead={(leadId) => navigate(`/leads/${leadId}`)}
+      />
+    );
+
+  const optimizeButton = canOptimize && (
+    <button
+      onClick={() => setOptimizing(true)}
+      className="flex-shrink-0 text-sm font-semibold bg-gray-900 text-white px-3 py-1.5 rounded-lg"
+    >
+      {session.routeOptimizedAt ? "Re-optimize" : "Optimize route"}
+    </button>
+  );
+
+  const mapStart =
+    session.routeStartLat != null && session.routeStartLng != null
+      ? { latitude: session.routeStartLat, longitude: session.routeStartLng, label: session.routeStartLabel }
+      : null;
+
   // ── Page ────────────────────────────────────────────────────────────────
 
   return (
     <InternalLayout>
-      <div className="p-4 md:p-8 max-w-3xl w-full">
+      <div className={`p-4 md:p-8 w-full ${showDirections ? "max-w-6xl md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-6 md:items-start" : "max-w-3xl"}`}>
+        <div className="min-w-0">
         <button
           onClick={() => navigate("/sessions")}
           className="text-sm text-gray-500 hover:text-gray-700 mb-2 block"
@@ -196,112 +234,83 @@ const SessionPage = () => {
           <SessionSummaryCard summary={session.summary} channel={session.channel} goal={session.goal} />
         )}
 
-        {/* The list */}
-        <SectionCard className="rounded-xl p-4">
+        {/* The list (on phones, visit sessions show it in a sheet over the map instead) */}
+        <SectionCard className={`rounded-xl p-4 ${showDirections ? "hidden md:block" : ""}`}>
           <div className="flex items-center justify-between gap-3 mb-3">
-            <p className="text-sm font-semibold text-gray-700">
-              {status === "planned"
-                ? `${session.items.length} ${session.items.length === 1 ? channel.item : channel.items} planned`
-                : `${completed} of ${session.items.length} ${channel.items} ${channel.done}`}
-            </p>
-            {canChangeList && (
-              <button
-                onClick={() => setPicking(true)}
-                className="text-sm bg-green-primary text-white px-3 py-1 rounded-lg"
-              >
-                + Add leads
-              </button>
-            )}
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-700">{listHeading}</p>
+              {showDirections && <p className="text-xs text-gray-400 mt-0.5">{routeSummary(session)}</p>}
+            </div>
+            <div className="flex items-center gap-2">
+              {optimizeButton}
+              {canChangeList && (
+                <button
+                  onClick={() => setPicking(true)}
+                  className="text-sm bg-green-primary text-white px-3 py-1.5 rounded-lg"
+                >
+                  + Add leads
+                </button>
+              )}
+            </div>
           </div>
-
-          {session.items.length === 0 ? (
-            <p className="text-sm text-gray-400 py-4 text-center">
-              No leads yet. Add the businesses you plan to {session.channel === "IN_PERSON" ? "visit" : "contact"}.
-            </p>
-          ) : (
-            <DragDropContext onDragEnd={onDragEnd}>
-              <Droppable droppableId="items" isDropDisabled={!canChangeList}>
-                {(provided) => (
-                  <ol ref={provided.innerRef} {...provided.droppableProps} className="space-y-2">
-                    {session.items.map((item, index) => {
-                      const itemStatus = ITEM_STATUS[item.status];
-                      const address = item.lead.primaryLocation;
-                      return (
-                        <Draggable
-                          key={item.id}
-                          draggableId={item.id}
-                          index={index}
-                          isDragDisabled={!canChangeList}
-                        >
-                          {(drag) => (
-                            <li
-                              ref={drag.innerRef}
-                              {...drag.draggableProps}
-                              className="flex items-start gap-2 bg-white border border-gray-100 rounded-lg p-3"
-                            >
-                              {canChangeList && (
-                                <span
-                                  {...drag.dragHandleProps}
-                                  aria-label="Drag to reorder"
-                                  className="pt-1 text-gray-300 hover:text-gray-500 cursor-grab"
-                                >
-                                  <FaGripVertical size={12} />
-                                </span>
-                              )}
-                              <span className="w-5 pt-0.5 text-xs font-semibold text-gray-400">{index + 1}</span>
-                              <div className="flex-1 min-w-0">
-                                <button
-                                  onClick={() => navigate(`/leads/${item.lead.id}`)}
-                                  className="text-sm font-medium text-gray-800 hover:underline text-left"
-                                >
-                                  {item.lead.business}
-                                </button>
-                                <p className="text-xs text-gray-400 mt-0.5">
-                                  {[item.lead.industry?.name, stageLabel(item.lead.pipelineStage)]
-                                    .filter(Boolean)
-                                    .join(" · ")}
-                                </p>
-                                {showDirections &&
-                                  (address ? (
-                                    <a
-                                      href={directionsUrl(address)}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="text-xs text-blue-600 hover:underline mt-1 inline-block"
-                                    >
-                                      Navigate · {address.addressLine1}, {address.city}
-                                    </a>
-                                  ) : (
-                                    <p className="text-xs text-gray-300 mt-1">No address on file</p>
-                                  ))}
-                              </div>
-                              {itemStatus && (
-                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${itemStatus.className}`}>
-                                  {itemStatus.label}
-                                </span>
-                              )}
-                              {canChangeList && item.status !== "COMPLETED" && (
-                                <button
-                                  onClick={() => setRemoveTarget(item)}
-                                  aria-label={`Remove ${item.lead.business}`}
-                                  className="p-1 text-gray-300 hover:text-red-500"
-                                >
-                                  <FaTimes size={12} />
-                                </button>
-                              )}
-                            </li>
-                          )}
-                        </Draggable>
-                      );
-                    })}
-                    {provided.placeholder}
-                  </ol>
-                )}
-              </Droppable>
-            </DragDropContext>
-          )}
+          {stopList}
         </SectionCard>
+        </div>
+
+        {/* One map (Google bills per map load): beside the list on desktop,
+            under the list sheet on phones */}
+        {showDirections && (
+          <SessionMap
+            items={session.items}
+            start={mapStart}
+            polyline={session.routePolyline}
+            selectedId={selectedId}
+            onSelect={handleSelectPin}
+            bottomPadding={180}
+            className="-mx-4 h-[calc(100vh-14rem)] min-h-[320px] md:mx-0 md:sticky md:top-8 md:h-[calc(100vh-4rem)] md:rounded-xl md:overflow-hidden"
+          />
+        )}
       </div>
+
+      {showDirections && (
+        <BottomSheet
+          snap={sheetSnap}
+          onSnapChange={setSheetSnap}
+          header={
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-800">{listHeading}</p>
+                <p className="text-xs text-gray-500 truncate">{routeSummary(session)}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {optimizeButton}
+                {canChangeList && (
+                  <button
+                    onClick={() => setPicking(true)}
+                    aria-label="Add leads"
+                    className="text-sm bg-green-primary text-white px-3 py-1.5 rounded-lg"
+                  >
+                    + Add
+                  </button>
+                )}
+              </div>
+            </div>
+          }
+        >
+          {stopList}
+        </BottomSheet>
+      )}
+
+      <OptimizeRouteDialog
+        open={optimizing}
+        session={session}
+        onDone={(updated) => {
+          setSession(updated);
+          setOptimizing(false);
+          setError("");
+        }}
+        onCancel={() => setOptimizing(false)}
+      />
 
       <SessionDetailsDialog
         open={editing}

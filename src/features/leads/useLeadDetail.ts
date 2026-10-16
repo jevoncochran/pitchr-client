@@ -6,6 +6,18 @@ import { PipelineStage } from "./types.d";
 import { MESSAGE_TYPES } from "./results";
 import type { Reply } from "./RecordReplyDialog";
 
+/** Coordinates the address search returned, and which address they belong to. */
+export interface LocationCoordinates {
+  latitude: number | null;
+  longitude: number | null;
+  googlePlaceId: string | null;
+  forAddress: string;
+}
+
+/** Identifies an address, to tell whether coordinates still match it. */
+export const addressKey = (a: { addressLine1: string; city: string; state: string; zip: string }) =>
+  [a.addressLine1, a.city, a.state, a.zip].map((part) => part.trim().toLowerCase()).join("|");
+
 export const useLeadDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -33,6 +45,8 @@ export const useLeadDetail = () => {
   const [locationForm, setLocationForm] = useState({
     addressLine1: "", addressLine2: "", city: "", state: "", zip: "",
     phoneNumber: "", phoneLabel: "MOBILE",
+    // From the address search; only sent if the address wasn't edited after
+    coordinates: null as LocationCoordinates | null,
   });
   const [submittingLocation, setSubmittingLocation] = useState(false);
 
@@ -402,6 +416,12 @@ export const useLeadDetail = () => {
           city: locationForm.city,
           state: locationForm.state,
           zip: locationForm.zip,
+          // The server looks up coordinates for a hand-typed or edited address
+          ...(locationForm.coordinates?.forAddress === addressKey(locationForm) && {
+            latitude: locationForm.coordinates.latitude,
+            longitude: locationForm.coordinates.longitude,
+            googlePlaceId: locationForm.coordinates.googlePlaceId,
+          }),
           business: { connect: { id } },
         },
       );
@@ -424,7 +444,7 @@ export const useLeadDetail = () => {
         );
       }
       setShowLocationForm(false);
-      setLocationForm({ addressLine1: "", addressLine2: "", city: "", state: "", zip: "", phoneNumber: "", phoneLabel: "MOBILE" });
+      setLocationForm({ addressLine1: "", addressLine2: "", city: "", state: "", zip: "", phoneNumber: "", phoneLabel: "MOBILE", coordinates: null });
       fetchLead();
     } catch {
       alert("Failed to add location");
