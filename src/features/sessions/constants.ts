@@ -1,4 +1,4 @@
-import type { SessionChannel } from "./types";
+import type { SessionChannel, SessionDetail } from "./types";
 
 /** How outreach is done in a session, and what the screen calls each item. */
 export const CHANNELS: {
@@ -35,3 +35,32 @@ export const directionsUrl = (address: {
   `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
     `${address.addressLine1}, ${address.city}, ${address.state} ${address.zip}`,
   )}`;
+
+/** "12 min", "1 h 40 min" */
+export const formatDriveTime = (seconds: number) => {
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  if (minutes < 60) return `${minutes} min`;
+  const rest = minutes % 60;
+  return `${Math.floor(minutes / 60)} h${rest ? ` ${rest} min` : ""}`;
+};
+
+/** "4.3 mi" (under 10 miles), "38 mi" */
+export const formatMiles = (meters: number) => {
+  const miles = meters / 1609.344;
+  return `${miles < 10 ? miles.toFixed(1) : Math.round(miles)} mi`;
+};
+
+/** Sessions where stops are visited, so they get the map and route planning */
+export const isVisitChannel = (channel: SessionChannel) =>
+  channel === "IN_PERSON" || channel === "MIXED";
+
+/** "1 h 40 min · 38 mi driving", or what to do when there's no route yet */
+export const routeSummary = (session: SessionDetail) => {
+  if (session.routeSeconds != null && session.routeMeters != null) {
+    return `${formatDriveTime(session.routeSeconds)} · ${formatMiles(session.routeMeters)} driving${
+      session.routeReturns ? " (round trip)" : ""
+    }`;
+  }
+  // A start but no line means the order was changed by hand after optimizing
+  return session.routeStartLat != null ? "Order changed · Re-optimize for drive times" : "Not optimized yet";
+};

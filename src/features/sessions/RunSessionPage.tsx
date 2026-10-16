@@ -16,7 +16,9 @@ import {
 import { SESSION_CHANNEL_ORIGIN } from "../leads/origins";
 import { PIPELINE_STAGES } from "../leads/constants";
 import { MIXED_TYPES, OUTCOME_LABEL } from "../leads/results";
-import { channelInfo, directionsUrl } from "./constants";
+import { channelInfo, directionsUrl, formatDriveTime, formatMiles, isVisitChannel, routeSummary } from "./constants";
+import { SessionMap } from "./SessionMap";
+import { currentPosition } from "../../lib/geolocation";
 import type { SessionDetail, SessionItem } from "./types";
 
 const MESSAGE_CHANNELS = ["INSTAGRAM_DM", "EMAIL", "TEXT"];
@@ -84,6 +86,9 @@ const RunSessionPage = () => {
   const [mixedType, setMixedType] = useState("IN_PERSON");
 
   const [showList, setShowList] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [rerouting, setRerouting] = useState(false);
+  const [mapError, setMapError] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [showSnapshot, setShowSnapshot] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
@@ -234,6 +239,22 @@ const RunSessionPage = () => {
     }
   };
 
+  // Re-optimize from here: the stops still planned, from where you are now
+  const reoptimizeFromHere = async () => {
+    setRerouting(true);
+    setMapError("");
+    try {
+      const start = await currentPosition();
+      const res = await api.post<SessionDetail>(`/api/sessions/${id}/route`, { start, returnToStart: false });
+      setSession(res.data);
+      setChosenItemId(null);
+    } catch (err) {
+      setMapError(axios.isAxiosError(err) ? errorMessage(err, "Couldn't re-optimize.") : (err as Error).message);
+    } finally {
+      setRerouting(false);
+    }
+  };
+
   const applyStage = async () => {
     if (!stageSuggestion) return;
     try {
@@ -261,6 +282,11 @@ const RunSessionPage = () => {
             </p>
           </div>
           <div className="flex gap-2 flex-shrink-0">
+            {isVisitChannel(session.channel) && (
+              <button onClick={() => setShowMap(true)} className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-gray-100">
+                Map
+              </button>
+            )}
             {!messageMode && (
               <button onClick={() => setShowList(true)} className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-gray-100">
                 List
@@ -333,6 +359,12 @@ const RunSessionPage = () => {
                 {[current.lead.industry?.name, PIPELINE_STAGES.find((s) => s.value === current.lead.pipelineStage)?.label]
                   .filter(Boolean)
                   .join(" · ")}
+              </p>
+            )}
+            {isVisit && current?.legSeconds != null && current.legMeters != null && (
+              <p className="text-xs text-gray-400 mt-0.5">
+                {formatDriveTime(current.legSeconds)} · {formatMiles(current.legMeters)} from{" "}
+                {items.slice(0, currentIndex).some((i) => i.legSeconds != null) ? "the last stop" : "the start"}
               </p>
             )}
 
@@ -417,9 +449,61 @@ const RunSessionPage = () => {
         )}
       </div>
 
+      {/* The stops on a map (visits): tap a pin to go to that stop */}
+      {showMap && (
+        <div role="dialog" aria-modal="true" aria-label="Map of stops" className="fixed inset-0 z-[60] flex flex-col bg-white">
+          <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="text-base font-bold text-gray-800">
+                {plannedCount} {plannedCount === 1 ? channel.item : channel.items} left
+              </h2>
+              <p className="text-xs text-gray-500 truncate">{routeSummary(session)}</p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {plannedCount > 0 && (
+                <button
+                  onClick={reoptimizeFromHere}
+                  disabled={rerouting}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-gray-900 disabled:opacity-50"
+                >
+                  {rerouting ? "Optimizing…" : "Re-optimize from here"}
+                </button>
+              )}
+              <button onClick={() => setShowMap(false)} aria-label="Close" className="p-1 text-gray-400">
+                <FaTimes />
+              </button>
+            </div>
+          </div>
+          {mapError && (
+            <p className="px-4 py-2 text-xs text-red-500" role="alert">
+              {mapError}
+            </p>
+          )}
+          <SessionMap
+            items={items}
+            start={
+              session.routeStartLat != null && session.routeStartLng != null
+                ? { latitude: session.routeStartLat, longitude: session.routeStartLng, label: session.routeStartLabel }
+                : null
+            }
+            polyline={session.routePolyline}
+            selectedId={current?.id ?? null}
+            onSelect={(itemId) => {
+              const picked = items.find((i) => i.id === itemId);
+              if (!picked || picked.status === "COMPLETED") return;
+              setUnplanned(null);
+              setChosenItemId(itemId);
+              setShowSnapshot(false);
+              setShowMap(false);
+            }}
+            className="flex-1"
+          />
+        </div>
+      )}
+
       {/* The whole list (visits and calls) */}
       {showList && (
-        <div className="fixed inset-0 z-50 flex items-stretch md:items-center justify-center bg-black/40 md:p-4">
+        <div className="fixed inset-0 z-[60] flex items-stretch md:items-center justify-center bg-black/40 md:p-4">
           <div role="dialog" aria-modal="true" aria-label="Session list" className="bg-white w-full md:max-w-md md:rounded-2xl shadow-xl flex flex-col md:max-h-[85vh]">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-800">

@@ -10,6 +10,8 @@ import type { SessionDetail } from "../types";
 vi.mock("../../../lib/api", () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
 }));
+// No real Google script in tests
+vi.mock("../../../lib/googleMaps", () => ({ loadGoogleMaps: () => new Promise(() => {}) }));
 const mockApi = api as unknown as {
   get: ReturnType<typeof vi.fn>;
   post: ReturnType<typeof vi.fn>;
@@ -21,7 +23,14 @@ const lead = (id: string, business: string, contacts: SessionDetail["items"][num
   business,
   pipelineStage: "CONTACTED",
   industry: { name: "roofing" },
-  primaryLocation: { addressLine1: "1 Main St", city: "Tampa", state: "FL", zip: "33602" },
+  primaryLocation: {
+    addressLine1: "1 Main St",
+    city: "Tampa",
+    state: "FL",
+    zip: "33602",
+    latitude: 27.95,
+    longitude: -82.46,
+  },
   contacts,
 });
 
@@ -36,12 +45,22 @@ const session = (overrides: Partial<SessionDetail> = {}): SessionDetail => ({
   goal: 2,
   notes: null,
   user: { id: "u-1", firstName: "Jevon", lastName: "C" },
+  routePolyline: null,
+  routeStartLabel: null,
+  routeStartLat: null,
+  routeStartLng: null,
+  routeReturns: null,
+  routeSeconds: null,
+  routeMeters: null,
+  routeOptimizedAt: null,
   items: [
     {
       id: "item-1",
       position: 0,
       plannedTime: null,
       status: "PLANNED",
+      legSeconds: null,
+      legMeters: null,
       lead: lead("lead-1", "Peak Roofing", [
         { id: "c-1", firstName: "Dana", lastName: "Lee", title: "Owner", isDecisionMaker: true },
       ]),
@@ -52,6 +71,8 @@ const session = (overrides: Partial<SessionDetail> = {}): SessionDetail => ({
       position: 1,
       plannedTime: null,
       status: "PLANNED",
+      legSeconds: null,
+      legMeters: null,
       lead: lead("lead-2", "Bay Builders"),
       touchPoint: null,
     },
@@ -112,6 +133,29 @@ describe("RunSessionPage (visits)", () => {
     }));
     expect(await screen.findByRole("heading", { name: "Bay Builders" })).toBeInTheDocument();
     expect(screen.getByText(/Stop 2 of 2/)).toBeInTheDocument();
+  });
+
+  it("re-optimizes the stops left from my location, from the map", async () => {
+    Object.defineProperty(navigator, "geolocation", {
+      configurable: true,
+      value: {
+        getCurrentPosition: (ok: PositionCallback) =>
+          ok({ coords: { latitude: 27.96, longitude: -82.44 } } as GeolocationPosition),
+      },
+    });
+    mockApi.get.mockResolvedValue({ data: session() });
+    mockApi.post.mockResolvedValue({ data: session({ routeSeconds: 900, routeMeters: 8000 }) });
+    renderPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Map" }));
+    expect(screen.getByRole("dialog", { name: "Map of stops" })).toHaveTextContent("2 stops left");
+    await userEvent.click(screen.getByRole("button", { name: "Re-optimize from here" }));
+
+    expect(mockApi.post).toHaveBeenCalledWith("/api/sessions/s-1/route", {
+      start: { latitude: 27.96, longitude: -82.44, label: "My location" },
+      returnToStart: false,
+    });
+    expect(await screen.findByText("15 min · 5.0 mi driving")).toBeInTheDocument();
   });
 
   it("starts a session that hasn't started yet", async () => {
