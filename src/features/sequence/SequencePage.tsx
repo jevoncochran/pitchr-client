@@ -303,7 +303,7 @@ const LeadCard = ({
 
       {/* Industry */}
       {lead.industry?.name && (
-        <p className="text-xs text-gray-400 mb-2">{lead.industry.name}</p>
+        <p className="text-xs text-gray-400 mb-2">{lead.industry?.name ?? "No industry yet"}</p>
       )}
 
       {/* Cycle progress dots */}

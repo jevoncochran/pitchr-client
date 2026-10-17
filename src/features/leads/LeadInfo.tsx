@@ -69,6 +69,22 @@ export const LeadInfo = ({ detail }: { detail: LeadDetail }) => {
         )}
       </div>
 
+      {/* Saved without them (e.g. from a business card): ask until they're set */}
+      {!editMode && (!lead.industry || !lead.businessType) && (
+        <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <span>
+            {!lead.industry && !lead.businessType
+              ? "No industry or business type yet"
+              : !lead.industry
+                ? "No industry yet"
+                : "No business type yet"}
+          </span>
+          <button onClick={startEdit} className="font-medium underline">
+            Add
+          </button>
+        </div>
+      )}
+
       {/* Shared field styles for edit inputs */}
       {/* input: fi-input  select: fi-select */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-14 gap-y-6">
@@ -91,7 +107,9 @@ export const LeadInfo = ({ detail }: { detail: LeadDetail }) => {
         <div>
           <FieldLabel>Industry</FieldLabel>
           {!editMode ? (
-            <p className="text-sm font-medium text-gray-800">{lead.industry?.name ?? "—"}</p>
+            <p className="text-sm font-medium text-gray-800">
+              {lead.industry?.name ?? <span className="text-amber-700">Not set</span>}
+            </p>
           ) : (
             <select
               value={editForm.industryId}
@@ -110,7 +128,9 @@ export const LeadInfo = ({ detail }: { detail: LeadDetail }) => {
         <div>
           <FieldLabel>Business Type</FieldLabel>
           {!editMode ? (
-            <p className="text-sm font-medium text-gray-800">{lead.businessType?.name ?? "—"}</p>
+            <p className="text-sm font-medium text-gray-800">
+              {lead.businessType?.name ?? <span className="text-amber-700">Not set</span>}
+            </p>
           ) : (
             <select
               value={editForm.businessTypeId}

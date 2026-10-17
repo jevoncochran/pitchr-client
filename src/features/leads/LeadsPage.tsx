@@ -121,7 +121,7 @@ const STAGE_COLORS: Record<string, string> = {
 const ALL_STAGES = Object.keys(STAGE_LABELS);
 const DEFAULT_HIDDEN = new Set(["DORMANT", "NOT_A_FIT", "LOST"]);
 
-type QuickFilter = "new" | "recently-touched" | null;
+type QuickFilter = "new" | "recently-touched" | "needs-details" | null;
 
 const LeadsPage = () => {
   const navigate = useNavigate();
@@ -219,6 +219,8 @@ const LeadsPage = () => {
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
         return new Date(l.createdAt) >= sevenDaysAgo;
       }
+      // Saved without an industry or business type (e.g. from a business card)
+      if (quickFilter === "needs-details") return !l.industry || !l.businessType;
       if (quickFilter === "recently-touched") {
         if (!l.touchPoint || l.touchPoint.length === 0) return false;
         const daysSince =
@@ -276,6 +278,11 @@ const LeadsPage = () => {
             onClick={() =>
               setQuickFilter(quickFilter === "recently-touched" ? null : "recently-touched")
             }
+          />
+          <QuickFilterPill
+            label="Needs industry/type"
+            active={quickFilter === "needs-details"}
+            onClick={() => setQuickFilter(quickFilter === "needs-details" ? null : "needs-details")}
           />
           <MultiSelectDropdown
             label="Industry"

@@ -6,6 +6,7 @@ import { MdArrowBack } from "react-icons/md";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import api from "../../lib/api";
+import { BusinessCardSuggestions } from "../businessCards/BusinessCardScanLine";
 import InternalLayout from "../../app/InternalLayout";
 import { SectionCard } from "../../components/ui/SectionCard";
 import { SectionHeader } from "../../components/ui/SectionHeader";
@@ -495,6 +496,13 @@ const ContactDetailPage = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Values a business card disagreed with (docs/business-card-scan.md) */}
+                {!editing && contact.changeSuggestions?.length > 0 && (
+                  <div className="md:col-span-2">
+                    <BusinessCardSuggestions suggestions={contact.changeSuggestions} onChanged={fetchContact} />
+                  </div>
+                )}
 
                 {/* Email */}
                 <div>

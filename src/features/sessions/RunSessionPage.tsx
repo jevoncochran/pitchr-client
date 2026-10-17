@@ -18,6 +18,7 @@ import { PIPELINE_STAGES } from "../leads/constants";
 import { MIXED_TYPES, OUTCOME_LABEL } from "../leads/results";
 import { channelInfo, directionsUrl, formatDriveTime, formatMiles, isVisitChannel, routeSummary } from "./constants";
 import { SessionMap } from "./SessionMap";
+import { StopPhotos } from "./StopPhotos";
 import { currentPosition } from "../../lib/geolocation";
 import type { SessionDetail, SessionItem } from "./types";
 
@@ -383,6 +384,15 @@ const RunSessionPage = () => {
                 </button>
               )}
             </div>
+
+            {isVisit && target.leadId && (
+              <StopPhotos
+                key={target.leadId}
+                leadId={target.leadId}
+                contacts={current?.lead.contacts ?? []}
+                onContactsChanged={load}
+              />
+            )}
 
             {showSnapshot && target.leadId && (
               <div className="mt-3">

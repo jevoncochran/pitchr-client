@@ -115,6 +115,8 @@ Feature specs live with the service that owns most of the feature:
 | [Lead snapshot](https://github.com/jevoncochran/pitchr-ai/blob/HEAD/docs/lead-snapshot.md) (in pitchr-ai) | The AI lead snapshot on each lead's page |
 | [Outreach sessions](https://github.com/jevoncochran/pitchr-server/blob/HEAD/docs/outreach-sessions.md) (in pitchr-server) | Spec draft: logging outreach sessions, planned routes, analytics |
 | [Lead origin](https://github.com/jevoncochran/pitchr-server/blob/HEAD/docs/lead-origin.md) (in pitchr-server) | How each lead started (we reached out / they came to us), used by analytics and the snapshot |
+| [Business card scan](https://github.com/jevoncochran/pitchr-server/blob/HEAD/docs/business-card-scan.md) (in pitchr-server) | Spec draft: business card photos become contacts |
+| [Visit debrief](https://github.com/jevoncochran/pitchr-server/blob/HEAD/docs/visit-debrief.md) (in pitchr-server) | Spec draft: a dictated note after a visit fills in the visit form |
 
 ---
 

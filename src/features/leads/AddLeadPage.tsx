@@ -5,6 +5,14 @@ import api from "../../lib/api";
 import { BusinessType, Industry } from "./types.d";
 import { OriginSelect } from "./OriginSelect";
 import { FaInstagram, FaTiktok, FaYoutube, FaFacebook } from "react-icons/fa";
+import AddressAutocomplete from "../../components/ui/AddressAutocomplete";
+import { FillFromBusinessCard, FromBusinessCardTag } from "../businessCards/FillFromBusinessCard";
+import type { NewLeadBusinessCard } from "../businessCards/businessCardScan";
+import { addressKey } from "./useLeadDetail";
+import { NewLeadContacts } from "./NewLeadContacts";
+import { type ContactDraft, contactsFromBusinessCards, emptyContact, hasAnyValue } from "./contactDrafts";
+
+const EMPTY_ADDRESS = { addressLine1: "", city: "", state: "", zip: "" };
 
 const AddLeadPage = () => {
   const navigate = useNavigate();
@@ -35,6 +43,64 @@ const AddLeadPage = () => {
   const [referredByName, setReferredByName] = useState("");
   const [showReferralSuggestions, setShowReferralSuggestions] = useState(false);
 
+  // Address and contacts, saved with the lead
+  const [address, setAddress] = useState(EMPTY_ADDRESS);
+  // Coordinates from the address search, kept only while the address is unchanged
+  const [pickedCoordinates, setPickedCoordinates] = useState<{
+    forAddress: string;
+    latitude: number | null;
+    longitude: number | null;
+    googlePlaceId: string | null;
+  } | null>(null);
+  const [contacts, setContacts] = useState<ContactDraft[]>(() => [emptyContact()]);
+  const [howWeMet, setHowWeMet] = useState("");
+
+  // "Fill in from business card" (pitchr-server docs/business-card-scan.md):
+  // what was read (every photo so far), and which fields it filled in
+  const [businessCards, setBusinessCards] = useState<NewLeadBusinessCard | null>(null);
+  const [fromCard, setFromCard] = useState<Set<string>>(new Set());
+  const edited = (field: string) =>
+    setFromCard((current) => {
+      if (!current.has(field)) return current;
+      const next = new Set(current);
+      next.delete(field);
+      return next;
+    });
+
+  /**
+   * Fill in from business cards: empty fields, and fields filled from business
+   * cards before and not edited since (reading the back can improve them).
+   * Anything typed or edited stays.
+   */
+  const fillFromBusinessCard = (result: NewLeadBusinessCard) => {
+    const { business } = result.reading;
+    const filled: string[] = [];
+    const fill = (field: string, current: string, value: string | null, set: (v: string) => void) => {
+      if (value && (!current.trim() || fromCard.has(field))) {
+        set(value);
+        filled.push(field);
+      }
+    };
+    fill("businessName", businessName, business.name, setBusinessName);
+    fill("website", website, business.website, setWebsite);
+    fill("email", email, business.email, setEmail);
+    fill("instagram", instagramHandle, business.instagramHandle, setInstagramHandle);
+    fill("industry", selectedIndustryId, business.suggestedIndustryId, setSelectedIndustryId);
+    fill("businessType", selectedBusinessTypeId, business.suggestedBusinessTypeId, setSelectedBusinessTypeId);
+    if (business.addressLine1 && (!address.addressLine1.trim() || fromCard.has("address"))) {
+      setAddress({
+        addressLine1: business.addressLine1,
+        city: business.city ?? "",
+        state: business.state ?? "",
+        zip: business.zip ?? "",
+      });
+      setPickedCoordinates(null);
+      filled.push("address");
+    }
+    setContacts((current) => contactsFromBusinessCards(result, current));
+    setBusinessCards(result);
+    setFromCard((current) => new Set([...current, ...filled]));
+  };
 
   const handleIndustryChange = async (
     e: React.ChangeEvent<HTMLSelectElement>
@@ -57,6 +123,7 @@ const AddLeadPage = () => {
     } else {
       setSelectedIndustryId(e.target.value);
     }
+    edited("industry");
   };
 
   const handleBusinessTypeChange = async (
@@ -80,10 +147,31 @@ const AddLeadPage = () => {
     } else {
       setSelectedBusinessTypeId(e.target.value);
     }
+    edited("businessType");
   };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+
+    const hasAddress = Object.values(address).some((part) => part.trim());
+    if (hasAddress && !(address.addressLine1.trim() && address.city.trim() && address.state.trim())) {
+      alert("An address needs a street, city and state");
+      return;
+    }
+    // Business cards for another business are left out unless "Add anyway"
+    const savedContacts = contacts.filter((c) => hasAnyValue(c) && c.otherBusiness === null);
+    if (savedContacts.some((c) => !c.firstName.trim())) {
+      alert("A contact needs a first name");
+      return;
+    }
+    // Every business card photo of a saved contact, plus sides with only the business
+    const businessOnlyIds = (businessCards?.reading.businessOnlyPhotos ?? [])
+      .map((i) => businessCards!.attachments[i]?.id)
+      .filter(Boolean);
+    const businessCardAttachmentIds = [
+      ...businessOnlyIds,
+      ...savedContacts.flatMap((c) => c.attachmentIds),
+    ];
 
     const payload = {
       business: businessName,
@@ -112,6 +200,29 @@ const AddLeadPage = () => {
       ...(selectedBusinessTypeId && {
         businessType: { connect: { id: selectedBusinessTypeId } },
       }),
+      ...(hasAddress && {
+        location: {
+          ...address,
+          ...(pickedCoordinates?.forAddress === addressKey(address) && {
+            latitude: pickedCoordinates.latitude,
+            longitude: pickedCoordinates.longitude,
+            googlePlaceId: pickedCoordinates.googlePlaceId,
+          }),
+        },
+      }),
+      ...(savedContacts.length > 0 && {
+        contacts: savedContacts.map((c) => ({
+          firstName: c.firstName,
+          lastName: c.lastName,
+          title: c.title,
+          email: c.email,
+          phone: c.phone,
+          isDecisionMaker: c.isDecisionMaker,
+          businessCardAttachmentIds: c.attachmentIds,
+        })),
+      }),
+      ...(howWeMet.trim() && { howWeMet }),
+      ...(businessCardAttachmentIds.length > 0 && { businessCardAttachmentIds }),
     };
 
     api
@@ -149,6 +260,8 @@ const AddLeadPage = () => {
           className="bg-light-grey w-full rounded-lg p-4"
           onSubmit={handleSubmit}
         >
+          <FillFromBusinessCard onRead={fillFromBusinessCard} />
+
           <div className="mb-12">
             {/* Business Name */}
             <div className="mb-4">
@@ -157,6 +270,7 @@ const AddLeadPage = () => {
                 className="block text-sm font-semibold mb-1"
               >
                 Business Name
+                <FromBusinessCardTag show={fromCard.has("businessName")} />
               </label>
               <input
                 type="text"
@@ -164,9 +278,10 @@ const AddLeadPage = () => {
                 name="businessName"
                 placeholder="Enter the business name"
                 value={businessName}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setBusinessName(e.target.value)
-                }
+                onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                  setBusinessName(e.target.value);
+                  edited("businessName");
+                }}
                 className="w-full px-4 py-2 bg-white border rounded-lg focus:outline-none focus:ring-1 focus:ring-blackPrimary"
               />
             </div>
@@ -179,6 +294,7 @@ const AddLeadPage = () => {
                   className="block text-sm font-semibold mb-1"
                 >
                   Industry
+                  <FromBusinessCardTag show={fromCard.has("industry")} />
                 </label>
                 <select
                   id="industry"
@@ -203,6 +319,7 @@ const AddLeadPage = () => {
                   className="block text-sm font-semibold mb-1"
                 >
                   Business Type
+                  <FromBusinessCardTag show={fromCard.has("businessType")} />
                 </label>
                 <select
                   id="businessType"
@@ -230,6 +347,7 @@ const AddLeadPage = () => {
                   className="block text-sm font-semibold mb-1"
                 >
                   Email
+                  <FromBusinessCardTag show={fromCard.has("email")} />
                 </label>
                 <input
                   type="text"
@@ -237,9 +355,10 @@ const AddLeadPage = () => {
                   name="email"
                   placeholder="Enter the email"
                   value={email}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setEmail(e.target.value)
-                  }
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                    setEmail(e.target.value);
+                    edited("email");
+                  }}
                   className="w-full px-4 py-2 bg-white border rounded-lg focus:outline-none focus:ring-1 focus:ring-blackPrimary"
                 />
               </div>
@@ -250,6 +369,7 @@ const AddLeadPage = () => {
                   className="block text-sm font-semibold mb-1"
                 >
                   Website
+                  <FromBusinessCardTag show={fromCard.has("website")} />
                 </label>
                 <input
                   type="text"
@@ -257,12 +377,76 @@ const AddLeadPage = () => {
                   name="website"
                   placeholder="Enter the website"
                   value={website}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setWebsite(e.target.value)
-                  }
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                    setWebsite(e.target.value);
+                    edited("website");
+                  }}
                   className="w-full px-4 py-2 bg-white border rounded-lg focus:outline-none focus:ring-1 focus:ring-blackPrimary"
                 />
               </div>
+            </div>
+
+            {/* Address (the lead's main location) */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-1">
+                Address
+                <FromBusinessCardTag show={fromCard.has("address")} />
+              </label>
+              <AddressAutocomplete
+                value={address.addressLine1}
+                onChange={(addressLine1) => {
+                  setAddress((a) => ({ ...a, addressLine1 }));
+                  edited("address");
+                }}
+                onSelect={(parsed) => {
+                  const picked = {
+                    addressLine1: parsed.addressLine1,
+                    city: parsed.city,
+                    state: parsed.state,
+                    zip: parsed.zip,
+                  };
+                  setAddress(picked);
+                  setPickedCoordinates({
+                    forAddress: addressKey(picked),
+                    latitude: parsed.latitude,
+                    longitude: parsed.longitude,
+                    googlePlaceId: parsed.googlePlaceId,
+                  });
+                  edited("address");
+                }}
+                placeholder="Street address"
+                className="w-full px-4 py-2 bg-white border rounded-lg focus:outline-none focus:ring-1 focus:ring-blackPrimary"
+              />
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {(["city", "state", "zip"] as const).map((part) => (
+                  <input
+                    key={part}
+                    type="text"
+                    aria-label={part}
+                    placeholder={part === "zip" ? "Zip" : part[0].toUpperCase() + part.slice(1)}
+                    value={address[part]}
+                    onChange={(e) => {
+                      setAddress((a) => ({ ...a, [part]: e.target.value }));
+                      edited("address");
+                    }}
+                    className="w-full px-4 py-2 bg-white border rounded-lg focus:outline-none focus:ring-1 focus:ring-blackPrimary"
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Contacts: one per person (typed in, or one per business card) */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-1">Contacts</label>
+              <NewLeadContacts contacts={contacts} onChange={setContacts} businessName={businessName} />
+              <textarea
+                aria-label="How we met"
+                placeholder="How we met (e.g. met at a coffee shop, said they need a videographer)"
+                value={howWeMet}
+                onChange={(e) => setHowWeMet(e.target.value)}
+                rows={2}
+                className="w-full mt-2 px-4 py-2 bg-white border rounded-lg focus:outline-none focus:ring-1 focus:ring-blackPrimary"
+              />
             </div>
 
             {/* Lead origin */}
@@ -311,7 +495,10 @@ const AddLeadPage = () => {
 
           {/* Social Media */}
           <div className="mb-8">
-            <h3 className="text-sm font-semibold mb-3">Social Media</h3>
+            <h3 className="text-sm font-semibold mb-3">
+              Social Media
+              <FromBusinessCardTag show={fromCard.has("instagram")} />
+            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
               {[
                 { icon: <FaInstagram className="text-pink-500" />, label: "Instagram", handle: instagramHandle, setHandle: setInstagramHandle, followers: instagramFollowers, setFollowers: setInstagramFollowers },
@@ -325,7 +512,10 @@ const AddLeadPage = () => {
                     type="text"
                     placeholder={`${label} handle`}
                     value={handle}
-                    onChange={(e) => setHandle(e.target.value)}
+                    onChange={(e) => {
+                      setHandle(e.target.value);
+                      if (label === "Instagram") edited("instagram");
+                    }}
                     className="flex-1 text-sm focus:outline-none min-w-0"
                   />
                   <input

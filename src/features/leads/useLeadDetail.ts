@@ -5,6 +5,7 @@ import { AuthContext } from "../auth/AuthContext";
 import { PipelineStage } from "./types.d";
 import { MESSAGE_TYPES } from "./results";
 import type { Reply } from "./RecordReplyDialog";
+import { useBusinessCardScanPolling } from "../businessCards/businessCardScan";
 
 /** Coordinates the address search returned, and which address they belong to. */
 export interface LocationCoordinates {
@@ -257,6 +258,13 @@ export const useLeadDetail = () => {
       setAllLeads(leadsRes.data.map((l: any) => ({ id: l.id, business: l.business })));
     });
   }, [id]);
+
+  // Business card scan: while a photo is being read, keep checking; when one finishes,
+  // reload contacts and the lead (a business card can add a contact or the website)
+  useBusinessCardScanPolling(attachments, fetchAttachments, () => {
+    fetchContacts();
+    fetchLead();
+  });
 
   const startEdit = () => {
     setReferralSearch(
