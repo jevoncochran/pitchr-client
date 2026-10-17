@@ -1,6 +1,7 @@
 import { FaFilePdf, FaFileVideo, FaFile, FaExpand, FaTimes } from "react-icons/fa";
 import { SectionCard } from "../../components/ui/SectionCard";
 import { SectionHeader } from "../../components/ui/SectionHeader";
+import { BusinessCardScanLine } from "../businessCards/BusinessCardScanLine";
 import type { LeadDetail } from "./useLeadDetail";
 
 /** Attachments: upload, preview, delete. */
@@ -15,6 +16,10 @@ export const LeadAttachments = ({ detail }: { detail: LeadDetail }) => {
     fileInputRef,
     handleAttachmentUpload,
     handleAttachmentDelete,
+    contacts,
+    fetchAttachments,
+    fetchContacts,
+    fetchLead,
   } = detail;
   return (
     <SectionCard className="rounded-xl p-4 mb-6">
@@ -119,6 +124,20 @@ export const LeadAttachments = ({ detail }: { detail: LeadDetail }) => {
                     >
                       Open
                     </a>
+                  </div>
+                )}
+
+                {isImage && att.businessCardScan && att.businessCardScan !== "NOT_BUSINESS_CARD" && (
+                  <div className="px-2 pt-1.5">
+                    <BusinessCardScanLine
+                      attachment={att}
+                      contacts={contacts}
+                      onChanged={() => {
+                        fetchAttachments();
+                        fetchContacts();
+                        fetchLead();
+                      }}
+                    />
                   </div>
                 )}
 

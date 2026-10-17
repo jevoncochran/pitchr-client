@@ -1,6 +1,7 @@
 import { formatPhone, toTelHref } from "../../lib/phone";
 import { SectionCard } from "../../components/ui/SectionCard";
 import { SectionHeader } from "../../components/ui/SectionHeader";
+import { BusinessCardSuggestions } from "../businessCards/BusinessCardScanLine";
 import type { LeadDetail } from "./useLeadDetail";
 
 /** The lead's contacts: add, edit, delete. */
@@ -19,6 +20,7 @@ export const LeadContacts = ({ detail }: { detail: LeadDetail }) => {
     resetContactForm,
     handleContactSave,
     handleContactDelete,
+    fetchContacts,
   } = detail;
   return (
     <SectionCard className="rounded-xl p-4 mb-6">
@@ -362,6 +364,10 @@ export const LeadContacts = ({ detail }: { detail: LeadDetail }) => {
                       </span>
                     )}
                   </div>
+                  <BusinessCardSuggestions
+                    suggestions={c.changeSuggestions}
+                    onChanged={fetchContacts}
+                  />
                 </div>
               </div>
               <div className="flex items-center gap-2 ml-4 flex-shrink-0">

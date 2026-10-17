@@ -80,7 +80,8 @@ export const AddToSessionDialog = ({
 
   if (!open) return null;
 
-  const canAddNew = business.trim() && industryId && businessTypeId;
+  // Industry and business type can be filled in later on the lead page
+  const canAddNew = business.trim();
 
   return (
     <div className="fixed inset-0 z-50 flex items-stretch md:items-center justify-center bg-black/40 md:p-4">
@@ -131,13 +132,13 @@ export const AddToSessionDialog = ({
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             <input autoFocus value={business} onChange={(e) => setBusiness(e.target.value)} placeholder="Business name" className={inputClass} />
             <select value={industryId} onChange={(e) => setIndustryId(e.target.value)} className={inputClass}>
-              <option value="">Industry</option>
+              <option value="">Industry (optional)</option>
               {industries.map((i) => (
                 <option key={i.id} value={i.id}>{i.name}</option>
               ))}
             </select>
             <select value={businessTypeId} onChange={(e) => setBusinessTypeId(e.target.value)} className={inputClass}>
-              <option value="">Business type</option>
+              <option value="">Business type (optional)</option>
               {businessTypes.map((b) => (
                 <option key={b.id} value={b.id}>{b.name}</option>
               ))}

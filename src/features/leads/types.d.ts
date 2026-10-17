@@ -5,8 +5,9 @@ interface Lead {
   business: string;
   locations: Location[];
   staff: unknown[];
-  industry: Industry;
-  businessType: BusinessType;
+  /** Optional: can be filled in after the lead is saved */
+  industry: Industry | null;
+  businessType: BusinessType | null;
   igHandle: string;
   igFollowerCount: number;
   email: string;
