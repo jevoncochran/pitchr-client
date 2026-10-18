@@ -8,6 +8,7 @@ import { SectionCard } from "../../components/ui/SectionCard";
 import { ConfirmModal } from "../../components/ui/ConfirmModal";
 import { LeadSnapshot } from "../leads/LeadSnapshot";
 import { LogVisitForm, VisitLog } from "./LogVisitForm";
+import type { DebriefResult } from "./debrief";
 import { MessageRow } from "./MessageRow";
 import {
   AddToSessionDialog,
@@ -203,10 +204,22 @@ const RunSessionPage = () => {
       comeBackAt: visit.comeBackAt,
       addBackToRoute: visit.addBackToRoute,
       contactIds: visit.contactIds,
-      newContact: visit.newContact,
+      newContacts: visit.newContacts,
+      contactUpdates: visit.contactUpdates,
+      debriefId: visit.debriefId,
       summary: visit.summary || null,
       leftMaterials: visit.leftMaterials,
     });
+
+  // "Fill in" (pitchr-server docs/visit-debrief.md): a dictated note becomes a
+  // proposal for the visit form; nothing is saved on the lead
+  const fillIn = async (note: string) => {
+    const res = await api.post<DebriefResult>(`/api/sessions/${id}/debrief`, {
+      ...(current ? { itemId: current.id } : { leadId: target?.leadId }),
+      note,
+    });
+    return res.data;
+  };
 
   const logMessage = (delivery: "SENT" | "FAILED", note: string, item?: SessionItem) =>
     log({ type, delivery, summary: note.trim() || null }, item);
@@ -429,6 +442,8 @@ const RunSessionPage = () => {
                   saving={saving}
                   onSave={logVisit}
                   onSkip={current ? () => skip(current) : undefined}
+                  // A visit to a lead in Pitchr (not a business added on the spot)
+                  onFillIn={type === "IN_PERSON" && target.leadId ? fillIn : undefined}
                 />
               ) : (
                 <MessageLogForm key={`${current?.id ?? target.business}-${type}`} saving={saving} onLog={(d, n) => logMessage(d, n)} />
