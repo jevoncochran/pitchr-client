@@ -135,6 +135,54 @@ describe("RunSessionPage (visits)", () => {
     expect(screen.getByText(/Stop 2 of 2/)).toBeInTheDocument();
   });
 
+  it("fills in the visit from a dictated note for the current stop, and logs it with the debrief", async () => {
+    const user = userEvent.setup();
+    mockApi.get.mockResolvedValue({ data: session() });
+    mockApi.post.mockImplementation((url: string) =>
+      Promise.resolve({
+        data: url.endsWith("/debrief")
+          ? {
+              debriefId: "d-1",
+              proposal: {
+                model: "claude-haiku-5-5",
+                outcome: "INTERESTED",
+                providerType: null,
+                comeBackDate: null,
+                comeBackTime: null,
+                comeBackEstimate: null,
+                leftMaterials: false,
+                summary: "We spoke with Dana, the owner, who wants pricing.",
+                people: [
+                  { contactId: "c-1", candidateContactIds: [], firstName: "Dana", lastName: "Lee", title: null, isDecisionMaker: null, spokeWith: true },
+                ],
+                questions: [],
+              },
+            }
+          : { session: session(), touchpointId: "tp-1", suggestedStage: null },
+      }),
+    );
+    renderPage();
+    await screen.findByRole("heading", { name: "Peak Roofing" });
+
+    await user.type(screen.getByLabelText("What happened?"), "talked to dana she wants pricing");
+    await user.click(screen.getByRole("button", { name: "Fill in" }));
+
+    expect(mockApi.post).toHaveBeenCalledWith("/api/sessions/s-1/debrief", {
+      itemId: "item-1",
+      note: "talked to dana she wants pricing",
+    });
+    await waitFor(() => expect(screen.getByLabelText("Summary")).toHaveValue("We spoke with Dana, the owner, who wants pricing."));
+    await user.click(screen.getByRole("button", { name: /Save & next/ }));
+
+    expect(mockApi.post).toHaveBeenCalledWith("/api/sessions/s-1/log", expect.objectContaining({
+      itemId: "item-1",
+      outcome: "INTERESTED",
+      contactIds: ["c-1"],
+      debriefId: "d-1",
+      summary: "We spoke with Dana, the owner, who wants pricing.",
+    }));
+  });
+
   it("re-optimizes the stops left from my location, from the map", async () => {
     Object.defineProperty(navigator, "geolocation", {
       configurable: true,

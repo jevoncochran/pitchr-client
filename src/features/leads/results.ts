@@ -33,6 +33,9 @@ export const OUTCOME_LABEL: Record<string, string> = Object.fromEntries(
   OUTCOMES.map((o) => [o.value, o.label]),
 );
 
+/** Outcomes that can come with a time to go back (a follow-up task is created) */
+export const COME_BACK_OUTCOMES = ["COME_BACK_LATER", "INTERESTED", "DECISION_MAKER_NOT_AVAILABLE"];
+
 /** Outcomes where nobody was reached (no "who did you talk to?") */
 export const NO_CONVERSATION_OUTCOMES = ["BUSINESS_CLOSED", "NO_ANSWER", "LEFT_VOICEMAIL"];
 
